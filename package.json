@@ -1,0 +1,33 @@
+{
+  "name": "hanamorph",
+  "version": "1.0.0",
+  "description": "CDS & Calculation View to Datasphere Migration Tool",
+  "repository": "https://github.com/Varad/HanaMorph",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@sap/cds": "^9.9.4",
+    "@sap/datasphere-cli": "^2026.22.0",
+    "@sap/hana-client": "^2.30.27",
+    "express": "^4.21.0",
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^2.4.3",
+    "@sap/cds-dk": "^9.9.3"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "credentials": {
+          "url": "db.sqlite"
+        }
+      }
+    }
+  }
+}
