@@ -1,0 +1,15 @@
+{
+  "USE_MOCK": true,
+  "hana": {
+    "host": "",
+    "port": 443,
+    "user": "",
+    "password": "",
+    "destinationName": "HANA_ONPREM_DEST",
+    "encrypt": true,
+    "sslValidateCertificate": false
+  },
+  "datasphere": {
+    "defaultSpace": "MIGRATION_SPACE"
+  }
+}

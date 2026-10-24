@@ -1,4 +1,5 @@
 const { XMLParser } = require('fast-xml-parser');
+const config = require('./config');
 const { EXTENDED_CATALOG } = require('../fixtures/extended-catalog');
 const hanaConnector = require('./hana-connector');
 
@@ -15,10 +16,14 @@ class ExtractService {
      * @param {string} viewName 
      */
     async extractCDS(viewName) {
-        let view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
-        let ddl = view?.sqlDdl;
+        let ddl = null;
+        let sqlViewName = viewName;
 
-        if (!ddl && hanaConnector.isConnected) {
+        if (config.USE_MOCK) {
+            const view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+            ddl = view?.sqlDdl;
+            sqlViewName = view?.sqlViewName || viewName;
+        } else {
             ddl = await hanaConnector.getCdsViewDefinition(viewName);
         }
 
@@ -26,9 +31,7 @@ class ExtractService {
             throw new Error(`CDS View '${viewName}' definition could not be resolved from catalog.`);
         }
 
-        const sqlViewName = view?.sqlViewName || viewName;
-        const internalModel = this._parseCdsDdl(viewName, ddl, sqlViewName);
-        return internalModel;
+        return this._parseCdsDdl(viewName, ddl, sqlViewName);
     }
 
     /**
@@ -36,10 +39,12 @@ class ExtractService {
      * @param {string} viewName 
      */
     async extractCalc(viewName) {
-        let view = EXTENDED_CATALOG.find(v => v.name === viewName);
-        let xmlDef = view?.xmlDefinition;
+        let xmlDef = null;
 
-        if (!xmlDef && hanaConnector.isConnected) {
+        if (config.USE_MOCK) {
+            const view = EXTENDED_CATALOG.find(v => v.name === viewName);
+            xmlDef = view?.xmlDefinition;
+        } else {
             xmlDef = await hanaConnector.getCalcViewXml(viewName);
         }
 
@@ -48,15 +53,13 @@ class ExtractService {
         }
 
         const parsedXml = this.xmlParser.parse(xmlDef);
-        const internalModel = this._parseCalcViewXml(viewName, parsedXml);
-        return internalModel;
+        return this._parseCalcViewXml(viewName, parsedXml);
     }
 
     /**
      * Parse SQL DDL of CDS view into common AST
      */
     _parseCdsDdl(viewName, ddl, sqlViewName) {
-        // Match SELECT ... FROM
         const selectMatch = ddl.match(/SELECT([\s\S]+?)FROM([\s\S]+)/i);
         if (!selectMatch) {
             throw new Error(`Unable to parse SELECT clause from DDL for view ${viewName}`);
@@ -65,7 +68,6 @@ class ExtractService {
         const selectPart = selectMatch[1].trim();
         const fromPart = selectMatch[2].trim();
 
-        // Extract Columns
         const columns = selectPart.split(',').map(colStr => {
             const clean = colStr.trim();
             const asMatch = clean.match(/(?:(\w+)\.)?(\w+)\s+AS\s+(\w+)/i);
@@ -80,16 +82,14 @@ class ExtractService {
             }
             return {
                 name: clean.replace(/"/g, ''),
-                dataType: 'cds.String',
+                dataType: 'cds.String(40)',
                 isKey: false
             };
         });
 
-        // Extract Sources and Joins
         const sources = [];
         const joins = [];
 
-        // Base table
         const fromMatch = fromPart.match(/^"(\w+)"\s+(\w+)/i);
         if (fromMatch) {
             sources.push({
@@ -99,7 +99,6 @@ class ExtractService {
             });
         }
 
-        // Joins
         const joinRegex = /(INNER JOIN|LEFT OUTER JOIN|RIGHT OUTER JOIN|FULL OUTER JOIN)\s+"(\w+)"\s+(\w+)\s+ON\s+([\w\s.="]+?)(?=(INNER JOIN|LEFT OUTER JOIN|RIGHT OUTER JOIN|FULL OUTER JOIN|$))/gi;
         let match;
         while ((match = joinRegex.exec(fromPart)) !== null) {

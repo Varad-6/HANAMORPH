@@ -1,0 +1,96 @@
+{
+  "_version": "1.32.0",
+  "sap.app": {
+    "id": "hanamorph",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/odata/v4/migration/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "4.0"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    }
+  },
+  "sap.ui5": {
+    "rootView": {
+      "viewName": "hanamorph.view.App",
+      "type": "XML",
+      "async": true,
+      "id": "app"
+    },
+    "dependencies": {
+      "minUI5Version": "1.108.0",
+      "libs": {
+        "sap.ui.core": {},
+        "sap.m": {},
+        "sap.ui.layout": {},
+        "sap.f": {}
+      }
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "hanamorph.i18n.i18n"
+        }
+      }
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "viewType": "XML",
+        "viewPath": "hanamorph.view",
+        "controlId": "app",
+        "controlAggregation": "pages",
+        "async": true
+      },
+      "routes": [
+        {
+          "name": "landing",
+          "pattern": "",
+          "target": "landing"
+        },
+        {
+          "name": "cds",
+          "pattern": "cds",
+          "target": "cds"
+        },
+        {
+          "name": "calcview",
+          "pattern": "calcview",
+          "target": "calcview"
+        }
+      ],
+      "targets": {
+        "landing": {
+          "viewName": "Landing",
+          "viewLevel": 1
+        },
+        "cds": {
+          "viewName": "CdsPipeline",
+          "viewLevel": 2
+        },
+        "calcview": {
+          "viewName": "CalcViewPipeline",
+          "viewLevel": 2
+        }
+      }
+    }
+  }
+}

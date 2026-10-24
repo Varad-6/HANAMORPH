@@ -1,0 +1,271 @@
+<mvc:View
+    controllerName="hanamorph.controller.CdsPipeline"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout">
+    <Page
+        id="cdsPipelinePage"
+        title="{i18n>tileCdsTitle} Migration"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        enableScrolling="true">
+        <headerContent>
+            <ObjectStatus
+                text="{i18n>connStatusMock}"
+                state="Warning"
+                icon="sap-icon://alert"
+                visible="{system>/useMock}"
+                class="sapUiSmallMarginEnd" />
+            <ObjectStatus
+                text="{= ${system>/hanaConnected} ? ${i18n>connStatusConnected} : ${i18n>connStatusDisconnected} }"
+                state="{= ${system>/hanaConnected} ? 'Success' : 'Error' }"
+                icon="{= ${system>/hanaConnected} ? 'sap-icon://connected' : 'sap-icon://disconnected' }" />
+        </headerContent>
+        <content>
+            <!-- Single-Column Centered Vertical Layout with Generous Whitespace -->
+            <VBox
+                width="100%"
+                alignItems="Center"
+                class="sapUiLargeMarginTop sapUiLargeMarginBottom">
+                
+                <VBox width="920px" class="sapUiResponsiveMargin">
+                    
+                    <!-- STEP 1: IMPORT & VIEW SELECTOR -->
+                    <Panel
+                        headerText="1. Source View Selection"
+                        expandable="false"
+                        class="sapUiMediumMarginBottom">
+                        <content>
+                            <VBox busy="{/isBusy}" busyIndicatorDelay="0">
+                                <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                    <Button
+                                        text="{i18n>btnImport}"
+                                        icon="sap-icon://synchronize"
+                                        type="Emphasized"
+                                        press=".onImportViews"
+                                        enabled="{= !${/isJobRunning} }"
+                                        class="sapUiSmallMarginEnd" />
+                                    
+                                    <ComboBox
+                                        id="cdsViewSelector"
+                                        placeholder="{i18n>placeholderSelectView}"
+                                        width="520px"
+                                        enabled="{= ${/hasImported} &amp;&amp; !${/isJobRunning} }"
+                                        selectedKey="{/selectedViewName}"
+                                        selectionChange=".onViewChange"
+                                        items="{
+                                            path: '/views',
+                                            sorter: { path: 'name' }
+                                        }">
+                                        <core:ListItem
+                                            key="{name}"
+                                            text="{name}"
+                                            additionalText="{description}" />
+                                    </ComboBox>
+                                </HBox>
+
+                                <!-- Error State Message -->
+                                <MessageStrip
+                                    text="{/errorViewsText}"
+                                    type="Error"
+                                    showIcon="true"
+                                    visible="{/hasError}"
+                                    class="sapUiSmallMarginTop" />
+
+                                <!-- Empty State Prompt -->
+                                <Text
+                                    text="{/emptyViewsText}"
+                                    visible="{= !${/hasImported} &amp;&amp; !${/hasError} }"
+                                    class="sapUiSmallMarginTop sapUiSmallMarginBottom text-muted" />
+                            </VBox>
+                        </content>
+                    </Panel>
+
+                    <!-- STEP 2: ARTIFACT SECTION (Appears BELOW selector) -->
+                    <Panel
+                        id="artifactPanel"
+                        headerText="{= '2. Artifacts for ' + ${/selectedViewName} }"
+                        visible="{/hasArtifacts}"
+                        expandable="false"
+                        class="sapUiMediumMarginBottom">
+                        <content>
+                            <VBox busy="{/isArtifactsBusy}" busyIndicatorDelay="0">
+                                <Table
+                                    id="artifactTable"
+                                    mode="MultiSelect"
+                                    items="{/artifacts}"
+                                    growing="false"
+                                    class="sapUiSmallMarginBottom">
+                                    <headerToolbar>
+                                        <OverflowToolbar>
+                                            <Title text="Artifact Components" level="H5" />
+                                            <ToolbarSpacer />
+                                            <Text text="{= ${/selectedView/columnCount} + ' total columns' }" />
+                                        </OverflowToolbar>
+                                    </headerToolbar>
+                                    <columns>
+                                        <Column width="140px">
+                                            <Text text="{i18n>colType}" />
+                                        </Column>
+                                        <Column width="320px">
+                                            <Text text="{i18n>colName}" />
+                                        </Column>
+                                        <Column width="110px" hAlign="Center">
+                                            <Text text="{i18n>colColumns}" />
+                                        </Column>
+                                        <Column>
+                                            <Text text="{i18n>colDetails}" />
+                                        </Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem selected="{selected}">
+                                            <cells>
+                                                <ObjectStatus
+                                                    text="{artifactType}"
+                                                    state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success') }" />
+                                                <Text text="{name}" wrapping="false" />
+                                                <Text text="{columnCount}" />
+                                                <Text text="{details}" maxLines="1" />
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+
+                                <!-- STEP 3: TRANSFER BUTTON (Directly under artifact table) -->
+                                <HBox justifyContent="End" class="sapUiMediumMarginTop">
+                                    <Button
+                                        id="transferButton"
+                                        text="{i18n>btnTransfer}"
+                                        icon="sap-icon://upload-to-cloud"
+                                        type="Emphasized"
+                                        enabled="{= !${/isJobRunning} }"
+                                        press=".onTransfer" />
+                                </HBox>
+                            </VBox>
+                        </content>
+                    </Panel>
+
+                    <!-- STEP 4: JOB STATUS STRIP (Below the table) -->
+                    <Panel
+                        id="jobStatusPanel"
+                        headerText="3. Migration Status &amp; Execution Pipeline"
+                        visible="{= !!${/job} }"
+                        expandable="false"
+                        class="sapUiMediumMarginBottom">
+                        <content>
+                            <VBox class="sapUiSmallMargin">
+                                <!-- Status Strip (5 Stages: Extracting -> Transforming -> Deploying -> Loading -> Done/Failed) -->
+                                <HBox
+                                    justifyContent="SpaceBetween"
+                                    alignItems="Center"
+                                    class="sapUiMediumMarginBottom">
+                                    
+                                    <!-- Stage 1: Extracting -->
+                                    <VBox alignItems="Center">
+                                        <core:Icon
+                                            src="sap-icon://pull-down"
+                                            size="1.5rem"
+                                            color="{= ${/job/progress} >= 20 ? '#0a6ed1' : '#8c9ba5' }" />
+                                        <Text
+                                            text="{i18n>stageExtracting}"
+                                            class="{= ${/currentStage} === 'EXTRACTING' ? 'sapUiBold' : '' }" />
+                                    </VBox>
+
+                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+
+                                    <!-- Stage 2: Transforming -->
+                                    <VBox alignItems="Center">
+                                        <core:Icon
+                                            src="sap-icon://syntax"
+                                            size="1.5rem"
+                                            color="{= ${/job/progress} >= 50 ? '#0a6ed1' : '#8c9ba5' }" />
+                                        <Text
+                                            text="{i18n>stageTransforming}"
+                                            class="{= ${/currentStage} === 'TRANSFORMING' ? 'sapUiBold' : '' }" />
+                                    </VBox>
+
+                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+
+                                    <!-- Stage 3: Deploying -->
+                                    <VBox alignItems="Center">
+                                        <core:Icon
+                                            src="sap-icon://upload-to-cloud"
+                                            size="1.5rem"
+                                            color="{= ${/job/progress} >= 75 ? '#0a6ed1' : '#8c9ba5' }" />
+                                        <Text
+                                            text="{i18n>stageDeploying}"
+                                            class="{= ${/currentStage} === 'DEPLOYING' ? 'sapUiBold' : '' }" />
+                                    </VBox>
+
+                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+
+                                    <!-- Stage 4: Loading -->
+                                    <VBox alignItems="Center">
+                                        <core:Icon
+                                            src="sap-icon://database"
+                                            size="1.5rem"
+                                            color="{= ${/job/progress} >= 90 ? '#0a6ed1' : '#8c9ba5' }" />
+                                        <Text
+                                            text="{i18n>stageLoading}"
+                                            class="{= ${/currentStage} === 'LOADING' ? 'sapUiBold' : '' }" />
+                                    </VBox>
+
+                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+
+                                    <!-- Stage 5: Done / Failed -->
+                                    <VBox alignItems="Center">
+                                        <core:Icon
+                                            src="{= ${/job/status} === 'FAILED' ? 'sap-icon://error' : 'sap-icon://sys-enter-2' }"
+                                            size="1.5rem"
+                                            color="{= ${/job/status} === 'FAILED' ? '#bb0000' : (${/job/status} === 'COMPLETED' ? '#107e3e' : '#8c9ba5') }" />
+                                        <Text
+                                            text="{= ${/job/status} === 'FAILED' ? ${i18n>stageFailed} : ${i18n>stageDone} }"
+                                            class="{= ${/job/status} === 'COMPLETED' || ${/job/status} === 'FAILED' ? 'sapUiBold' : '' }" />
+                                    </VBox>
+
+                                </HBox>
+
+                                <!-- Progress Bar -->
+                                <ProgressIndicator
+                                    percentValue="{/job/progress}"
+                                    displayValue="{/job/status} ({/job/progress}%)"
+                                    state="{= ${/job/status} === 'FAILED' ? 'Error' : (${/job/status} === 'COMPLETED' ? 'Success' : 'Information') }"
+                                    class="sapUiSmallMarginBottom" />
+
+                                <!-- Error Text on Failure -->
+                                <MessageStrip
+                                    text="{= ${i18n>msgJobFailed} + ' ' + ${/job/errorMessage} }"
+                                    type="Error"
+                                    showIcon="true"
+                                    visible="{= ${/job/status} === 'FAILED' }"
+                                    class="sapUiSmallMarginTop" />
+
+                                <!-- Success Message on Done -->
+                                <MessageStrip
+                                    text="{= ${i18n>msgJobSuccess} + ' ' + ${/job/targetRowCount} + ' records loaded into Datasphere.' }"
+                                    type="Success"
+                                    showIcon="true"
+                                    visible="{= ${/job/status} === 'COMPLETED' }"
+                                    class="sapUiSmallMarginTop" />
+
+                                <!-- Actions on Success -->
+                                <HBox
+                                    justifyContent="End"
+                                    visible="{= ${/job/status} === 'COMPLETED' }"
+                                    class="sapUiMediumMarginTop">
+                                    <Button
+                                        text="{i18n>btnDownloadCsn}"
+                                        icon="sap-icon://download"
+                                        type="Default"
+                                        press=".onDownloadCsn" />
+                                </HBox>
+                            </VBox>
+                        </content>
+                    </Panel>
+
+                </VBox>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

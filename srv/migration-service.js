@@ -1,4 +1,5 @@
 const cds = require('@sap/cds');
+const config = require('./lib/config');
 const extractService = require('./lib/extract-service');
 const transformService = require('./lib/transform-service');
 const deployService = require('./lib/deploy-service');
@@ -8,63 +9,86 @@ const { EXTENDED_CATALOG } = require('./fixtures/extended-catalog');
 module.exports = cds.service.impl(async function () {
     const { SourceCatalog, ViewArtifacts, MigrationJobs, JobLogs } = this.entities;
 
-    // Auto-seed catalog if empty on initial query
-    this.on('READ', 'SourceCatalog', async (req, next) => {
-        const count = await SELECT.from(SourceCatalog).columns('count(*) as count');
-        if (!count || count[0]?.count === 0) {
-            await this.send('importCatalog', { sourceType: 'ALL' });
-        }
-        return next();
+    /**
+     * Function: getSystemInfo
+     */
+    this.on('getSystemInfo', async () => {
+        return await hanaConnector.getStatus();
     });
 
     /**
-     * Action: importCatalog
+     * Function: listCDSViews
+     * Direct user-specified CAP endpoint
      */
-    this.on('importCatalog', async req => {
-        const { sourceType = 'ALL' } = req.data;
-        let cdsViews = [];
-        let calcViews = [];
-
-        if (sourceType === 'ALL' || sourceType === 'CDS') {
-            cdsViews = await hanaConnector.listCDSViews();
-        }
-
-        if (sourceType === 'ALL' || sourceType === 'CALC_VIEW') {
-            calcViews = await hanaConnector.listCalcViews();
-        }
-
-        const allEntries = [...cdsViews, ...calcViews];
-
-        for (const entry of allEntries) {
+    this.on('listCDSViews', async () => {
+        const views = await hanaConnector.listCDSViews();
+        // Sync into DB for catalog reference
+        for (const v of views) {
             await UPSERT.into(SourceCatalog).entries({
-                name: entry.name,
-                type: entry.type,
-                sqlViewName: entry.sqlViewName,
-                description: entry.description,
-                packageOrSchema: entry.packageOrSchema,
-                columnCount: entry.columnCount || 0,
-                hasAggregations: !!entry.hasAggregations,
-                supportedStatus: entry.supportedStatus || 'SUPPORTED',
-                unsupportedReasons: entry.unsupportedReasons || null
+                name: v.name,
+                type: 'CDS',
+                sqlViewName: v.sqlViewName,
+                description: v.description,
+                packageOrSchema: v.packageOrSchema,
+                columnCount: v.columnCount || 0,
+                hasAggregations: false,
+                supportedStatus: v.supportedStatus || 'SUPPORTED',
+                unsupportedReasons: v.unsupportedReasons || null
             });
         }
-
-        return await SELECT.from(SourceCatalog);
+        return views;
     });
 
     /**
-     * Function: getArtifacts
+     * Function: listCalcViews
+     * Direct user-specified CAP endpoint
+     */
+    this.on('listCalcViews', async () => {
+        const views = await hanaConnector.listCalcViews();
+        // Sync into DB for catalog reference
+        for (const v of views) {
+            await UPSERT.into(SourceCatalog).entries({
+                name: v.name,
+                type: 'CALC_VIEW',
+                sqlViewName: v.sqlViewName,
+                description: v.description,
+                packageOrSchema: v.packageOrSchema,
+                columnCount: v.columnCount || 0,
+                hasAggregations: true,
+                supportedStatus: v.supportedStatus || 'SUPPORTED',
+                unsupportedReasons: v.unsupportedReasons || null
+            });
+        }
+        return views;
+    });
+
+    /**
+     * Function: getArtifacts(viewName)
+     * Direct user-specified CAP endpoint
      */
     this.on('getArtifacts', async req => {
         const { viewName } = req.data;
         if (!viewName) return [];
 
-        const view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
-        const artifacts = [];
+        let view = null;
+        if (config.USE_MOCK) {
+            view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+        } else {
+            // Live query catalog
+            const deps = await hanaConnector.getDependencies(viewName);
+            view = {
+                name: viewName,
+                type: viewName.startsWith('CA_') ? 'CALC_VIEW' : 'CDS',
+                sqlViewName: viewName,
+                columnCount: 20,
+                dependencies: deps
+            };
+        }
 
+        const artifacts = [];
         if (view) {
             const isCds = view.type === 'CDS';
-            const depNames = (view.dependencies || []).map(d => d.BASE_OBJECT_NAME).join(', ') || 'N/A';
+            const depNames = (view.dependencies || []).map(d => d.BASE_OBJECT_NAME).join(', ') || 'Source Tables';
 
             // 1. Table Artifact
             artifacts.push({
@@ -74,7 +98,7 @@ module.exports = cds.service.impl(async function () {
                 name: `Underlying Tables (${depNames})`,
                 columnCount: view.columnCount,
                 details: isCds 
-                    ? `Physical tables referenced by CDS view: ${depNames}`
+                    ? `Physical tables referenced by view: ${depNames}`
                     : `Base DataSources in calculation scenario: ${depNames}`
             });
 
@@ -85,7 +109,7 @@ module.exports = cds.service.impl(async function () {
                 artifactType: 'SQL',
                 name: isCds ? `Catalog SQL View (${view.sqlViewName})` : `Calc View XML Definition`,
                 columnCount: view.columnCount,
-                details: isCds ? view.sqlDdl : view.xmlDefinition
+                details: isCds ? (view.sqlDdl || 'SQL DDL definition') : (view.xmlDefinition || 'XML scenario definition')
             });
 
             // 3. Graphical Artifact
@@ -105,26 +129,27 @@ module.exports = cds.service.impl(async function () {
     });
 
     /**
-     * Action: triggerMigration
+     * Action: startJob(viewName, viewType, artifacts, targetSpace)
+     * Direct user-specified CAP endpoint
      */
-    this.on('triggerMigration', async req => {
-        const { sourceViewName, sourceViewType, targetSpace = 'MIGRATION_SPACE', targetViewName } = req.data;
-        const finalTargetView = targetViewName || sourceViewName;
+    this.on('startJob', async req => {
+        const { viewName, viewType = 'CDS', artifacts = [], targetSpace = config.datasphere.defaultSpace } = req.data;
+        const targetViewName = `${viewName}_DS`;
 
         const jobId = cds.utils.uuid();
         const job = {
             ID: jobId,
-            sourceViewName,
-            sourceViewType,
+            sourceViewName: viewName,
+            sourceViewType: viewType,
             targetSpace,
-            targetViewName: finalTargetView,
+            targetViewName,
             status: 'PENDING',
             progress: 0
         };
 
         await INSERT.into(MigrationJobs).entries(job);
 
-        // Async execution of pipeline stages
+        // Async execution of the 4 pipeline stages: Extracting -> Transforming -> Deploying -> Loading -> Done
         setTimeout(async () => {
             const addLog = async (level, message) => {
                 await INSERT.into(JobLogs).entries({
@@ -137,55 +162,75 @@ module.exports = cds.service.impl(async function () {
             };
 
             try {
-                // STEP 1: EXTRACTING (20%)
+                // STAGE 1: Extracting
                 await UPDATE(MigrationJobs, jobId).with({ status: 'EXTRACTING', progress: 20 });
-                await addLog('INFO', `Starting extraction for ${sourceViewType} view '${sourceViewName}'...`);
+                await addLog('INFO', `[Stage 1: Extracting] Fetching definition and metadata for ${viewType} '${viewName}'...`);
 
                 let internalModel;
-                if (sourceViewType === 'CDS') {
-                    internalModel = await extractService.extractCDS(sourceViewName);
+                if (viewType === 'CDS') {
+                    internalModel = await extractService.extractCDS(viewName);
                 } else {
-                    internalModel = await extractService.extractCalc(sourceViewName);
+                    internalModel = await extractService.extractCalc(viewName);
                 }
-                await addLog('INFO', `Extracted internal model: ${internalModel.columns.length} columns, ${internalModel.sources.length} sources, ${internalModel.joins.length} joins.`);
+                await addLog('INFO', `Extracted model with ${internalModel.columns.length} columns and ${internalModel.sources.length} sources.`);
 
-                // STEP 2: TRANSFORMING (50%)
-                await UPDATE(MigrationJobs, jobId).with({ status: 'TRANSFORMING', progress: 50 });
-                await addLog('INFO', `Transforming internal model to Datasphere CSN JSON & SQL...`);
+                // STAGE 2: Transforming
+                await UPDATE(MigrationJobs, jobId).with({ status: 'TRANSFORMING', progress: 45 });
+                await addLog('INFO', `[Stage 2: Transforming] Generating Datasphere CSN JSON & SQL representation...`);
 
-                const transformResult = transformService.transformToCSN(internalModel, targetSpace, finalTargetView);
+                const transformResult = transformService.transformToCSN(internalModel, targetSpace, targetViewName);
                 await UPDATE(MigrationJobs, jobId).with({
                     csnPayload: transformResult.csnString,
                     generatedSql: transformResult.generatedSql
                 });
-                await addLog('INFO', `Datasphere CSN generated successfully with ${Object.keys(transformResult.csn.definitions).length} entities.`);
+                await addLog('INFO', `CSN schema generated with ${Object.keys(transformResult.csn.definitions).length} entities.`);
 
-                // STEP 3: DEPLOYING (75%)
-                await UPDATE(MigrationJobs, jobId).with({ status: 'DEPLOYING', progress: 75 });
+                // STAGE 3: Deploying
+                await UPDATE(MigrationJobs, jobId).with({ status: 'DEPLOYING', progress: 70 });
+                await addLog('INFO', `[Stage 3: Deploying] Deploying view to Datasphere space '${targetSpace}'...`);
                 await deployService.deployCSN(targetSpace, transformResult.csnString, addLog);
 
-                // STEP 4: LOADING (90%)
+                // STAGE 4: Loading
                 await UPDATE(MigrationJobs, jobId).with({ status: 'LOADING', progress: 90 });
-                const loadResult = await deployService.triggerDataLoad(targetSpace, finalTargetView, addLog);
+                await addLog('INFO', `[Stage 4: Loading] Triggering data replication for '${targetViewName}'...`);
+                const loadResult = await deployService.triggerDataLoad(targetSpace, targetViewName, addLog);
 
-                // STEP 5: COMPLETED (100%)
+                // STAGE 5: Done
                 await UPDATE(MigrationJobs, jobId).with({
                     status: 'COMPLETED',
                     progress: 100,
                     sourceRowCount: loadResult.rowCount,
                     targetRowCount: loadResult.rowCount
                 });
-                await addLog('INFO', `Migration successfully finished! View is ready in Datasphere space '${targetSpace}'.`);
+                await addLog('INFO', `[Done] Migration and replication completed successfully. Replicated ${loadResult.rowCount} rows.`);
             } catch (err) {
+                console.error('[Job Failed]', err);
                 await UPDATE(MigrationJobs, jobId).with({
                     status: 'FAILED',
                     errorMessage: err.message
                 });
-                await addLog('ERROR', `Pipeline error: ${err.message}`);
+                await addLog('ERROR', `Pipeline failed: ${err.message}`);
             }
         }, 50);
 
         return await SELECT.one.from(MigrationJobs, jobId);
+    });
+
+    /**
+     * Function: getJobStatus(jobId)
+     * Direct user-specified CAP endpoint
+     */
+    this.on('getJobStatus', async req => {
+        const { jobId } = req.data;
+        const job = await SELECT.one.from(MigrationJobs, jobId);
+        if (!job) {
+            req.reject(404, `Job '${jobId}' not found.`);
+        }
+        const logs = await SELECT.from(JobLogs).where({ job_ID: jobId }).orderBy('timestamp asc');
+        return {
+            ...job,
+            logs
+        };
     });
 
     /**

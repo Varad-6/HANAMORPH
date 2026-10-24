@@ -1,4 +1,5 @@
 const hana = require('@sap/hana-client');
+const config = require('./config');
 const { EXTENDED_CATALOG } = require('../fixtures/extended-catalog');
 
 class HanaConnector {
@@ -8,16 +9,37 @@ class HanaConnector {
     }
 
     /**
-     * Connect to live HANA DB via direct host/port or BTP Destination
-     * @param {object} connectionParams 
+     * Check if HANA is connected or mock is enabled
      */
-    async connect(connectionParams = {}) {
-        const host = connectionParams.host || process.env.HANA_HOST;
-        const port = connectionParams.port || process.env.HANA_PORT;
-        const user = connectionParams.user || process.env.HANA_USER;
-        const password = connectionParams.password || process.env.HANA_PASSWORD;
+    async getStatus() {
+        if (config.USE_MOCK) {
+            return {
+                useMock: true,
+                hanaConnected: true,
+                mode: 'MOCK DATA',
+                datasphereConnected: true
+            };
+        }
 
-        if (!host || !port || !user || !password) {
+        const isLive = await this.ensureConnected();
+        return {
+            useMock: false,
+            hanaConnected: isLive,
+            mode: isLive ? 'LIVE HANA' : 'DISCONNECTED',
+            datasphereConnected: true
+        };
+    }
+
+    /**
+     * Connect to live HANA DB via direct host/port or BTP Destination
+     */
+    async ensureConnected() {
+        if (this.isConnected && this.client) {
+            return true;
+        }
+
+        const hanaConfig = config.hana;
+        if (!hanaConfig.host || !hanaConfig.user || !hanaConfig.password) {
             this.isConnected = false;
             return false;
         }
@@ -26,11 +48,11 @@ class HanaConnector {
             const conn = hana.createConnection();
             await new Promise((resolve, reject) => {
                 conn.connect({
-                    serverNode: `${host}:${port}`,
-                    uid: user,
-                    pwd: password,
-                    encrypt: connectionParams.encrypt || true,
-                    sslValidateCertificate: connectionParams.sslValidateCertificate || false
+                    serverNode: `${hanaConfig.host}:${hanaConfig.port}`,
+                    uid: hanaConfig.user,
+                    pwd: hanaConfig.password,
+                    encrypt: hanaConfig.encrypt,
+                    sslValidateCertificate: hanaConfig.sslValidateCertificate
                 }, err => {
                     if (err) reject(err);
                     else resolve();
@@ -40,7 +62,7 @@ class HanaConnector {
             this.isConnected = true;
             return true;
         } catch (err) {
-            console.warn('[HanaConnector] Live HANA connection failed, using local/fallback mode:', err.message);
+            console.error('[HanaConnector] Live HANA connection failed:', err.message);
             this.isConnected = false;
             return false;
         }
@@ -50,8 +72,13 @@ class HanaConnector {
      * Fetch list of CDS views from ABAP dictionary and HANA catalog
      */
     async listCDSViews() {
-        if (!this.isConnected) {
+        if (config.USE_MOCK) {
             return EXTENDED_CATALOG.filter(v => v.type === 'CDS');
+        }
+
+        const connected = await this.ensureConnected();
+        if (!connected) {
+            throw new Error('Cannot list CDS views: Live HANA DB connection is not configured or unreachable.');
         }
 
         const sql = `
@@ -67,7 +94,8 @@ class HanaConnector {
             FROM SAPABAP1.DDDDLSRC d
             LEFT JOIN SYS.VIEWS v ON v.VIEW_NAME = d.VIEWNAME
             WHERE d.AS4LOCAL = 'A'
-            LIMIT 100
+            ORDER BY d.DDLNAME ASC
+            LIMIT 200
         `;
 
         return await this._execQuery(sql);
@@ -77,8 +105,13 @@ class HanaConnector {
      * Fetch list of Calculation Views from _SYS_REPO.ACTIVE_OBJECT
      */
     async listCalcViews() {
-        if (!this.isConnected) {
+        if (config.USE_MOCK) {
             return EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
+        }
+
+        const connected = await this.ensureConnected();
+        if (!connected) {
+            throw new Error('Cannot list Calculation views: Live HANA DB connection is not configured or unreachable.');
         }
 
         const sql = `
@@ -93,7 +126,8 @@ class HanaConnector {
                 'SUPPORTED' AS "supportedStatus"
             FROM _SYS_REPO.ACTIVE_OBJECT
             WHERE OBJECT_SUFFIX = 'calculationview'
-            LIMIT 100
+            ORDER BY OBJECT_NAME ASC
+            LIMIT 200
         `;
 
         return await this._execQuery(sql);
@@ -103,9 +137,14 @@ class HanaConnector {
      * Get SQL view DDL from SYS.VIEWS
      */
     async getCdsViewDefinition(sqlViewName) {
-        if (!this.isConnected) {
+        if (config.USE_MOCK) {
             const entry = EXTENDED_CATALOG.find(v => v.sqlViewName === sqlViewName || v.name === sqlViewName);
             return entry?.sqlDdl || null;
+        }
+
+        const connected = await this.ensureConnected();
+        if (!connected) {
+            throw new Error(`Cannot get CDS view definition: Live HANA DB connection is not configured.`);
         }
 
         const sql = `SELECT DEFINITION FROM SYS.VIEWS WHERE VIEW_NAME = ?`;
@@ -116,10 +155,15 @@ class HanaConnector {
     /**
      * Get Calculation View XML from _SYS_REPO.ACTIVE_OBJECT
      */
-    async getCalcViewXml(objectName, packageId) {
-        if (!this.isConnected) {
+    async getCalcViewXml(objectName) {
+        if (config.USE_MOCK) {
             const entry = EXTENDED_CATALOG.find(v => v.name === objectName);
             return entry?.xmlDefinition || null;
+        }
+
+        const connected = await this.ensureConnected();
+        if (!connected) {
+            throw new Error(`Cannot get Calculation view XML: Live HANA DB connection is not configured.`);
         }
 
         const sql = `SELECT CDATA FROM _SYS_REPO.ACTIVE_OBJECT WHERE OBJECT_NAME = ? AND OBJECT_SUFFIX = 'calculationview'`;
@@ -131,10 +175,13 @@ class HanaConnector {
      * Query table dependencies from SYS.OBJECT_DEPENDENCIES
      */
     async getDependencies(viewName) {
-        if (!this.isConnected) {
+        if (config.USE_MOCK) {
             const entry = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
             return entry?.dependencies || [];
         }
+
+        const connected = await this.ensureConnected();
+        if (!connected) return [];
 
         const sql = `
             SELECT BASE_OBJECT_NAME, BASE_OBJECT_TYPE
