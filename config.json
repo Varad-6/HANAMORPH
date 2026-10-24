@@ -1,5 +1,5 @@
 {
-  "USE_MOCK": true,
+  "USE_MOCK": false,
   "hana": {
     "host": "",
     "port": 443,
@@ -10,6 +10,10 @@
     "sslValidateCertificate": false
   },
   "datasphere": {
-    "defaultSpace": "MIGRATION_SPACE"
+    "host": "https://ais-bdc-dsp-tdd.eu10.hcs.cloud.sap",
+    "tokenUrl": "https://ais-bdc-dsp-tdd.authentication.eu10.hana.ondemand.com/oauth/token",
+    "defaultSpace": "AIS_HARMONIZATION_",
+    "clientId": "sb-67f98852-4c47-4ce9-9a07-759e5be0632c!b719915|client!b3650",
+    "clientSecret": "975f03aa-478a-4f77-a2f3-17e766847f0c$LYePYJPnh7Oqbr-20VtCie3RJg0773ud380hfFNscOI="
   }
 }

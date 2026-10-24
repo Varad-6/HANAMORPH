@@ -1,15 +1,23 @@
 class TransformService {
     /**
      * Transform internal model into Datasphere-ready CSN JSON
+     * Generates BOTH:
+     * 1. Datasphere View (HANA Fact View equivalent with @Analytics.dataCategory: #CUBE or #DIMENSION)
+     * 2. Datasphere Analytic Model (consumption-ready for SAC/BI)
+     * 
      * @param {object} model Internal representation
      * @param {string} targetSpace Datasphere target space name
      * @param {string} targetViewName Datasphere target view name
      */
-    transformToCSN(model, targetSpace = 'MY_SPACE', targetViewName) {
-        const viewName = targetViewName || model.viewName;
-        const qualifiedName = `${targetSpace}.${viewName}`;
+    transformToCSN(model, targetSpace = 'AIS_HARMONIZATION_', targetViewName) {
+        const viewName = targetViewName || `${model.viewName}_DS`;
+        const analyticModelName = `${viewName}_AM`;
+        const qualifiedViewName = `${targetSpace}.${viewName}`;
+        const qualifiedAmName = `${targetSpace}.${analyticModelName}`;
 
         const elements = {};
+        const amElements = {};
+
         for (const col of model.columns) {
             const elem = {
                 type: col.dataType.startsWith('cds.') ? col.dataType : `cds.${col.dataType}`
@@ -25,6 +33,17 @@ class TransformService {
             }
 
             elements[col.name] = elem;
+
+            // Analytic Model elements
+            amElements[col.name] = {
+                type: elem.type,
+                ...(col.isMeasure ? {
+                    '@Analytics.measure': true,
+                    '@Aggregation.default': `#${col.aggregationType || 'SUM'}`
+                } : {
+                    '@Analytics.dimension': true
+                })
+            };
         }
 
         const csn = {
@@ -32,19 +51,31 @@ class TransformService {
             meta: {
                 creator: 'HanaMorph Migration Engine',
                 sourceType: model.viewType,
-                sourceView: model.viewName
+                sourceView: model.viewName,
+                targetSpace: targetSpace
             },
             definitions: {
-                [qualifiedName]: {
+                // 1. DATA LAYER: Datasphere View (HANA Fact / Dimension View)
+                [qualifiedViewName]: {
                     kind: 'entity',
-                    '@EndUserText.label': `Migrated from ${model.viewName} (${model.viewType})`,
+                    '@EndUserText.label': `HANA View: ${model.viewName} (${model.viewType})`,
                     '@Analytics.dataCategory': model.hasAggregations ? '#CUBE' : '#DIMENSION',
                     elements
+                },
+
+                // 2. CONSUMPTION LAYER: Datasphere Analytic Model
+                [qualifiedAmName]: {
+                    kind: 'analyticModel',
+                    '@EndUserText.label': `Analytic Model: ${model.viewName}`,
+                    source: {
+                        ref: [qualifiedViewName]
+                    },
+                    elements: amElements
                 }
             }
         };
 
-        // Also generate the underlying local/remote table stubs needed in Datasphere space
+        // Companion definitions for referenced source tables
         for (const src of model.sources) {
             const tableQualifiedName = `${targetSpace}.${src.tableName}`;
             if (!csn.definitions[tableQualifiedName]) {
@@ -63,7 +94,9 @@ class TransformService {
         return {
             csn,
             csnString: JSON.stringify(csn, null, 2),
-            generatedSql
+            generatedSql,
+            viewName,
+            analyticModelName
         };
     }
 
