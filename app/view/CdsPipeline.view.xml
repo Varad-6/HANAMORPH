@@ -3,10 +3,11 @@
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
     xmlns:core="sap.ui.core"
-    xmlns:layout="sap.ui.layout">
+    xmlns:layout="sap.ui.layout"
+    xmlns:form="sap.ui.layout.form">
     <Page
         id="cdsPipelinePage"
-        title="{i18n>tileCdsTitle} Migration"
+        title="{i18n>tileCdsTitle} Migration Studio"
         showNavButton="true"
         navButtonPress=".onNavBack"
         enableScrolling="true">
@@ -23,246 +24,607 @@
                 icon="{= ${system>/hanaConnected} ? 'sap-icon://connected' : 'sap-icon://disconnected' }" />
         </headerContent>
         <content>
-            <!-- Single-Column Centered Vertical Layout with Generous Whitespace -->
-            <VBox
-                width="100%"
-                alignItems="Center"
-                class="sapUiLargeMarginTop sapUiLargeMarginBottom">
-                
-                <VBox width="920px" class="sapUiResponsiveMargin">
-                    
-                    <!-- STEP 1: IMPORT & VIEW SELECTOR -->
-                    <Panel
-                        headerText="1. Source View Selection"
+            <VBox width="100%" alignItems="Center" class="sapUiMediumMarginTop sapUiLargeMarginBottom">
+                <VBox width="96%" class="sapUiResponsiveMargin">
+
+                    <!-- 5-STEP SEQUENTIAL WIZARD TABS -->
+                    <IconTabBar
+                        id="pipelineTabBar"
+                        selectedKey="{/selectedTabKey}"
+                        select=".onTabSelect"
+                        headerMode="Inline"
                         expandable="false"
-                        class="sapUiMediumMarginBottom">
-                        <content>
-                            <VBox busy="{/isBusy}" busyIndicatorDelay="0">
-                                <HBox alignItems="Center" class="sapUiSmallMarginBottom">
-                                    <Button
-                                        text="{i18n>btnImport}"
-                                        icon="sap-icon://synchronize"
-                                        type="Emphasized"
-                                        press=".onImportViews"
-                                        enabled="{= !${/isJobRunning} }"
-                                        class="sapUiSmallMarginEnd" />
-                                    
-                                    <ComboBox
-                                        id="cdsViewSelector"
-                                        placeholder="{i18n>placeholderSelectView}"
-                                        width="520px"
-                                        enabled="{= ${/hasImported} &amp;&amp; !${/isJobRunning} }"
-                                        selectedKey="{/selectedViewName}"
-                                        selectionChange=".onViewChange"
-                                        items="{
-                                            path: '/views',
-                                            sorter: { path: 'name' }
-                                        }">
-                                        <core:ListItem
-                                            key="{name}"
-                                            text="{name}"
-                                            additionalText="{description}" />
-                                    </ComboBox>
-                                </HBox>
+                        applyContentPadding="false">
+                        <items>
 
-                                <!-- Error State Message -->
-                                <MessageStrip
-                                    text="{/errorViewsText}"
-                                    type="Error"
-                                    showIcon="true"
-                                    visible="{/hasError}"
-                                    class="sapUiSmallMarginTop" />
+                            <!-- ============================================================== -->
+                            <!-- TAB 1: SELECT CDS VIEW                                         -->
+                            <!-- ============================================================== -->
+                            <IconTabFilter
+                                key="tabSelectView"
+                                icon="sap-icon://source-code"
+                                text="1. Select CDS View"
+                                count="{= ${/views} ? ${/views}.length : '' }">
+                                <content>
+                                    <VBox class="sapUiMediumMargin">
+                                        <Panel headerText="Source CDS View Selection" expandable="false" class="sapUiSmallMarginBottom">
+                                            <content>
+                                                <VBox busy="{/isBusy}" busyIndicatorDelay="0">
+                                                    <HBox alignItems="Center" class="sapUiSmallMarginBottom" wrap="Wrap">
+                                                        <Button
+                                                            text="{i18n>btnImport}"
+                                                            icon="sap-icon://synchronize"
+                                                            type="Emphasized"
+                                                            press=".onImportViews"
+                                                            class="sapUiSmallMarginEnd" />
+                                                        
+                                                        <ComboBox
+                                                            id="cdsViewSelector"
+                                                            placeholder="{i18n>placeholderSelectView}"
+                                                            width="560px"
+                                                            enabled="{/hasImported}"
+                                                            selectedKey="{/selectedViewName}"
+                                                            selectionChange=".onViewChange"
+                                                            items="{
+                                                                path: '/views',
+                                                                sorter: { path: 'name' }
+                                                            }">
+                                                            <core:ListItem
+                                                                key="{name}"
+                                                                text="{name}"
+                                                                additionalText="{description}" />
+                                                        </ComboBox>
+                                                    </HBox>
 
-                                <!-- Empty State Prompt -->
-                                <Text
-                                    text="{/emptyViewsText}"
-                                    visible="{= !${/hasImported} &amp;&amp; !${/hasError} }"
-                                    class="sapUiSmallMarginTop sapUiSmallMarginBottom text-muted" />
-                            </VBox>
-                        </content>
-                    </Panel>
+                                                    <MessageStrip
+                                                        text="{/errorViewsText}"
+                                                        type="Error"
+                                                        showIcon="true"
+                                                        visible="{/hasError}"
+                                                        class="sapUiSmallMarginTop" />
 
-                    <!-- STEP 2: ARTIFACT SECTION (Appears BELOW selector) -->
-                    <Panel
-                        id="artifactPanel"
-                        headerText="{= '2. Artifacts for ' + ${/selectedViewName} }"
-                        visible="{/hasArtifacts}"
-                        expandable="false"
-                        class="sapUiMediumMarginBottom">
-                        <content>
-                            <VBox busy="{/isArtifactsBusy}" busyIndicatorDelay="0">
-                                <Table
-                                    id="artifactTable"
-                                    mode="MultiSelect"
-                                    items="{/artifacts}"
-                                    growing="false"
-                                    class="sapUiSmallMarginBottom">
-                                    <headerToolbar>
-                                        <OverflowToolbar>
-                                            <Title text="Artifact Components" level="H5" />
+                                                    <!-- Selected View Summary Card -->
+                                                    <VBox visible="{/hasViewSelected}" class="sapUiMediumMarginTop">
+                                                        <form:SimpleForm
+                                                            editable="false"
+                                                            layout="ResponsiveGridLayout"
+                                                            labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12">
+                                                            <form:content>
+                                                                <Label text="CDS Entity Name" />
+                                                                <Text text="{/selectedView/name}" class="sapUiBold" />
+                                                                <Label text="SQL View Name" />
+                                                                <Text text="{/selectedView/sqlViewName}" />
+                                                                <Label text="Package / Schema" />
+                                                                <Text text="{/selectedView/packageOrSchema}" />
+                                                                <Label text="Description / Grain" />
+                                                                <Text text="{/selectedView/description}" />
+                                                                <Label text="Total Columns" />
+                                                                <ObjectStatus text="{/selectedView/columnCount} columns" state="Information" />
+                                                            </form:content>
+                                                        </form:SimpleForm>
+                                                    </VBox>
+                                                </VBox>
+                                            </content>
+                                        </Panel>
+
+                                        <!-- Step 1 Navigation Footer -->
+                                        <Toolbar class="sapUiSmallMarginTop">
                                             <ToolbarSpacer />
-                                            <Text text="{= ${/selectedView/columnCount} + ' total columns' }" />
-                                        </OverflowToolbar>
-                                    </headerToolbar>
-                                    <columns>
-                                        <Column width="140px">
-                                            <Text text="{i18n>colType}" />
-                                        </Column>
-                                        <Column width="320px">
-                                            <Text text="{i18n>colName}" />
-                                        </Column>
-                                        <Column width="110px" hAlign="Center">
-                                            <Text text="{i18n>colColumns}" />
-                                        </Column>
-                                        <Column>
-                                            <Text text="{i18n>colDetails}" />
-                                        </Column>
-                                    </columns>
-                                    <items>
-                                        <ColumnListItem selected="{selected}">
-                                            <cells>
-                                                <ObjectStatus
-                                                    text="{artifactType}"
-                                                    state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success') }" />
-                                                <Text text="{name}" wrapping="false" />
-                                                <Text text="{columnCount}" />
-                                                <Text text="{details}" maxLines="1" />
-                                            </cells>
-                                        </ColumnListItem>
-                                    </items>
-                                </Table>
-
-                                <!-- STEP 3: TRANSFER BUTTON (Directly under artifact table) -->
-                                <HBox justifyContent="End" class="sapUiMediumMarginTop">
-                                    <Button
-                                        id="transferButton"
-                                        text="{i18n>btnTransfer}"
-                                        icon="sap-icon://upload-to-cloud"
-                                        type="Emphasized"
-                                        enabled="{= !${/isJobRunning} }"
-                                        press=".onTransfer" />
-                                </HBox>
-                            </VBox>
-                        </content>
-                    </Panel>
-
-                    <!-- STEP 4: JOB STATUS STRIP (Below the table) -->
-                    <Panel
-                        id="jobStatusPanel"
-                        headerText="3. Migration Status &amp; Execution Pipeline"
-                        visible="{= !!${/job} }"
-                        expandable="false"
-                        class="sapUiMediumMarginBottom">
-                        <content>
-                            <VBox class="sapUiSmallMargin">
-                                <!-- Status Strip (5 Stages: Extracting -> Transforming -> Deploying -> Loading -> Done/Failed) -->
-                                <HBox
-                                    justifyContent="SpaceBetween"
-                                    alignItems="Center"
-                                    class="sapUiMediumMarginBottom">
-                                    
-                                    <!-- Stage 1: Extracting -->
-                                    <VBox alignItems="Center">
-                                        <core:Icon
-                                            src="sap-icon://pull-down"
-                                            size="1.5rem"
-                                            color="{= ${/job/progress} >= 20 ? '#0a6ed1' : '#8c9ba5' }" />
-                                        <Text
-                                            text="{i18n>stageExtracting}"
-                                            class="{= ${/currentStage} === 'EXTRACTING' ? 'sapUiBold' : '' }" />
+                                            <Button
+                                                text="Next: Select Artifacts"
+                                                icon="sap-icon://navigation-right-arrow"
+                                                iconFirst="false"
+                                                type="Emphasized"
+                                                enabled="{/hasViewSelected}"
+                                                press=".onGoToArtifacts" />
+                                        </Toolbar>
                                     </VBox>
+                                </content>
+                            </IconTabFilter>
 
-                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+                            <!-- ============================================================== -->
+                            <!-- TAB 2: ARTIFACTS SELECTION                                     -->
+                            <!-- ============================================================== -->
+                            <IconTabFilter
+                                key="tabArtifacts"
+                                icon="sap-icon://dimension"
+                                text="2. Artifacts"
+                                enabled="{/hasViewSelected}"
+                                count="{= ${/artifacts} ? ${/artifacts}.length : '' }">
+                                <content>
+                                    <VBox class="sapUiMediumMargin">
+                                        <MessageStrip
+                                            text="The following underlying components were extracted for this CDS view. Select which artifacts to include in the migration."
+                                            type="Information"
+                                            showIcon="true"
+                                            class="sapUiSmallMarginBottom" />
 
-                                    <!-- Stage 2: Transforming -->
-                                    <VBox alignItems="Center">
-                                        <core:Icon
-                                            src="sap-icon://syntax"
-                                            size="1.5rem"
-                                            color="{= ${/job/progress} >= 50 ? '#0a6ed1' : '#8c9ba5' }" />
-                                        <Text
-                                            text="{i18n>stageTransforming}"
-                                            class="{= ${/currentStage} === 'TRANSFORMING' ? 'sapUiBold' : '' }" />
+                                        <Table
+                                            id="artifactTable"
+                                            mode="MultiSelect"
+                                            items="{/artifacts}"
+                                            selectionChange=".onArtifactSelectionChange"
+                                            busy="{/isArtifactsBusy}"
+                                            busyIndicatorDelay="0">
+                                            <headerToolbar>
+                                                <OverflowToolbar>
+                                                    <Title text="Artifact Components ({/selectedArtifactCount} selected)" level="H5" />
+                                                    <ToolbarSpacer />
+                                                    <Button text="Select All" icon="sap-icon://multiselect-all" press=".onGoToArtifacts" />
+                                                </OverflowToolbar>
+                                            </headerToolbar>
+                                            <columns>
+                                                <Column width="140px">
+                                                    <Text text="{i18n>colType}" />
+                                                </Column>
+                                                <Column width="320px">
+                                                    <Text text="{i18n>colName}" />
+                                                </Column>
+                                                <Column width="110px" hAlign="Center">
+                                                    <Text text="{i18n>colColumns}" />
+                                                </Column>
+                                                <Column>
+                                                    <Text text="{i18n>colDetails}" />
+                                                </Column>
+                                            </columns>
+                                            <items>
+                                                <ColumnListItem selected="{selected}">
+                                                    <cells>
+                                                        <ObjectStatus
+                                                            text="{artifactType}"
+                                                            state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success') }" />
+                                                        <Text text="{name}" wrapping="false" />
+                                                        <Text text="{columnCount}" />
+                                                        <Text text="{details}" maxLines="2" />
+                                                    </cells>
+                                                </ColumnListItem>
+                                            </items>
+                                        </Table>
+
+                                        <!-- Step 2 Navigation Footer -->
+                                        <Toolbar class="sapUiMediumMarginTop">
+                                            <Button
+                                                text="Back: Select CDS"
+                                                icon="sap-icon://navigation-left-arrow"
+                                                press=".onGoToSelectView" />
+                                            <ToolbarSpacer />
+                                            <Button
+                                                text="Next: Choose Columns"
+                                                icon="sap-icon://navigation-right-arrow"
+                                                iconFirst="false"
+                                                type="Emphasized"
+                                                press=".onGoToColumns" />
+                                        </Toolbar>
                                     </VBox>
+                                </content>
+                            </IconTabFilter>
 
-                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+                            <!-- ============================================================== -->
+                            <!-- TAB 3: COLUMN SELECTION & RENAMING                             -->
+                            <!-- ============================================================== -->
+                            <IconTabFilter
+                                key="tabColumns"
+                                icon="sap-icon://table-column"
+                                text="3. Columns"
+                                enabled="{/hasViewSelected}"
+                                count="{/selectedColumnCount}">
+                                <content>
+                                    <VBox class="sapUiMediumMargin">
+                                        <MessageStrip
+                                            text="Select and rename columns for the target Datasphere View. You can customize the Target Column Name and Label directly in the table. Measures automatically have #SUM aggregations and null-handling COALESCE logic applied."
+                                            type="Information"
+                                            showIcon="true"
+                                            class="sapUiSmallMarginBottom" />
 
-                                    <!-- Stage 3: Deploying -->
-                                    <VBox alignItems="Center">
-                                        <core:Icon
-                                            src="sap-icon://upload-to-cloud"
-                                            size="1.5rem"
-                                            color="{= ${/job/progress} >= 75 ? '#0a6ed1' : '#8c9ba5' }" />
-                                        <Text
-                                            text="{i18n>stageDeploying}"
-                                            class="{= ${/currentStage} === 'DEPLOYING' ? 'sapUiBold' : '' }" />
+                                        <Table
+                                            id="columnsTable"
+                                            items="{/columns}"
+                                            busy="{/isColumnsBusy}"
+                                            busyIndicatorDelay="0"
+                                            growing="true"
+                                            growingThreshold="50">
+                                            <headerToolbar>
+                                                <OverflowToolbar>
+                                                    <SearchField
+                                                        width="280px"
+                                                        placeholder="Search columns by name..."
+                                                        value="{/columnSearchTerm}"
+                                                        liveChange=".onSearchColumns" />
+                                                    <ToolbarSeparator />
+                                                    <Button text="Select All" icon="sap-icon://multiselect-all" press=".onSelectAllColumns" />
+                                                    <Button text="Deselect All" icon="sap-icon://multiselect-none" press=".onDeselectAllColumns" />
+                                                    <Button text="Measures &amp; Keys" icon="sap-icon://sum" press=".onSelectMeasuresOnly" />
+                                                    <ToolbarSeparator />
+                                                    <Button text="PascalCase" icon="sap-icon://font" press=".onApplyPascalCase" tooltip="Auto-format target column names to PascalCase" />
+                                                    <Button text="UPPER_SNAKE" icon="sap-icon://text" press=".onApplyUpperSnakeCase" tooltip="Auto-format target column names to UPPER_SNAKE" />
+                                                    <Button text="Reset" icon="sap-icon://reset" press=".onResetColumnNames" tooltip="Reset target column names back to original" />
+                                                    <ToolbarSpacer />
+                                                    <ObjectStatus
+                                                        text="{= ${/selectedColumnCount} + ' of ' + ${/totalColumnCount} + ' columns selected' }"
+                                                        state="{= ${/selectedColumnCount} > 0 ? 'Success' : 'Error' }" />
+                                                </OverflowToolbar>
+                                            </headerToolbar>
+                                            <columns>
+                                                <Column width="55px" hAlign="Center">
+                                                    <Text text="Include" />
+                                                </Column>
+                                                <Column width="220px">
+                                                    <Text text="Source Column" />
+                                                </Column>
+                                                <Column width="240px">
+                                                    <Text text="Target Technical Name (Editable)" />
+                                                </Column>
+                                                <Column width="240px">
+                                                    <Text text="Target Business Label (Editable)" />
+                                                </Column>
+                                                <Column width="140px">
+                                                    <Text text="Data Type" />
+                                                </Column>
+                                                <Column width="160px">
+                                                    <Text text="Datasphere Role" />
+                                                </Column>
+                                                <Column>
+                                                    <Text text="Null Optimization" />
+                                                </Column>
+                                            </columns>
+                                            <items>
+                                                <ColumnListItem>
+                                                    <cells>
+                                                        <CheckBox selected="{selected}" select=".onColumnCheckboxChange" />
+                                                        <Text text="{sourceName}" class="sapUiBold" />
+                                                        <!-- Editable Target Column Name -->
+                                                        <Input value="{targetName}" placeholder="Target column name" />
+                                                        <!-- Editable Target Column Label -->
+                                                        <Input value="{targetLabel}" placeholder="Target business label" />
+                                                        <ObjectStatus text="{dataType}" state="None" />
+                                                        <HBox>
+                                                            <ObjectStatus
+                                                                text="KEY"
+                                                                state="Success"
+                                                                visible="{isKey}"
+                                                                class="sapUiTinyMarginEnd" />
+                                                            <ObjectStatus
+                                                                text="MEASURE (#SUM)"
+                                                                state="Warning"
+                                                                visible="{isMeasure}" />
+                                                            <ObjectStatus
+                                                                text="DIMENSION"
+                                                                state="Information"
+                                                                visible="{= !${isKey} &amp;&amp; !${isMeasure} }" />
+                                                        </HBox>
+                                                        <ObjectStatus
+                                                            text="{= ${isMeasure} ? 'COALESCE(&quot;' + ${sourceName} + '&quot;, 0) AS &quot;' + ${targetName} + '&quot;' : '&quot;' + ${sourceName} + '&quot; AS &quot;' + ${targetName} + '&quot;' }"
+                                                            state="{= ${isMeasure} ? 'Information' : 'None' }" />
+                                                    </cells>
+                                                </ColumnListItem>
+                                            </items>
+                                        </Table>
+
+                                        <!-- Step 3 Navigation Footer -->
+                                        <Toolbar class="sapUiMediumMarginTop">
+                                            <Button
+                                                text="Back: Artifacts"
+                                                icon="sap-icon://navigation-left-arrow"
+                                                press=".onGoToArtifacts" />
+                                            <ToolbarSpacer />
+                                            <Button
+                                                text="Next: Rename Objects"
+                                                icon="sap-icon://navigation-right-arrow"
+                                                iconFirst="false"
+                                                type="Emphasized"
+                                                enabled="{= ${/selectedColumnCount} > 0 }"
+                                                press=".onGoToNaming" />
+                                        </Toolbar>
                                     </VBox>
+                                </content>
+                            </IconTabFilter>
 
-                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+                            <!-- ============================================================== -->
+                            <!-- TAB 4: OBJECT RENAMING                                         -->
+                            <!-- ============================================================== -->
+                            <IconTabFilter
+                                key="tabNaming"
+                                icon="sap-icon://edit"
+                                text="4. Object Naming"
+                                enabled="{/hasViewSelected}">
+                                <content>
+                                    <VBox class="sapUiMediumMargin">
+                                        <MessageStrip
+                                            text="Datasphere requires unqualified entity names (without space prefix) when importing objects into space 'AIS_HARMONIZATION_'. All generated technical names adhere to standard Datasphere CSN specifications."
+                                            type="Information"
+                                            showIcon="true"
+                                            class="sapUiSmallMarginBottom" />
 
-                                    <!-- Stage 4: Loading -->
-                                    <VBox alignItems="Center">
-                                        <core:Icon
-                                            src="sap-icon://database"
-                                            size="1.5rem"
-                                            color="{= ${/job/progress} >= 90 ? '#0a6ed1' : '#8c9ba5' }" />
-                                        <Text
-                                            text="{i18n>stageLoading}"
-                                            class="{= ${/currentStage} === 'LOADING' ? 'sapUiBold' : '' }" />
+                                        <form:SimpleForm
+                                            title="Datasphere Target Architecture &amp; Object Names"
+                                            editable="true"
+                                            layout="ResponsiveGridLayout"
+                                            labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12">
+                                            <form:content>
+                                                <!-- Datasphere Target Space -->
+                                                <core:Title text="Datasphere Space Configuration" />
+                                                <Label text="Target Space" required="true" />
+                                                <Input value="{/naming/space}" placeholder="AIS_HARMONIZATION_" />
+
+                                                <!-- View Source Object Configuration -->
+                                                <core:Title text="1. View Source Object (FROM Table/View in Space)" />
+                                                <Label text="Source Table/View in Space" required="true" />
+                                                <ComboBox
+                                                    value="{/naming/fromTableName}"
+                                                    placeholder="Select or enter table/view name in Datasphere"
+                                                    items="{/sourceSuggestions}"
+                                                    width="100%">
+                                                    <core:ListItem key="{key}" text="{text}" />
+                                                </ComboBox>
+                                                <Label text="Dependency Guidance" />
+                                                <Text text="The View queries: FROM &quot;{/naming/fromTableName}&quot;. If this table is already in space 'AIS_HARMONIZATION_', select it here. If this is a new local table, import the Complete Package (Option A) or import the Table CSN first." class="text-muted" />
+
+                                                <!-- Base Table Naming -->
+                                                <core:Title text="2. Base Local Table (Data Builder -> Tables)" />
+                                                <Label text="Table Technical Name" required="true" />
+                                                <Input value="{/naming/tableName}" placeholder="e.g. ZI_MYQ_ProdConfirmationFact_TBL" />
+                                                <Label text="Table Business Name" />
+                                                <Input value="{/naming/tableBusinessName}" placeholder="e.g. Production Confirmation Base Table" />
+
+                                                <!-- View Naming -->
+                                                <core:Title text="3. Analytical View (Data Builder -> Views)" />
+                                                <Label text="View Technical Name" required="true" />
+                                                <Input value="{/naming/viewNameCustom}" placeholder="e.g. ZI_MYQ_ProdConfirmationFact_V" />
+                                                <Label text="View Business Name" />
+                                                <Input value="{/naming/viewBusinessName}" placeholder="e.g. Production Confirmation Analytical Fact View" />
+
+                                                <!-- Analytic Model Naming -->
+                                                <core:Title text="4. Analytic Model (Business Builder -> Analytic Models)" />
+                                                <Label text="Analytic Model Technical Name" required="true" />
+                                                <Input value="{/naming/amName}" placeholder="e.g. ZI_MYQ_ProdConfirmationFact_AM" />
+                                                <Label text="Analytic Model Business Name" />
+                                                <Input value="{/naming/amBusinessName}" placeholder="e.g. Production Confirmation Consumption Model" />
+                                            </form:content>
+                                        </form:SimpleForm>
+
+                                        <!-- Step 4 Navigation Footer -->
+                                        <Toolbar class="sapUiMediumMarginTop">
+                                            <Button
+                                                text="Back: Columns"
+                                                icon="sap-icon://navigation-left-arrow"
+                                                press=".onGoToColumns" />
+                                            <ToolbarSpacer />
+                                            <Button
+                                                text="Generate View &amp; Artifacts"
+                                                icon="sap-icon://accept"
+                                                type="Emphasized"
+                                                busy="{/isGenerating}"
+                                                press=".onGenerateArtifacts" />
+                                        </Toolbar>
                                     </VBox>
+                                </content>
+                            </IconTabFilter>
 
-                                    <core:Icon src="sap-icon://navigation-right-arrow" size="0.9rem" color="#8c9ba5" />
+                            <!-- ============================================================== -->
+                            <!-- TAB 5: CODE & DOWNLOADS                                        -->
+                            <!-- ============================================================== -->
+                            <IconTabFilter
+                                key="tabCodeDownloads"
+                                icon="sap-icon://download-from-cloud"
+                                text="5. View Code &amp; Downloads"
+                                enabled="{/hasGenerated}">
+                                <content>
+                                    <VBox class="sapUiMediumMargin">
+                                        <!-- CRITICAL ARCHITECTURE GUIDANCE STRIP -->
+                                        <MessageStrip
+                                            text="Datasphere SQL View Editor Instructions: When opening 'Data Builder -> New SQL View', the editor expects ONLY the SELECT query statement (no CREATE VIEW wrapper or comments). Copy the SQL below and paste directly into the editor."
+                                            type="Information"
+                                            showIcon="true"
+                                            class="sapUiSmallMarginBottom" />
 
-                                    <!-- Stage 5: Done / Failed -->
-                                    <VBox alignItems="Center">
-                                        <core:Icon
-                                            src="{= ${/job/status} === 'FAILED' ? 'sap-icon://error' : 'sap-icon://sys-enter-2' }"
-                                            size="1.5rem"
-                                            color="{= ${/job/status} === 'FAILED' ? '#bb0000' : (${/job/status} === 'COMPLETED' ? '#107e3e' : '#8c9ba5') }" />
-                                        <Text
-                                            text="{= ${/job/status} === 'FAILED' ? ${i18n>stageFailed} : ${i18n>stageDone} }"
-                                            class="{= ${/job/status} === 'COMPLETED' || ${/job/status} === 'FAILED' ? 'sapUiBold' : '' }" />
+                                        <!-- SECTION 1: OPTIMIZED SQL QUERY CODE -->
+                                        <Panel headerText="1. SQL View Query (Pure SELECT for Datasphere New SQL View)" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                                            <headerToolbar>
+                                                <OverflowToolbar>
+                                                    <Title text="1. SQL View Statement (Pure SELECT)" level="H5" />
+                                                    <ToolbarSpacer />
+                                                    <Button
+                                                        text="Copy SQL for Datasphere View (SELECT only)"
+                                                        icon="sap-icon://copy"
+                                                        type="Emphasized"
+                                                        press=".onCopySql" />
+                                                    <Button
+                                                        text="Copy Complete DDL (CREATE VIEW)"
+                                                        icon="sap-icon://syntax"
+                                                        type="Default"
+                                                        press=".onCopyCompleteDdl" />
+                                                </OverflowToolbar>
+                                            </headerToolbar>
+                                            <content>
+                                                <VBox>
+                                                    <Text
+                                                        text="Paste this directly into Datasphere Data Builder -> New SQL View. Set the View Technical Name in the right Model Properties panel."
+                                                        class="sapUiTinyMarginBottom text-muted" />
+                                                    <TextArea
+                                                        value="{/modularResult/optimizedSql}"
+                                                        rows="12"
+                                                        width="100%"
+                                                        editable="false"
+                                                        growing="true"
+                                                        growingMaxLines="25" />
+                                                </VBox>
+                                            </content>
+                                        </Panel>
+
+                                        <!-- SECTION 2: MODULAR CSN JSON DOWNLOADS -->
+                                        <Panel headerText="2. Download Native Datasphere CSN JSON Files" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                                            <content>
+                                                <VBox>
+                                                    <!-- Recommended Combined Package Card -->
+                                                    <VBox class="sapUiSmallMargin sapUiMediumPadding" style="border: 1px solid #0a6ed1; border-radius: 6px; background: #f5f9fd;">
+                                                        <HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
+                                                            <HBox alignItems="Center">
+                                                                <core:Icon src="sap-icon://attachment" size="2rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
+                                                                <VBox>
+                                                                    <Title text="Recommended: Combined CSN Package (Table + View + Analytic Model)" level="H5" />
+                                                                    <Text text="Contains all definitions at root ($version 2.0). Upload in Datasphere via Data Builder -> Import Objects from CSN/JSON File." class="text-muted" />
+                                                                </VBox>
+                                                            </HBox>
+                                                            <Button
+                                                                text="Download Complete CSN Package"
+                                                                icon="sap-icon://download"
+                                                                type="Emphasized"
+                                                                press=".onDownloadPackageJson"
+                                                                class="sapUiSmallMarginTop" />
+                                                        </HBox>
+                                                    </VBox>
+
+                                                    <Title text="Or Download Individual CSN Files:" level="H6" class="sapUiSmallMarginTop" />
+
+                                                    <HBox justifyContent="SpaceAround" wrap="Wrap" class="sapUiSmallMarginTop">
+                                                        <!-- Table JSON Card -->
+                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                            <core:Icon src="sap-icon://table-view" size="2.5rem" color="#0a6ed1" class="sapUiSmallMarginBottom" />
+                                                            <Title text="Base Table CSN" level="H5" />
+                                                            <Text text="Technical Name: {/modularResult/tableName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
+                                                            <Button
+                                                                text="Download Table CSN"
+                                                                icon="sap-icon://download"
+                                                                press=".onDownloadTableJson" />
+                                                        </VBox>
+
+                                                        <!-- View JSON Card -->
+                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                            <core:Icon src="sap-icon://syntax" size="2.5rem" color="#107e3e" class="sapUiSmallMarginBottom" />
+                                                            <Title text="Fact View CSN" level="H5" />
+                                                            <Text text="Technical Name: {/modularResult/viewName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
+                                                            <Button
+                                                                text="Download View CSN"
+                                                                icon="sap-icon://download"
+                                                                press=".onDownloadViewJson" />
+                                                        </VBox>
+
+                                                        <!-- Analytic Model Card -->
+                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                            <core:Icon src="sap-icon://b-suite" size="2.5rem" color="#d1720a" class="sapUiSmallMarginBottom" />
+                                                            <Title text="Analytic Model CSN" level="H5" />
+                                                            <Text text="Technical Name: {/modularResult/amName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Business Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
+                                                            <Button
+                                                                text="Download Analytic Model CSN"
+                                                                icon="sap-icon://download"
+                                                                press=".onDownloadAmJson" />
+                                                        </VBox>
+                                                    </HBox>
+                                                </VBox>
+                                            </content>
+                                        </Panel>
+
+                                        <!-- SECTION 3: REPLICATION FLOW TARGETING LOCAL TABLES -->
+                                        <Panel headerText="3. Replication Flow to Datasphere Local Tables" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                                            <headerToolbar>
+                                                <OverflowToolbar>
+                                                    <Title text="3. Replication Flow (Target: Local Tables in AIS_HARMONIZATION_)" level="H5" />
+                                                    <ToolbarSpacer />
+                                                    <Button
+                                                        text="Download Replication Flow JSON"
+                                                        icon="sap-icon://download"
+                                                        type="Emphasized"
+                                                        press=".onDownloadReplicationFlow" />
+                                                    <Button
+                                                        text="Copy CLI Deploy Command"
+                                                        icon="sap-icon://copy"
+                                                        press=".onCopyReplicationCli" />
+                                                </OverflowToolbar>
+                                            </headerToolbar>
+                                            <content>
+                                                <VBox class="sapUiSmallMargin">
+                                                    <MessageStrip
+                                                        text="SAP Datasphere Replication Flow configures data transfer directly into Local Tables. Choose 'Master Data' for 1-time snapshot loads (Initial) or 'Transactional Data' for CDC delta replication (InitialAndDelta)."
+                                                        type="Information"
+                                                        showIcon="true"
+                                                        class="sapUiSmallMarginBottom" />
+
+                                                    <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                                        <Label text="Replication Mode &amp; Category:" class="sapUiSmallMarginEnd sapUiBold" />
+                                                        <SegmentedButton selectedKey="{/replicationFlowMode}">
+                                                            <items>
+                                                                <SegmentedButtonItem key="DELTA" text="Transactional Data (Initial + Delta CDC)" icon="sap-icon://synchronize" />
+                                                                <SegmentedButtonItem key="MASTER" text="Master Data (Initial Snapshot)" icon="sap-icon://database" />
+                                                            </items>
+                                                        </SegmentedButton>
+                                                    </HBox>
+
+                                                    <TextArea
+                                                        value="{= ${/replicationFlowMode} === 'MASTER' ? ${/modularResult/replicationFlowMasterJsonString} : ${/modularResult/replicationFlowDeltaJsonString} }"
+                                                        rows="8"
+                                                        width="100%"
+                                                        editable="false"
+                                                        growing="true"
+                                                        growingMaxLines="20" />
+
+                                                    <HBox alignItems="Center" class="sapUiSmallMarginTop">
+                                                        <Text text="Datasphere CLI Deployment Command:" class="sapUiBold sapUiSmallMarginEnd" />
+                                                        <Text text="{/modularResult/replicationFlowCliCommand}" class="sapUiCode" />
+                                                    </HBox>
+                                                </VBox>
+                                            </content>
+                                        </Panel>
+
+                                        <!-- SECTION 4: DIRECT CLOUD MIGRATION PIPELINE -->
+                                        <Panel headerText="4. Direct Cloud Transfer to Datasphere (Optional API Push)" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
+                                            <content>
+                                                <VBox class="sapUiSmallMargin">
+                                                    <Text
+                                                        text="Directly push definition and replicate data to Datasphere space 'AIS_HARMONIZATION_' using configured OAuth credentials."
+                                                        class="sapUiSmallMarginBottom" />
+                                                    
+                                                    <Button
+                                                        text="Run Automated Direct Migration Pipeline"
+                                                        icon="sap-icon://upload-to-cloud"
+                                                        type="Default"
+                                                        enabled="{= !${/isJobRunning} }"
+                                                        press=".onTransfer"
+                                                        class="sapUiSmallMarginBottom" />
+
+                                                    <VBox visible="{= !!${/job} }" class="sapUiMediumMarginTop">
+                                                        <ProgressIndicator
+                                                            percentValue="{/job/progress}"
+                                                            displayValue="{/job/status} ({/job/progress}%)"
+                                                            state="{= ${/job/status} === 'FAILED' ? 'Error' : (${/job/status} === 'COMPLETED' ? 'Success' : 'Information') }"
+                                                            class="sapUiSmallMarginBottom" />
+
+                                                        <MessageStrip
+                                                            text="{= ${i18n>msgJobFailed} + ' ' + ${/job/errorMessage} }"
+                                                            type="Error"
+                                                            showIcon="true"
+                                                            visible="{= ${/job/status} === 'FAILED' }" />
+
+                                                        <MessageStrip
+                                                            text="{= ${i18n>msgJobSuccess} + ' ' + ${/job/targetRowCount} + ' records loaded into Datasphere.' }"
+                                                            type="Success"
+                                                            showIcon="true"
+                                                            visible="{= ${/job/status} === 'COMPLETED' }" />
+                                                    </VBox>
+                                                </VBox>
+                                            </content>
+                                        </Panel>
+
+                                        <!-- Step 5 Navigation Footer -->
+                                        <Toolbar class="sapUiMediumMarginTop">
+                                            <Button
+                                                text="Back: Object Naming"
+                                                icon="sap-icon://navigation-left-arrow"
+                                                press=".onGoToNaming" />
+                                            <ToolbarSpacer />
+                                            <Button
+                                                text="Start New Migration"
+                                                icon="sap-icon://refresh"
+                                                press=".onGoToSelectView" />
+                                        </Toolbar>
                                     </VBox>
+                                </content>
+                            </IconTabFilter>
 
-                                </HBox>
-
-                                <!-- Progress Bar -->
-                                <ProgressIndicator
-                                    percentValue="{/job/progress}"
-                                    displayValue="{/job/status} ({/job/progress}%)"
-                                    state="{= ${/job/status} === 'FAILED' ? 'Error' : (${/job/status} === 'COMPLETED' ? 'Success' : 'Information') }"
-                                    class="sapUiSmallMarginBottom" />
-
-                                <!-- Error Text on Failure -->
-                                <MessageStrip
-                                    text="{= ${i18n>msgJobFailed} + ' ' + ${/job/errorMessage} }"
-                                    type="Error"
-                                    showIcon="true"
-                                    visible="{= ${/job/status} === 'FAILED' }"
-                                    class="sapUiSmallMarginTop" />
-
-                                <!-- Success Message on Done -->
-                                <MessageStrip
-                                    text="{= ${i18n>msgJobSuccess} + ' ' + ${/job/targetRowCount} + ' records loaded into Datasphere.' }"
-                                    type="Success"
-                                    showIcon="true"
-                                    visible="{= ${/job/status} === 'COMPLETED' }"
-                                    class="sapUiSmallMarginTop" />
-
-                                <!-- Actions on Success -->
-                                <HBox
-                                    justifyContent="End"
-                                    visible="{= ${/job/status} === 'COMPLETED' }"
-                                    class="sapUiMediumMarginTop">
-                                    <Button
-                                        text="{i18n>btnDownloadCsn}"
-                                        icon="sap-icon://download"
-                                        type="Default"
-                                        press=".onDownloadCsn" />
-                                </HBox>
-                            </VBox>
-                        </content>
-                    </Panel>
+                        </items>
+                    </IconTabBar>
 
                 </VBox>
             </VBox>

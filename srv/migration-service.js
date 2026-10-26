@@ -129,6 +129,163 @@ module.exports = cds.service.impl(async function () {
     });
 
     /**
+     * Function: getColumns(viewName)
+     */
+    this.on('getColumns', async req => {
+        const { viewName } = req.data;
+        if (!viewName) return [];
+        try {
+            const isCalc = viewName.startsWith('CA_');
+            const model = isCalc 
+                ? await extractService.extractCalc(viewName)
+                : await extractService.extractCDS(viewName);
+            return (model.columns || []).map(c => ({
+                name: c.name,
+                dataType: c.dataType || 'cds.String(40)',
+                isKey: !!c.isKey,
+                isMeasure: !!c.isMeasure,
+                originalName: c.originalName || c.name
+            }));
+        } catch (err) {
+            console.error('[getColumns error]', err);
+            return [];
+        }
+    });
+
+    /**
+     * Action: generateModularArtifacts
+     */
+    this.on('generateModularArtifacts', async req => {
+        const {
+            viewName,
+            selectedColumns = [],
+            columnsJson,
+            space = config.datasphere.defaultSpace,
+            fromTableName,
+            tableName,
+            tableBusinessName,
+            viewNameCustom,
+            viewBusinessName,
+            amName,
+            amBusinessName
+        } = req.data;
+
+        if (!viewName) {
+            req.reject(400, 'viewName is required');
+        }
+
+        const isCalc = viewName.startsWith('CA_');
+        const model = isCalc 
+            ? await extractService.extractCalc(viewName)
+            : await extractService.extractCDS(viewName);
+
+        const namingConfig = {
+            space: space || config.datasphere.defaultSpace || 'AIS_HARMONIZATION_',
+            fromTableName: fromTableName || tableName || `${viewName}_TBL`,
+            tableName: tableName || `${viewName}_TBL`,
+            tableBusinessName: tableBusinessName || `${viewName} Base Table`,
+            viewName: viewNameCustom || `${viewName}_V`,
+            viewBusinessName: viewBusinessName || `${viewName} Fact View`,
+            analyticModelName: amName || `${viewName}_AM`,
+            analyticModelBusinessName: amBusinessName || `${viewName} Analytical Model`
+        };
+
+        let colsInput = selectedColumns;
+        if (columnsJson) {
+            try {
+                colsInput = JSON.parse(columnsJson);
+            } catch (e) {
+                console.warn('Failed to parse columnsJson, falling back to selectedColumns', e);
+            }
+        }
+
+        const result = transformService.generateModularArtifacts(
+            model,
+            colsInput && colsInput.length > 0 ? colsInput : null,
+            namingConfig
+        );
+
+        return {
+            tableJsonString: result.tableJsonString,
+            viewJsonString: result.viewJsonString,
+            analyticModelJsonString: result.analyticModelJsonString,
+            packageJsonString: result.packageJsonString,
+            optimizedSql: result.optimizedQuerySql, // Pure SELECT query for Datasphere New SQL View
+            completeDdlSql: result.completeDdlSql,
+            replicationFlowMasterJsonString: result.replicationFlowMasterJsonString,
+            replicationFlowDeltaJsonString: result.replicationFlowDeltaJsonString,
+            replicationFlowCliCommand: result.replicationFlowCliCommand,
+            tableName: namingConfig.tableName,
+            viewName: namingConfig.viewName,
+            amName: namingConfig.analyticModelName
+        };
+    });
+
+    /**
+     * Helper to extract a list of view models
+     */
+    const _extractModels = async (viewNames = []) => {
+        const models = [];
+        for (const name of viewNames) {
+            try {
+                const isCalc = name.startsWith('CA_');
+                const model = isCalc 
+                    ? await extractService.extractCalc(name)
+                    : await extractService.extractCDS(name);
+                models.push(model);
+            } catch (err) {
+                console.warn(`[extractModels] Failed to extract ${name}:`, err.message);
+            }
+        }
+        return models;
+    };
+
+    /**
+     * Function: rationalizeSources
+     */
+    this.on('rationalizeSources', async req => {
+        let { viewNames = [] } = req.data;
+        if (!viewNames || viewNames.length === 0) {
+            const allCds = await hanaConnector.listCDSViews();
+            const allCalc = await hanaConnector.listCalcViews();
+            viewNames = [...allCds.map(v => v.name), ...allCalc.map(v => v.name)];
+        }
+        const models = await _extractModels(viewNames);
+        return transformService.rationalizeSources(models);
+    });
+
+    /**
+     * Action: generateBulkArtifacts
+     */
+    this.on('generateBulkArtifacts', async req => {
+        const {
+            viewNames = [],
+            space = config.datasphere.defaultSpace,
+            namingPattern = 'DEFAULT',
+            deduplicationDecisions = null
+        } = req.data;
+        if (!viewNames || viewNames.length === 0) {
+            req.reject(400, 'viewNames array is required for bulk generation');
+        }
+        const models = await _extractModels(viewNames);
+        const result = transformService.generateBulkArtifacts(models, {
+            space,
+            namingPattern,
+            deduplicationDecisions
+        });
+        return {
+            masterCsnJsonString: result.masterCsnJsonString,
+            aggregatedSql: result.aggregatedSql,
+            replicationFlowJsonString: result.replicationFlowJsonString,
+            replicationFlowCliCommand: result.replicationFlowCliCommand,
+            processedViewCount: result.processedViewCount,
+            tableCount: result.tableCount,
+            viewCount: result.viewCount,
+            views: result.views
+        };
+    });
+
+    /**
      * Action: startJob(viewName, viewType, artifacts, targetSpace)
      * Direct user-specified CAP endpoint
      */

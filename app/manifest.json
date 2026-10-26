@@ -75,6 +75,11 @@
           "name": "calcview",
           "pattern": "calcview",
           "target": "calcview"
+        },
+        {
+          "name": "bulk",
+          "pattern": "bulk",
+          "target": "bulk"
         }
       ],
       "targets": {
@@ -88,6 +93,10 @@
         },
         "calcview": {
           "viewName": "CalcViewPipeline",
+          "viewLevel": 2
+        },
+        "bulk": {
+          "viewName": "BulkStudio",
           "viewLevel": 2
         }
       }

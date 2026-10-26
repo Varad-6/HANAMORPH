@@ -35,7 +35,11 @@ class ConfigManager {
                 sslValidateCertificate: fileConfig.hana?.sslValidateCertificate || false
             },
             datasphere: {
-                defaultSpace: process.env.DATASPHERE_SPACE || fileConfig.datasphere?.defaultSpace || 'MIGRATION_SPACE'
+                host: process.env.DATASPHERE_HOST || fileConfig.datasphere?.host || '',
+                tokenUrl: process.env.DATASPHERE_TOKEN_URL || fileConfig.datasphere?.tokenUrl || '',
+                clientId: process.env.DATASPHERE_CLIENT_ID || fileConfig.datasphere?.clientId || '',
+                clientSecret: process.env.DATASPHERE_CLIENT_SECRET || fileConfig.datasphere?.clientSecret || '',
+                defaultSpace: process.env.DATASPHERE_SPACE || fileConfig.datasphere?.defaultSpace || 'AIS_HARMONIZATION_'
             }
         };
     }

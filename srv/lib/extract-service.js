@@ -18,11 +18,13 @@ class ExtractService {
     async extractCDS(viewName) {
         let ddl = null;
         let sqlViewName = viewName;
+        let preloadedCols = null;
 
         if (config.USE_MOCK) {
             const view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
             ddl = view?.sqlDdl;
             sqlViewName = view?.sqlViewName || viewName;
+            preloadedCols = view?.columns;
         } else {
             ddl = await hanaConnector.getCdsViewDefinition(viewName);
         }
@@ -31,7 +33,24 @@ class ExtractService {
             throw new Error(`CDS View '${viewName}' definition could not be resolved from catalog.`);
         }
 
-        return this._parseCdsDdl(viewName, ddl, sqlViewName);
+        const model = this._parseCdsDdl(viewName, ddl, sqlViewName);
+        if (preloadedCols && preloadedCols.length > 0) {
+            model.columns = preloadedCols;
+        }
+        if (config.USE_MOCK) {
+            const view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+            if (view?.dependencies) {
+                model.dependencies = view.dependencies;
+                if ((!model.sources || model.sources.length === 0) && view.dependencies.length > 0) {
+                    model.sources = view.dependencies.map(d => ({
+                        tableName: d.BASE_OBJECT_NAME,
+                        alias: '',
+                        isBase: true
+                    }));
+                }
+            }
+        }
+        return model;
     }
 
     /**
@@ -70,20 +89,24 @@ class ExtractService {
 
         const columns = selectPart.split(',').map(colStr => {
             const clean = colStr.trim();
-            const asMatch = clean.match(/(?:(\w+)\.)?(\w+)\s+AS\s+(\w+)/i);
+            const asMatch = clean.match(/(?:(?:\"?([\w]+)\"?)\.)?(?:\"?([\w]+)\"?)\s+AS\s+(?:\"?([\w]+)\"?)/i);
             if (asMatch) {
+                const colName = asMatch[3];
                 return {
                     tableAlias: asMatch[1] || '',
                     sourceColumn: asMatch[2],
-                    name: asMatch[3],
+                    name: colName,
                     dataType: this._inferDataType(asMatch[2]),
-                    isKey: this._isKeyColumn(asMatch[3])
+                    isKey: this._isKeyColumn(colName),
+                    isMeasure: this._isMeasure(colName)
                 };
             }
+            const rawCol = clean.replace(/["\s]/g, '');
             return {
-                name: clean.replace(/"/g, ''),
-                dataType: 'cds.String(40)',
-                isKey: false
+                name: rawCol,
+                dataType: this._inferDataType(rawCol),
+                isKey: this._isKeyColumn(rawCol),
+                isMeasure: this._isMeasure(rawCol)
             };
         });
 
@@ -222,6 +245,13 @@ class ExtractService {
         if (col.includes('ITEM') || col.includes('EBELP') || col.includes('POSNR') || col.includes('GJAHR') || col.includes('BUZEI') || col.includes('DOCLN')) return 'cds.Integer';
         if (col.includes('MANDT') || col.includes('RCLNT')) return 'cds.String(3)';
         return 'cds.String(40)';
+    }
+
+    _isMeasure(colName) {
+        const u = colName.toUpperCase();
+        return u.includes('QUANTITY') || u.includes('QTY') || u.includes('AMOUNT') || 
+               u.includes('COUNT') || u.includes('SCRAP') || u.includes('YIELD') || 
+               u.includes('REWORK') || u.includes('VALUE') || u.includes('LIMIT');
     }
 }
 

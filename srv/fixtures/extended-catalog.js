@@ -2,7 +2,9 @@
  * Extended Catalog Fixtures for HanaMorph (20+ S/4 CDS Views & HANA Calc Views)
  */
 
-const EXTENDED_CATALOG = [
+const { EXCEL_SEEDED_VIEWS } = require('./excel-seeded-catalog');
+
+const BASE_CATALOG = [
     // 1. Purchase Order CDS
     {
         name: 'C_PurchaseOrderFs',
@@ -610,6 +612,8 @@ const EXTENDED_CATALOG = [
 </Calculation:scenario>`
     }
 ];
+
+const EXTENDED_CATALOG = [...EXCEL_SEEDED_VIEWS, ...BASE_CATALOG];
 
 module.exports = {
     EXTENDED_CATALOG

@@ -2,6 +2,7 @@
     controllerName="hanamorph.controller.Landing"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
+    xmlns:core="sap.ui.core"
     xmlns:layout="sap.ui.layout">
     <Page
         id="landingPage"
@@ -17,7 +18,7 @@
                 visible="{system>/useMock}"
                 class="sapUiSmallMarginEnd" />
             
-            <!-- Small Connection Status Indicator -->
+            <!-- Connection Status Indicator -->
             <ObjectStatus
                 text="{= ${system>/hanaConnected} ? ${i18n>connStatusConnected} : ${i18n>connStatusDisconnected} }"
                 state="{= ${system>/hanaConnected} ? 'Success' : 'Error' }"
@@ -27,21 +28,24 @@
             <VBox
                 alignItems="Center"
                 justifyContent="Center"
-                class="sapUiLargeMarginTop sapUiLargeMarginBottom">
+                class="sapUiMediumMarginTop sapUiLargeMarginBottom">
                 
                 <Title
-                    text="Select Migration Pipeline"
+                    text="Datasphere Migration Studio"
                     level="H2"
-                    class="sapUiMediumMarginBottom" />
+                    class="sapUiSmallMarginBottom" />
+                <Text
+                    text="Migrate S/4HANA CDS Views and HANA Calculation Views into SAP Datasphere with null-safe SQL and standard CSN"
+                    class="text-muted sapUiMediumMarginBottom" />
 
-                <!-- Two Large Selectable Tiles -->
+                <!-- Migration Pipeline Tiles (3 Dedicated Core Studios) -->
                 <HBox
                     wrap="Wrap"
                     justifyContent="Center"
                     alignItems="Center"
-                    class="sapUiLargeMarginTop">
+                    class="sapUiMediumMarginBottom">
                     
-                    <!-- CDS View Tile -->
+                    <!-- Tile 1: CDS View Migration Studio -->
                     <GenericTile
                         header="{i18n>tileCdsTitle}"
                         subheader="{i18n>tileCdsSubtitle}"
@@ -53,7 +57,6 @@
                                 <content>
                                     <VBox alignItems="Center" justifyContent="Center" height="100%">
                                         <core:Icon
-                                            xmlns:core="sap.ui.core"
                                             src="sap-icon://source-code"
                                             size="3rem"
                                             color="#0a6ed1" />
@@ -63,7 +66,7 @@
                         </tileContent>
                     </GenericTile>
 
-                    <!-- Calculation View Tile -->
+                    <!-- Tile 2: Calculation View Migration Studio -->
                     <GenericTile
                         header="{i18n>tileCalcTitle}"
                         subheader="{i18n>tileCalcSubtitle}"
@@ -75,7 +78,6 @@
                                 <content>
                                     <VBox alignItems="Center" justifyContent="Center" height="100%">
                                         <core:Icon
-                                            xmlns:core="sap.ui.core"
                                             src="sap-icon://dimension"
                                             size="3rem"
                                             color="#6366f1" />
@@ -85,7 +87,80 @@
                         </tileContent>
                     </GenericTile>
 
+                    <!-- Tile 3: Bulk Upload & Deduplication Studio -->
+                    <GenericTile
+                        header="{i18n>tileBulkTitle}"
+                        subheader="{i18n>tileBulkSubtitle}"
+                        frameType="TwoByOne"
+                        class="sapUiMediumMargin"
+                        press=".onSelectBulkStudio">
+                        <tileContent>
+                            <TileContent>
+                                <content>
+                                    <VBox alignItems="Center" justifyContent="Center" height="100%">
+                                        <core:Icon
+                                            src="sap-icon://chain-link"
+                                            size="3rem"
+                                            color="#107e3e" />
+                                    </VBox>
+                                </content>
+                            </TileContent>
+                        </tileContent>
+                    </GenericTile>
+
                 </HBox>
+
+                <!-- ============================================================== -->
+                <!-- DATASPHERE ARCHITECTURE & STATUS DASHBOARD                     -->
+                <!-- ============================================================== -->
+                <VBox width="92%" class="sapUiResponsiveMargin">
+                    <Panel
+                        headerText="SAP Datasphere Migration Architecture &amp; Governance"
+                        expandable="false"
+                        class="sapUiMediumMarginBottom">
+                        <content>
+                            <VBox class="sapUiSmallMargin">
+                                <HBox justifyContent="SpaceAround" wrap="Wrap" class="sapUiSmallMarginBottom">
+                                    <VBox width="300px" class="sapUiSmallMargin">
+                                        <HBox alignItems="Center" class="sapUiTinyMarginBottom">
+                                            <core:Icon src="sap-icon://cloud" size="1.5rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
+                                            <Title text="Datasphere Space" level="H5" />
+                                        </HBox>
+                                        <Text text="Active Space: AIS_HARMONIZATION_" class="sapUiBold" />
+                                        <Text text="Tenant: ais-bdc-dsp-tdd.eu10.hcs.cloud.sap" class="text-muted" />
+                                        <Text text="Target Container: Local Tables" class="text-muted" />
+                                    </VBox>
+
+                                    <VBox width="300px" class="sapUiSmallMargin">
+                                        <HBox alignItems="Center" class="sapUiTinyMarginBottom">
+                                            <core:Icon src="sap-icon://syntax" size="1.5rem" color="#107e3e" class="sapUiSmallMarginEnd" />
+                                            <Title text="Pure SQL View Canvas" level="H5" />
+                                        </HBox>
+                                        <Text text="Direct SELECT query outputs compatible with Datasphere New SQL View canvas (no CREATE VIEW wrapper errors)." class="text-muted" />
+                                    </VBox>
+
+                                    <VBox width="300px" class="sapUiSmallMargin">
+                                        <HBox alignItems="Center" class="sapUiTinyMarginBottom">
+                                            <core:Icon src="sap-icon://connected" size="1.5rem" color="#d1720a" class="sapUiSmallMarginEnd" />
+                                            <Title text="Replication Flows" level="H5" />
+                                        </HBox>
+                                        <Text text="Automated Master Data (Initial Snapshot) &amp; Transactional Data (Initial + Delta CDC) replication flows directly into Local Tables." class="text-muted" />
+                                    </VBox>
+                                </HBox>
+
+                                <Toolbar class="sapUiSmallMarginTop">
+                                    <Text text="Ready to migrate? Choose a single view pipeline above, or launch Bulk Studio for multi-view deduplication." class="text-muted" />
+                                    <ToolbarSpacer />
+                                    <Button
+                                        text="Open Bulk Studio"
+                                        icon="sap-icon://action"
+                                        type="Emphasized"
+                                        press=".onSelectBulkStudio" />
+                                </Toolbar>
+                            </VBox>
+                        </content>
+                    </Panel>
+                </VBox>
 
             </VBox>
         </content>
