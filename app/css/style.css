@@ -120,3 +120,7 @@ html, body {
 .text-bold {
     font-weight: 600;
 }
+
+.hmViewSelectorBox {
+    max-width: 680px;
+}

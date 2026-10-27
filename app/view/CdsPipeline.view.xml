@@ -65,7 +65,7 @@
                                                             press=".onImportViews"
                                                             class="sapUiSmallMarginEnd" />
                                                         
-                                                        <HBox width="100%" class="sapUiTinyMarginTop" style="max-width: 680px;">
+                                                        <HBox width="100%" class="sapUiTinyMarginTop hmViewSelectorBox">
                                                             <ComboBox
                                                                 id="cdsViewSelector"
                                                                 placeholder="{i18n>placeholderSelectView}"
@@ -603,7 +603,7 @@
         </content>
 
         <!-- FLOATING RESPONSIVE FOOTER -->
-        <footerContent>
+        <footer>
             <OverflowToolbar class="hmStickyFooter">
                 <!-- Step 1 Footer (Left) -->
                 <Button
@@ -700,6 +700,6 @@
                     press=".onGoToSelectView"
                     visible="{= ${/selectedTabKey} === 'tabCodeDownloads' }" />
             </OverflowToolbar>
-        </footerContent>
+        </footer>
     </Page>
 </mvc:View>

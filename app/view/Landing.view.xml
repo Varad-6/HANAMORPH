@@ -54,6 +54,7 @@
 
                     <!-- STUDIO CARD 1: CDS VIEW MIGRATION -->
                     <VBox
+                        id="cdsCard"
                         width="460px"
                         class="hmStudioCard sapUiMediumMargin">
                         <VBox class="hmCardContent">
@@ -85,6 +86,7 @@
 
                     <!-- STUDIO CARD 2: CALCULATION VIEW MIGRATION -->
                     <VBox
+                        id="calcCard"
                         width="460px"
                         class="hmStudioCard sapUiMediumMargin">
                         <VBox class="hmCardContent">
