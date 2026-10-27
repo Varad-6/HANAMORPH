@@ -38,7 +38,7 @@
                     text="Migrate S/4HANA CDS Views and HANA Calculation Views into SAP Datasphere with null-safe SQL and standard CSN"
                     class="text-muted sapUiMediumMarginBottom" />
 
-                <!-- Migration Pipeline Tiles (3 Dedicated Core Studios) -->
+                <!-- Migration Pipeline Tiles -->
                 <HBox
                     wrap="Wrap"
                     justifyContent="Center"
@@ -87,27 +87,6 @@
                         </tileContent>
                     </GenericTile>
 
-                    <!-- Tile 3: Bulk Upload & Deduplication Studio -->
-                    <GenericTile
-                        header="{i18n>tileBulkTitle}"
-                        subheader="{i18n>tileBulkSubtitle}"
-                        frameType="TwoByOne"
-                        class="sapUiMediumMargin"
-                        press=".onSelectBulkStudio">
-                        <tileContent>
-                            <TileContent>
-                                <content>
-                                    <VBox alignItems="Center" justifyContent="Center" height="100%">
-                                        <core:Icon
-                                            src="sap-icon://chain-link"
-                                            size="3rem"
-                                            color="#107e3e" />
-                                    </VBox>
-                                </content>
-                            </TileContent>
-                        </tileContent>
-                    </GenericTile>
-
                 </HBox>
 
                 <!-- ============================================================== -->
@@ -121,7 +100,7 @@
                         <content>
                             <VBox class="sapUiSmallMargin">
                                 <HBox justifyContent="SpaceAround" wrap="Wrap" class="sapUiSmallMarginBottom">
-                                    <VBox width="300px" class="sapUiSmallMargin">
+                                    <VBox width="340px" class="sapUiSmallMargin">
                                         <HBox alignItems="Center" class="sapUiTinyMarginBottom">
                                             <core:Icon src="sap-icon://cloud" size="1.5rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
                                             <Title text="Datasphere Space" level="H5" />
@@ -131,7 +110,7 @@
                                         <Text text="Target Container: Local Tables" class="text-muted" />
                                     </VBox>
 
-                                    <VBox width="300px" class="sapUiSmallMargin">
+                                    <VBox width="340px" class="sapUiSmallMargin">
                                         <HBox alignItems="Center" class="sapUiTinyMarginBottom">
                                             <core:Icon src="sap-icon://syntax" size="1.5rem" color="#107e3e" class="sapUiSmallMarginEnd" />
                                             <Title text="Pure SQL View Canvas" level="H5" />
@@ -139,24 +118,14 @@
                                         <Text text="Direct SELECT query outputs compatible with Datasphere New SQL View canvas (no CREATE VIEW wrapper errors)." class="text-muted" />
                                     </VBox>
 
-                                    <VBox width="300px" class="sapUiSmallMargin">
+                                    <VBox width="340px" class="sapUiSmallMargin">
                                         <HBox alignItems="Center" class="sapUiTinyMarginBottom">
-                                            <core:Icon src="sap-icon://connected" size="1.5rem" color="#d1720a" class="sapUiSmallMarginEnd" />
-                                            <Title text="Replication Flows" level="H5" />
+                                            <core:Icon src="sap-icon://b-suite" size="1.5rem" color="#d1720a" class="sapUiSmallMarginEnd" />
+                                            <Title text="Native CSN 2.0 Bundles" level="H5" />
                                         </HBox>
-                                        <Text text="Automated Master Data (Initial Snapshot) &amp; Transactional Data (Initial + Delta CDC) replication flows directly into Local Tables." class="text-muted" />
+                                        <Text text="Complete package CSN with definitions at root ($version 2.0) for seamless Data Builder and Business Builder import." class="text-muted" />
                                     </VBox>
                                 </HBox>
-
-                                <Toolbar class="sapUiSmallMarginTop">
-                                    <Text text="Ready to migrate? Choose a single view pipeline above, or launch Bulk Studio for multi-view deduplication." class="text-muted" />
-                                    <ToolbarSpacer />
-                                    <Button
-                                        text="Open Bulk Studio"
-                                        icon="sap-icon://action"
-                                        type="Emphasized"
-                                        press=".onSelectBulkStudio" />
-                                </Toolbar>
                             </VBox>
                         </content>
                     </Panel>

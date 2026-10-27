@@ -41,49 +41,15 @@ service MigrationService {
     }
 
     type ModularArtifactsResult : {
-        tableJsonString                 : LargeString;
-        viewJsonString                  : LargeString;
-        analyticModelJsonString         : LargeString;
-        packageJsonString               : LargeString;
-        optimizedSql                    : LargeString;
-        completeDdlSql                  : LargeString;
-        replicationFlowMasterJsonString : LargeString;
-        replicationFlowDeltaJsonString  : LargeString;
-        replicationFlowCliCommand       : LargeString;
-        tableName                       : String;
-        viewName                        : String;
-        amName                          : String;
-    }
-
-    type SourceOverlapSummary : {
-        tableName         : String;
-        referencedByViews : array of String;
-        referenceCount    : Integer;
-        suggestedLayer    : String;
-        sharedColumns     : array of String;
-    }
-
-    type RationalizationReport : {
-        totalViewsAnalyzed   : Integer;
-        uniqueSourcesFound   : Integer;
-        duplicateSourceCount : Integer;
-        overlaps             : array of SourceOverlapSummary;
-        recommendations      : array of String;
-    }
-
-    type BulkArtifactsResult : {
-        masterCsnJsonString       : LargeString;
-        aggregatedSql             : LargeString;
-        replicationFlowJsonString : LargeString;
-        replicationFlowCliCommand : LargeString;
-        processedViewCount        : Integer;
-        tableCount                : Integer;
-        viewCount                 : Integer;
-        views                     : array of {
-            viewName   : String;
-            viewType   : String;
-            columns    : Integer;
-        };
+        tableJsonString         : LargeString;
+        viewJsonString          : LargeString;
+        analyticModelJsonString : LargeString;
+        packageJsonString       : LargeString;
+        optimizedSql            : LargeString;
+        completeDdlSql          : LargeString;
+        tableName               : String;
+        viewName                : String;
+        amName                  : String;
     }
 
     // Direct User Requested API Contract
@@ -104,17 +70,6 @@ service MigrationService {
         isMeasure    : Boolean;
         originalName : String;
     };
-
-    action rationalizeSources(
-        viewNames : array of String
-    ) returns RationalizationReport;
-
-    action generateBulkArtifacts(
-        viewNames              : array of String,
-        space                  : String,
-        namingPattern          : String,
-        deduplicationDecisions : LargeString
-    ) returns BulkArtifactsResult;
 
     action generateModularArtifacts(
         viewName           : String,

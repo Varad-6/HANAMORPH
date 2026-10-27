@@ -517,59 +517,8 @@
                                             </content>
                                         </Panel>
 
-                                        <!-- SECTION 3: REPLICATION FLOW TARGETING LOCAL TABLES -->
-                                        <Panel headerText="3. Replication Flow to Datasphere Local Tables" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
-                                            <headerToolbar>
-                                                <OverflowToolbar>
-                                                    <Title text="3. Replication Flow (Target: Local Tables in AIS_HARMONIZATION_)" level="H5" />
-                                                    <ToolbarSpacer />
-                                                    <Button
-                                                        text="Download Replication Flow JSON"
-                                                        icon="sap-icon://download"
-                                                        type="Emphasized"
-                                                        press=".onDownloadReplicationFlow" />
-                                                    <Button
-                                                        text="Copy CLI Deploy Command"
-                                                        icon="sap-icon://copy"
-                                                        press=".onCopyReplicationCli" />
-                                                </OverflowToolbar>
-                                            </headerToolbar>
-                                            <content>
-                                                <VBox class="sapUiSmallMargin">
-                                                    <MessageStrip
-                                                        text="SAP Datasphere Replication Flow configures data transfer directly into Local Tables. Choose 'Master Data' for 1-time snapshot loads (Initial) or 'Transactional Data' for CDC delta replication (InitialAndDelta)."
-                                                        type="Information"
-                                                        showIcon="true"
-                                                        class="sapUiSmallMarginBottom" />
-
-                                                    <HBox alignItems="Center" class="sapUiSmallMarginBottom">
-                                                        <Label text="Replication Mode &amp; Category:" class="sapUiSmallMarginEnd sapUiBold" />
-                                                        <SegmentedButton selectedKey="{/replicationFlowMode}">
-                                                            <items>
-                                                                <SegmentedButtonItem key="DELTA" text="Transactional Data (Initial + Delta CDC)" icon="sap-icon://synchronize" />
-                                                                <SegmentedButtonItem key="MASTER" text="Master Data (Initial Snapshot)" icon="sap-icon://database" />
-                                                            </items>
-                                                        </SegmentedButton>
-                                                    </HBox>
-
-                                                    <TextArea
-                                                        value="{= ${/replicationFlowMode} === 'MASTER' ? ${/modularResult/replicationFlowMasterJsonString} : ${/modularResult/replicationFlowDeltaJsonString} }"
-                                                        rows="8"
-                                                        width="100%"
-                                                        editable="false"
-                                                        growing="true"
-                                                        growingMaxLines="20" />
-
-                                                    <HBox alignItems="Center" class="sapUiSmallMarginTop">
-                                                        <Text text="Datasphere CLI Deployment Command:" class="sapUiBold sapUiSmallMarginEnd" />
-                                                        <Text text="{/modularResult/replicationFlowCliCommand}" class="sapUiCode" />
-                                                    </HBox>
-                                                </VBox>
-                                            </content>
-                                        </Panel>
-
-                                        <!-- SECTION 4: DIRECT CLOUD MIGRATION PIPELINE -->
-                                        <Panel headerText="4. Direct Cloud Transfer to Datasphere (Optional API Push)" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
+                                        <!-- SECTION 3: DIRECT CLOUD MIGRATION PIPELINE -->
+                                        <Panel headerText="3. Direct Cloud Transfer to Datasphere (Optional API Push)" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
                                             <content>
                                                 <VBox class="sapUiSmallMargin">
                                                     <Text

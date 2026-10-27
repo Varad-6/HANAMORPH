@@ -52,8 +52,6 @@ sap.ui.define([
                 },
 
                 // Tab 5: Code & Downloads
-                replicationFlowMode: "DELTA", // "MASTER" or "DELTA"
-                sourceConnection: "S4HANA_SOURCE",
                 modularResult: {
                     tableJsonString: "",
                     viewJsonString: "",
@@ -61,9 +59,6 @@ sap.ui.define([
                     packageJsonString: "",
                     optimizedSql: "",
                     completeDdlSql: "",
-                    replicationFlowMasterJsonString: "",
-                    replicationFlowDeltaJsonString: "",
-                    replicationFlowCliCommand: "",
                     tableName: "",
                     viewName: "",
                     amName: ""
@@ -615,37 +610,6 @@ sap.ui.define([
             }
             this._downloadFile(`${sName}_am.csn.json`, sJson, "application/json");
             MessageToast.show(`Downloaded ${sName}_am.csn.json (Native CSN for Business Builder -> Analytic Models)`);
-        },
-
-        /* ====================================================================
-         * REPLICATION FLOW GENERATION (TARGET: LOCAL TABLES)
-         * ==================================================================== */
-        onDownloadReplicationFlow: function () {
-            const oModel = this.getView().getModel();
-            const sMode = oModel.getProperty("/replicationFlowMode") || "DELTA";
-            const sJson = sMode === "MASTER" 
-                ? oModel.getProperty("/modularResult/replicationFlowMasterJsonString")
-                : oModel.getProperty("/modularResult/replicationFlowDeltaJsonString");
-            const sTableName = oModel.getProperty("/modularResult/tableName") || "Table";
-
-            if (!sJson) {
-                MessageBox.warning("Please generate artifacts first.");
-                return;
-            }
-
-            const sFileName = `RF_${sTableName}_${sMode.toLowerCase()}.replicationFlow.json`;
-            this._downloadFile(sFileName, sJson, "application/json");
-            MessageToast.show(`Downloaded ${sFileName} (Datasphere Replication Flow to Local Table)`);
-        },
-
-        onCopyReplicationCli: function () {
-            const oModel = this.getView().getModel();
-            const sCmd = oModel.getProperty("/modularResult/replicationFlowCliCommand");
-            if (!sCmd) {
-                MessageBox.warning("No CLI command available yet.");
-                return;
-            }
-            this._copyTextToClipboard(sCmd, "Datasphere CLI replication-flow command copied!");
         },
 
         _downloadFile: function (sFileName, sContent, sMimeType) {

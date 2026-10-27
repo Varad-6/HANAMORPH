@@ -212,76 +212,9 @@ module.exports = cds.service.impl(async function () {
             packageJsonString: result.packageJsonString,
             optimizedSql: result.optimizedQuerySql, // Pure SELECT query for Datasphere New SQL View
             completeDdlSql: result.completeDdlSql,
-            replicationFlowMasterJsonString: result.replicationFlowMasterJsonString,
-            replicationFlowDeltaJsonString: result.replicationFlowDeltaJsonString,
-            replicationFlowCliCommand: result.replicationFlowCliCommand,
             tableName: namingConfig.tableName,
             viewName: namingConfig.viewName,
             amName: namingConfig.analyticModelName
-        };
-    });
-
-    /**
-     * Helper to extract a list of view models
-     */
-    const _extractModels = async (viewNames = []) => {
-        const models = [];
-        for (const name of viewNames) {
-            try {
-                const isCalc = name.startsWith('CA_');
-                const model = isCalc 
-                    ? await extractService.extractCalc(name)
-                    : await extractService.extractCDS(name);
-                models.push(model);
-            } catch (err) {
-                console.warn(`[extractModels] Failed to extract ${name}:`, err.message);
-            }
-        }
-        return models;
-    };
-
-    /**
-     * Function: rationalizeSources
-     */
-    this.on('rationalizeSources', async req => {
-        let { viewNames = [] } = req.data;
-        if (!viewNames || viewNames.length === 0) {
-            const allCds = await hanaConnector.listCDSViews();
-            const allCalc = await hanaConnector.listCalcViews();
-            viewNames = [...allCds.map(v => v.name), ...allCalc.map(v => v.name)];
-        }
-        const models = await _extractModels(viewNames);
-        return transformService.rationalizeSources(models);
-    });
-
-    /**
-     * Action: generateBulkArtifacts
-     */
-    this.on('generateBulkArtifacts', async req => {
-        const {
-            viewNames = [],
-            space = config.datasphere.defaultSpace,
-            namingPattern = 'DEFAULT',
-            deduplicationDecisions = null
-        } = req.data;
-        if (!viewNames || viewNames.length === 0) {
-            req.reject(400, 'viewNames array is required for bulk generation');
-        }
-        const models = await _extractModels(viewNames);
-        const result = transformService.generateBulkArtifacts(models, {
-            space,
-            namingPattern,
-            deduplicationDecisions
-        });
-        return {
-            masterCsnJsonString: result.masterCsnJsonString,
-            aggregatedSql: result.aggregatedSql,
-            replicationFlowJsonString: result.replicationFlowJsonString,
-            replicationFlowCliCommand: result.replicationFlowCliCommand,
-            processedViewCount: result.processedViewCount,
-            tableCount: result.tableCount,
-            viewCount: result.viewCount,
-            views: result.views
         };
     });
 
