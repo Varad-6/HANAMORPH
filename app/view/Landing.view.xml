@@ -6,10 +6,17 @@
     xmlns:layout="sap.ui.layout">
     <Page
         id="landingPage"
-        title="{i18n>landingTitle}"
+        title="{i18n>appTitle}"
         showNavButton="false"
         enableScrolling="true">
         <headerContent>
+            <!-- Space Chip -->
+            <ObjectStatus
+                text="Space: AIS_HARMONIZATION_"
+                state="Information"
+                icon="sap-icon://cloud"
+                class="sapUiSmallMarginEnd" />
+
             <!-- Visible MOCK DATA Badge -->
             <ObjectStatus
                 text="{i18n>connStatusMock}"
@@ -25,67 +32,87 @@
                 icon="{= ${system>/hanaConnected} ? 'sap-icon://connected' : 'sap-icon://disconnected' }" />
         </headerContent>
         <content>
-            <VBox
-                alignItems="Center"
-                justifyContent="Center"
-                class="sapUiMediumMarginTop sapUiLargeMarginBottom">
+            <VBox alignItems="Center" width="100%">
                 
-                <Title
-                    text="Datasphere Migration Studio"
-                    level="H2"
-                    class="sapUiSmallMarginBottom" />
-                <Text
-                    text="Migrate S/4HANA CDS Views and HANA Calculation Views into SAP Datasphere with null-safe SQL and standard CSN"
-                    class="text-muted sapUiMediumMarginBottom" />
+                <!-- Hero Section Banner -->
+                <VBox alignItems="Center" width="100%" class="hmHeroSection">
+                    <Title
+                        text="Datasphere Migration Studio"
+                        level="H1"
+                        class="hmHeroTitle" />
+                    <Text
+                        text="Automate the migration of S/4HANA ABAP CDS Views and HANA Calculation Views into SAP Datasphere with null-safe SQL queries, standard CSN 2.0 packages, and interactive column modeling."
+                        class="hmHeroSubtitle" />
+                </VBox>
 
-                <!-- Migration Pipeline Tiles -->
+                <!-- Modern Two-Studio Horizon Cards Grid -->
                 <HBox
-                    wrap="Wrap"
+                    width="92%"
                     justifyContent="Center"
-                    alignItems="Center"
+                    wrap="Wrap"
                     class="sapUiMediumMarginBottom">
-                    
-                    <!-- Tile 1: CDS View Migration Studio -->
-                    <GenericTile
-                        header="{i18n>tileCdsTitle}"
-                        subheader="{i18n>tileCdsSubtitle}"
-                        frameType="TwoByOne"
-                        class="sapUiMediumMargin"
-                        press=".onSelectCds">
-                        <tileContent>
-                            <TileContent>
-                                <content>
-                                    <VBox alignItems="Center" justifyContent="Center" height="100%">
-                                        <core:Icon
-                                            src="sap-icon://source-code"
-                                            size="3rem"
-                                            color="#0a6ed1" />
-                                    </VBox>
-                                </content>
-                            </TileContent>
-                        </tileContent>
-                    </GenericTile>
 
-                    <!-- Tile 2: Calculation View Migration Studio -->
-                    <GenericTile
-                        header="{i18n>tileCalcTitle}"
-                        subheader="{i18n>tileCalcSubtitle}"
-                        frameType="TwoByOne"
-                        class="sapUiMediumMargin"
-                        press=".onSelectCalcView">
-                        <tileContent>
-                            <TileContent>
-                                <content>
-                                    <VBox alignItems="Center" justifyContent="Center" height="100%">
-                                        <core:Icon
-                                            src="sap-icon://dimension"
-                                            size="3rem"
-                                            color="#6366f1" />
-                                    </VBox>
-                                </content>
-                            </TileContent>
-                        </tileContent>
-                    </GenericTile>
+                    <!-- STUDIO CARD 1: CDS VIEW MIGRATION -->
+                    <VBox
+                        width="460px"
+                        class="hmStudioCard sapUiMediumMargin">
+                        <VBox class="hmCardContent">
+                            <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
+                                <HBox class="hmIconCircle hmIconCds" alignItems="Center" justifyContent="Center">
+                                    <core:Icon src="sap-icon://source-code" size="2rem" />
+                                </HBox>
+                                <ObjectStatus
+                                    text="18 Views Available"
+                                    state="Information"
+                                    icon="sap-icon://database" />
+                            </HBox>
+
+                            <Title text="{i18n>tileCdsTitle} Studio" level="H3" class="sapUiTinyMarginBottom" />
+                            <Text
+                                text="Extract ABAP Core Data Services, inspect relational associations, rename columns with PascalCase/UPPER_SNAKE, and generate pure SELECT queries with native CSN 2.0 downloads."
+                                class="text-muted sapUiMediumMarginBottom" />
+
+                            <HBox justifyContent="End" class="sapUiSmallMarginTop">
+                                <Button
+                                    text="Launch CDS Studio"
+                                    icon="sap-icon://navigation-right-arrow"
+                                    iconFirst="false"
+                                    type="Emphasized"
+                                    press=".onSelectCds" />
+                            </HBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- STUDIO CARD 2: CALCULATION VIEW MIGRATION -->
+                    <VBox
+                        width="460px"
+                        class="hmStudioCard sapUiMediumMargin">
+                        <VBox class="hmCardContent">
+                            <HBox alignItems="Center" justifyContent="SpaceBetween" class="sapUiSmallMarginBottom">
+                                <HBox class="hmIconCircle hmIconCalc" alignItems="Center" justifyContent="Center">
+                                    <core:Icon src="sap-icon://dimension" size="2rem" />
+                                </HBox>
+                                <ObjectStatus
+                                    text="5 Cubes Available"
+                                    state="Success"
+                                    icon="sap-icon://b-suite" />
+                            </HBox>
+
+                            <Title text="{i18n>tileCalcTitle} Studio" level="H3" class="sapUiTinyMarginBottom" />
+                            <Text
+                                text="Extract HANA Calculation Scenarios, map complex joins and aggregation nodes, automate measure formatting (#SUM), and export harmonized Datasphere analytical cubes."
+                                class="text-muted sapUiMediumMarginBottom" />
+
+                            <HBox justifyContent="End" class="sapUiSmallMarginTop">
+                                <Button
+                                    text="Launch Calc View Studio"
+                                    icon="sap-icon://navigation-right-arrow"
+                                    iconFirst="false"
+                                    type="Emphasized"
+                                    press=".onSelectCalcView" />
+                            </HBox>
+                        </VBox>
+                    </VBox>
 
                 </HBox>
 
@@ -100,6 +127,7 @@
                         <content>
                             <VBox class="sapUiSmallMargin">
                                 <HBox justifyContent="SpaceAround" wrap="Wrap" class="sapUiSmallMarginBottom">
+                                    
                                     <VBox width="340px" class="sapUiSmallMargin">
                                         <HBox alignItems="Center" class="sapUiTinyMarginBottom">
                                             <core:Icon src="sap-icon://cloud" size="1.5rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
@@ -115,16 +143,17 @@
                                             <core:Icon src="sap-icon://syntax" size="1.5rem" color="#107e3e" class="sapUiSmallMarginEnd" />
                                             <Title text="Pure SQL View Canvas" level="H5" />
                                         </HBox>
-                                        <Text text="Direct SELECT query outputs compatible with Datasphere New SQL View canvas (no CREATE VIEW wrapper errors)." class="text-muted" />
+                                        <Text text="Direct SELECT query statements compatible with Datasphere New SQL View editor canvas (eliminating CREATE VIEW syntax errors)." class="text-muted" />
                                     </VBox>
 
                                     <VBox width="340px" class="sapUiSmallMargin">
                                         <HBox alignItems="Center" class="sapUiTinyMarginBottom">
                                             <core:Icon src="sap-icon://b-suite" size="1.5rem" color="#d1720a" class="sapUiSmallMarginEnd" />
-                                            <Title text="Native CSN 2.0 Bundles" level="H5" />
+                                            <Title text="Native CSN 2.0 Packages" level="H5" />
                                         </HBox>
-                                        <Text text="Complete package CSN with definitions at root ($version 2.0) for seamless Data Builder and Business Builder import." class="text-muted" />
+                                        <Text text="Unified CSN definitions at root with canonical cds types for Data Builder and Business Builder import." class="text-muted" />
                                     </VBox>
+
                                 </HBox>
                             </VBox>
                         </content>

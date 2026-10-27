@@ -10,8 +10,14 @@
         title="{i18n>tileCdsTitle} Migration Studio"
         showNavButton="true"
         navButtonPress=".onNavBack"
-        enableScrolling="true">
+        enableScrolling="true"
+        floatingFooter="true">
         <headerContent>
+            <ObjectStatus
+                text="Space: AIS_HARMONIZATION_"
+                state="Information"
+                icon="sap-icon://cloud"
+                class="sapUiSmallMarginEnd" />
             <ObjectStatus
                 text="{i18n>connStatusMock}"
                 state="Warning"
@@ -23,8 +29,9 @@
                 state="{= ${system>/hanaConnected} ? 'Success' : 'Error' }"
                 icon="{= ${system>/hanaConnected} ? 'sap-icon://connected' : 'sap-icon://disconnected' }" />
         </headerContent>
+
         <content>
-            <VBox width="100%" alignItems="Center" class="sapUiMediumMarginTop sapUiLargeMarginBottom">
+            <VBox width="100%" alignItems="Center" class="sapUiSmallMarginTop sapUiLargeMarginBottom">
                 <VBox width="96%" class="sapUiResponsiveMargin">
 
                     <!-- 5-STEP SEQUENTIAL WIZARD TABS -->
@@ -47,7 +54,7 @@
                                 count="{= ${/views} ? ${/views}.length : '' }">
                                 <content>
                                     <VBox class="sapUiMediumMargin">
-                                        <Panel headerText="Source CDS View Selection" expandable="false" class="sapUiSmallMarginBottom">
+                                        <Panel headerText="Source CDS View Selection" expandable="false" class="sapUiSmallMarginBottom hmDownloadCard">
                                             <content>
                                                 <VBox busy="{/isBusy}" busyIndicatorDelay="0">
                                                     <HBox alignItems="Center" class="sapUiSmallMarginBottom" wrap="Wrap">
@@ -58,22 +65,24 @@
                                                             press=".onImportViews"
                                                             class="sapUiSmallMarginEnd" />
                                                         
-                                                        <ComboBox
-                                                            id="cdsViewSelector"
-                                                            placeholder="{i18n>placeholderSelectView}"
-                                                            width="560px"
-                                                            enabled="{/hasImported}"
-                                                            selectedKey="{/selectedViewName}"
-                                                            selectionChange=".onViewChange"
-                                                            items="{
-                                                                path: '/views',
-                                                                sorter: { path: 'name' }
-                                                            }">
-                                                            <core:ListItem
-                                                                key="{name}"
-                                                                text="{name}"
-                                                                additionalText="{description}" />
-                                                        </ComboBox>
+                                                        <HBox width="100%" class="sapUiTinyMarginTop" style="max-width: 680px;">
+                                                            <ComboBox
+                                                                id="cdsViewSelector"
+                                                                placeholder="{i18n>placeholderSelectView}"
+                                                                width="100%"
+                                                                enabled="{/hasImported}"
+                                                                selectedKey="{/selectedViewName}"
+                                                                selectionChange=".onViewChange"
+                                                                items="{
+                                                                    path: '/views',
+                                                                    sorter: { path: 'name' }
+                                                                }">
+                                                                <core:ListItem
+                                                                    key="{name}"
+                                                                    text="{name}"
+                                                                    additionalText="{description}" />
+                                                            </ComboBox>
+                                                        </HBox>
                                                     </HBox>
 
                                                     <MessageStrip
@@ -85,6 +94,7 @@
 
                                                     <!-- Selected View Summary Card -->
                                                     <VBox visible="{/hasViewSelected}" class="sapUiMediumMarginTop">
+                                                        <Title text="Extracted View Metadata" level="H5" class="sapUiSmallMarginBottom" />
                                                         <form:SimpleForm
                                                             editable="false"
                                                             layout="ResponsiveGridLayout"
@@ -99,7 +109,7 @@
                                                                 <Label text="Description / Grain" />
                                                                 <Text text="{/selectedView/description}" />
                                                                 <Label text="Total Columns" />
-                                                                <ObjectStatus text="{/selectedView/columnCount} columns" state="Information" />
+                                                                <ObjectStatus text="{/selectedView/columnCount} columns" state="Information" icon="sap-icon://table-column" />
                                                             </form:content>
                                                         </form:SimpleForm>
                                                     </VBox>
@@ -107,8 +117,8 @@
                                             </content>
                                         </Panel>
 
-                                        <!-- Step 1 Navigation Footer -->
-                                        <Toolbar class="sapUiSmallMarginTop">
+                                        <!-- Step 1 In-Page Action Toolbar -->
+                                        <OverflowToolbar class="sapUiSmallMarginTop">
                                             <ToolbarSpacer />
                                             <Button
                                                 text="Next: Select Artifacts"
@@ -117,7 +127,7 @@
                                                 type="Emphasized"
                                                 enabled="{/hasViewSelected}"
                                                 press=".onGoToArtifacts" />
-                                        </Toolbar>
+                                        </OverflowToolbar>
                                     </VBox>
                                 </content>
                             </IconTabFilter>
@@ -142,6 +152,7 @@
                                         <Table
                                             id="artifactTable"
                                             mode="MultiSelect"
+                                            alternateRowColors="true"
                                             items="{/artifacts}"
                                             selectionChange=".onArtifactSelectionChange"
                                             busy="{/isArtifactsBusy}"
@@ -154,13 +165,13 @@
                                                 </OverflowToolbar>
                                             </headerToolbar>
                                             <columns>
-                                                <Column width="140px">
+                                                <Column width="150px">
                                                     <Text text="{i18n>colType}" />
                                                 </Column>
                                                 <Column width="320px">
                                                     <Text text="{i18n>colName}" />
                                                 </Column>
-                                                <Column width="110px" hAlign="Center">
+                                                <Column width="120px" hAlign="Center">
                                                     <Text text="{i18n>colColumns}" />
                                                 </Column>
                                                 <Column>
@@ -172,8 +183,9 @@
                                                     <cells>
                                                         <ObjectStatus
                                                             text="{artifactType}"
-                                                            state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success') }" />
-                                                        <Text text="{name}" wrapping="false" />
+                                                            state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success') }"
+                                                            icon="{= ${artifactType} === 'SQL' ? 'sap-icon://syntax' : (${artifactType} === 'TABLE' ? 'sap-icon://table-view' : 'sap-icon://chain-link') }" />
+                                                        <Text text="{name}" wrapping="false" class="sapUiBold" />
                                                         <Text text="{columnCount}" />
                                                         <Text text="{details}" maxLines="2" />
                                                     </cells>
@@ -181,11 +193,12 @@
                                             </items>
                                         </Table>
 
-                                        <!-- Step 2 Navigation Footer -->
-                                        <Toolbar class="sapUiMediumMarginTop">
+                                        <!-- Step 2 In-Page Action Toolbar -->
+                                        <OverflowToolbar class="sapUiMediumMarginTop">
                                             <Button
                                                 text="Back: Select CDS"
                                                 icon="sap-icon://navigation-left-arrow"
+                                                type="Transparent"
                                                 press=".onGoToSelectView" />
                                             <ToolbarSpacer />
                                             <Button
@@ -194,7 +207,7 @@
                                                 iconFirst="false"
                                                 type="Emphasized"
                                                 press=".onGoToColumns" />
-                                        </Toolbar>
+                                        </OverflowToolbar>
                                     </VBox>
                                 </content>
                             </IconTabFilter>
@@ -219,6 +232,7 @@
                                         <Table
                                             id="columnsTable"
                                             items="{/columns}"
+                                            alternateRowColors="true"
                                             busy="{/isColumnsBusy}"
                                             busyIndicatorDelay="0"
                                             growing="true"
@@ -226,8 +240,8 @@
                                             <headerToolbar>
                                                 <OverflowToolbar>
                                                     <SearchField
-                                                        width="280px"
-                                                        placeholder="Search columns by name..."
+                                                        width="260px"
+                                                        placeholder="Search columns..."
                                                         value="{/columnSearchTerm}"
                                                         liveChange=".onSearchColumns" />
                                                     <ToolbarSeparator />
@@ -241,11 +255,12 @@
                                                     <ToolbarSpacer />
                                                     <ObjectStatus
                                                         text="{= ${/selectedColumnCount} + ' of ' + ${/totalColumnCount} + ' columns selected' }"
-                                                        state="{= ${/selectedColumnCount} > 0 ? 'Success' : 'Error' }" />
+                                                        state="{= ${/selectedColumnCount} > 0 ? 'Success' : 'Error' }"
+                                                        icon="{= ${/selectedColumnCount} > 0 ? 'sap-icon://message-success' : 'sap-icon://message-error' }" />
                                                 </OverflowToolbar>
                                             </headerToolbar>
                                             <columns>
-                                                <Column width="55px" hAlign="Center">
+                                                <Column width="65px" hAlign="Center">
                                                     <Text text="Include" />
                                                 </Column>
                                                 <Column width="220px">
@@ -257,7 +272,7 @@
                                                 <Column width="240px">
                                                     <Text text="Target Business Label (Editable)" />
                                                 </Column>
-                                                <Column width="140px">
+                                                <Column width="130px">
                                                     <Text text="Data Type" />
                                                 </Column>
                                                 <Column width="160px">
@@ -282,10 +297,12 @@
                                                                 text="KEY"
                                                                 state="Success"
                                                                 visible="{isKey}"
+                                                                icon="sap-icon://key"
                                                                 class="sapUiTinyMarginEnd" />
                                                             <ObjectStatus
                                                                 text="MEASURE (#SUM)"
                                                                 state="Warning"
+                                                                icon="sap-icon://sum"
                                                                 visible="{isMeasure}" />
                                                             <ObjectStatus
                                                                 text="DIMENSION"
@@ -300,11 +317,12 @@
                                             </items>
                                         </Table>
 
-                                        <!-- Step 3 Navigation Footer -->
-                                        <Toolbar class="sapUiMediumMarginTop">
+                                        <!-- Step 3 In-Page Action Toolbar -->
+                                        <OverflowToolbar class="sapUiMediumMarginTop">
                                             <Button
                                                 text="Back: Artifacts"
                                                 icon="sap-icon://navigation-left-arrow"
+                                                type="Transparent"
                                                 press=".onGoToArtifacts" />
                                             <ToolbarSpacer />
                                             <Button
@@ -314,7 +332,7 @@
                                                 type="Emphasized"
                                                 enabled="{= ${/selectedColumnCount} > 0 }"
                                                 press=".onGoToNaming" />
-                                        </Toolbar>
+                                        </OverflowToolbar>
                                     </VBox>
                                 </content>
                             </IconTabFilter>
@@ -382,20 +400,22 @@
                                             </form:content>
                                         </form:SimpleForm>
 
-                                        <!-- Step 4 Navigation Footer -->
-                                        <Toolbar class="sapUiMediumMarginTop">
+                                        <!-- Step 4 In-Page Action Toolbar -->
+                                        <OverflowToolbar class="sapUiMediumMarginTop">
                                             <Button
                                                 text="Back: Columns"
                                                 icon="sap-icon://navigation-left-arrow"
+                                                type="Transparent"
                                                 press=".onGoToColumns" />
                                             <ToolbarSpacer />
                                             <Button
                                                 text="Generate View &amp; Artifacts"
                                                 icon="sap-icon://accept"
+                                                iconFirst="false"
                                                 type="Emphasized"
                                                 busy="{/isGenerating}"
                                                 press=".onGenerateArtifacts" />
-                                        </Toolbar>
+                                        </OverflowToolbar>
                                     </VBox>
                                 </content>
                             </IconTabFilter>
@@ -418,7 +438,7 @@
                                             class="sapUiSmallMarginBottom" />
 
                                         <!-- SECTION 1: OPTIMIZED SQL QUERY CODE -->
-                                        <Panel headerText="1. SQL View Query (Pure SELECT for Datasphere New SQL View)" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                                        <Panel headerText="1. SQL View Statement (Pure SELECT for Datasphere Canvas)" expandable="true" expanded="true" class="sapUiSmallMarginBottom hmDownloadCard">
                                             <headerToolbar>
                                                 <OverflowToolbar>
                                                     <Title text="1. SQL View Statement (Pure SELECT)" level="H5" />
@@ -429,7 +449,7 @@
                                                         type="Emphasized"
                                                         press=".onCopySql" />
                                                     <Button
-                                                        text="Copy Complete DDL (CREATE VIEW)"
+                                                        text="Copy Complete DDL"
                                                         icon="sap-icon://syntax"
                                                         type="Default"
                                                         press=".onCopyCompleteDdl" />
@@ -446,7 +466,8 @@
                                                         width="100%"
                                                         editable="false"
                                                         growing="true"
-                                                        growingMaxLines="25" />
+                                                        growingMaxLines="25"
+                                                        class="hmCodeTextArea" />
                                                 </VBox>
                                             </content>
                                         </Panel>
@@ -456,10 +477,10 @@
                                             <content>
                                                 <VBox>
                                                     <!-- Recommended Combined Package Card -->
-                                                    <VBox class="sapUiSmallMargin sapUiMediumPadding" style="border: 1px solid #0a6ed1; border-radius: 6px; background: #f5f9fd;">
+                                                    <VBox class="sapUiSmallMargin hmHeroPackageCard">
                                                         <HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
                                                             <HBox alignItems="Center">
-                                                                <core:Icon src="sap-icon://attachment" size="2rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
+                                                                <core:Icon src="sap-icon://attachment" size="2.4rem" color="#107e3e" class="sapUiSmallMarginEnd" />
                                                                 <VBox>
                                                                     <Title text="Recommended: Combined CSN Package (Table + View + Analytic Model)" level="H5" />
                                                                     <Text text="Contains all definitions at root ($version 2.0). Upload in Datasphere via Data Builder -> Import Objects from CSN/JSON File." class="text-muted" />
@@ -478,10 +499,10 @@
 
                                                     <HBox justifyContent="SpaceAround" wrap="Wrap" class="sapUiSmallMarginTop">
                                                         <!-- Table JSON Card -->
-                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                        <VBox class="sapUiMediumMargin hmDownloadCard" alignItems="Center" width="280px">
                                                             <core:Icon src="sap-icon://table-view" size="2.5rem" color="#0a6ed1" class="sapUiSmallMarginBottom" />
                                                             <Title text="Base Table CSN" level="H5" />
-                                                            <Text text="Technical Name: {/modularResult/tableName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Technical Name: {/modularResult/tableName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom text-bold" />
                                                             <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
                                                             <Button
                                                                 text="Download Table CSN"
@@ -490,10 +511,10 @@
                                                         </VBox>
 
                                                         <!-- View JSON Card -->
-                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                        <VBox class="sapUiMediumMargin hmDownloadCard" alignItems="Center" width="280px">
                                                             <core:Icon src="sap-icon://syntax" size="2.5rem" color="#107e3e" class="sapUiSmallMarginBottom" />
                                                             <Title text="Fact View CSN" level="H5" />
-                                                            <Text text="Technical Name: {/modularResult/viewName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Technical Name: {/modularResult/viewName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom text-bold" />
                                                             <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
                                                             <Button
                                                                 text="Download View CSN"
@@ -502,10 +523,10 @@
                                                         </VBox>
 
                                                         <!-- Analytic Model Card -->
-                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                        <VBox class="sapUiMediumMargin hmDownloadCard" alignItems="Center" width="280px">
                                                             <core:Icon src="sap-icon://b-suite" size="2.5rem" color="#d1720a" class="sapUiSmallMarginBottom" />
                                                             <Title text="Analytic Model CSN" level="H5" />
-                                                            <Text text="Technical Name: {/modularResult/amName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Technical Name: {/modularResult/amName}" class="sapUiTinyMarginTop sapUiTinyMarginBottom text-bold" />
                                                             <Text text="Business Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
                                                             <Button
                                                                 text="Download Analytic Model CSN"
@@ -518,12 +539,12 @@
                                         </Panel>
 
                                         <!-- SECTION 3: DIRECT CLOUD MIGRATION PIPELINE -->
-                                        <Panel headerText="3. Direct Cloud Transfer to Datasphere (Optional API Push)" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
+                                        <Panel headerText="3. Direct Cloud Transfer to Datasphere (Optional API Push)" expandable="true" expanded="false" class="sapUiSmallMarginBottom hmDownloadCard">
                                             <content>
                                                 <VBox class="sapUiSmallMargin">
                                                     <Text
                                                         text="Directly push definition and replicate data to Datasphere space 'AIS_HARMONIZATION_' using configured OAuth credentials."
-                                                        class="sapUiSmallMarginBottom" />
+                                                        class="sapUiSmallMarginBottom text-muted" />
                                                     
                                                     <Button
                                                         text="Run Automated Direct Migration Pipeline"
@@ -556,18 +577,20 @@
                                             </content>
                                         </Panel>
 
-                                        <!-- Step 5 Navigation Footer -->
-                                        <Toolbar class="sapUiMediumMarginTop">
+                                        <!-- Step 5 In-Page Action Toolbar -->
+                                        <OverflowToolbar class="sapUiMediumMarginTop">
                                             <Button
                                                 text="Back: Object Naming"
                                                 icon="sap-icon://navigation-left-arrow"
+                                                type="Transparent"
                                                 press=".onGoToNaming" />
                                             <ToolbarSpacer />
                                             <Button
                                                 text="Start New Migration"
                                                 icon="sap-icon://refresh"
+                                                type="Emphasized"
                                                 press=".onGoToSelectView" />
-                                        </Toolbar>
+                                        </OverflowToolbar>
                                     </VBox>
                                 </content>
                             </IconTabFilter>
@@ -578,5 +601,105 @@
                 </VBox>
             </VBox>
         </content>
+
+        <!-- FLOATING RESPONSIVE FOOTER -->
+        <footerContent>
+            <OverflowToolbar class="hmStickyFooter">
+                <!-- Step 1 Footer (Left) -->
+                <Button
+                    text="Return to Studios"
+                    icon="sap-icon://nav-back"
+                    type="Transparent"
+                    press=".onNavBack"
+                    visible="{= ${/selectedTabKey} === 'tabSelectView' }" />
+                
+                <!-- Step 2 Footer (Left) -->
+                <Button
+                    text="Back: Select CDS"
+                    icon="sap-icon://navigation-left-arrow"
+                    type="Transparent"
+                    press=".onGoToSelectView"
+                    visible="{= ${/selectedTabKey} === 'tabArtifacts' }" />
+
+                <!-- Step 3 Footer (Left) -->
+                <Button
+                    text="Back: Artifacts"
+                    icon="sap-icon://navigation-left-arrow"
+                    type="Transparent"
+                    press=".onGoToArtifacts"
+                    visible="{= ${/selectedTabKey} === 'tabColumns' }" />
+
+                <!-- Step 4 Footer (Left) -->
+                <Button
+                    text="Back: Columns"
+                    icon="sap-icon://navigation-left-arrow"
+                    type="Transparent"
+                    press=".onGoToColumns"
+                    visible="{= ${/selectedTabKey} === 'tabNaming' }" />
+
+                <!-- Step 5 Footer (Left) -->
+                <Button
+                    text="Back: Object Naming"
+                    icon="sap-icon://navigation-left-arrow"
+                    type="Transparent"
+                    press=".onGoToNaming"
+                    visible="{= ${/selectedTabKey} === 'tabCodeDownloads' }" />
+
+                <ToolbarSpacer />
+
+                <!-- Step 1 Footer (Right) -->
+                <Button
+                    text="Next: Select Artifacts"
+                    icon="sap-icon://navigation-right-arrow"
+                    iconFirst="false"
+                    type="Emphasized"
+                    enabled="{/hasViewSelected}"
+                    press=".onGoToArtifacts"
+                    visible="{= ${/selectedTabKey} === 'tabSelectView' }" />
+
+                <!-- Step 2 Footer (Right) -->
+                <Button
+                    text="Next: Choose Columns"
+                    icon="sap-icon://navigation-right-arrow"
+                    iconFirst="false"
+                    type="Emphasized"
+                    press=".onGoToColumns"
+                    visible="{= ${/selectedTabKey} === 'tabArtifacts' }" />
+
+                <!-- Step 3 Footer (Right) -->
+                <Button
+                    text="Next: Object Naming"
+                    icon="sap-icon://navigation-right-arrow"
+                    iconFirst="false"
+                    type="Emphasized"
+                    enabled="{= ${/selectedColumnCount} > 0 }"
+                    press=".onGoToNaming"
+                    visible="{= ${/selectedTabKey} === 'tabColumns' }" />
+
+                <!-- Step 4 Footer (Right) -->
+                <Button
+                    text="Generate View &amp; Artifacts"
+                    icon="sap-icon://accept"
+                    iconFirst="false"
+                    type="Emphasized"
+                    busy="{/isGenerating}"
+                    press=".onGenerateArtifacts"
+                    visible="{= ${/selectedTabKey} === 'tabNaming' }" />
+
+                <!-- Step 5 Footer (Right) -->
+                <Button
+                    text="Download Complete CSN Package"
+                    icon="sap-icon://download"
+                    type="Emphasized"
+                    press=".onDownloadPackageJson"
+                    visible="{= ${/selectedTabKey} === 'tabCodeDownloads' }" />
+                <Button
+                    text="Start New Migration"
+                    icon="sap-icon://refresh"
+                    type="Default"
+                    press=".onGoToSelectView"
+                    visible="{= ${/selectedTabKey} === 'tabCodeDownloads' }" />
+            </OverflowToolbar>
+        </footerContent>
     </Page>
 </mvc:View>

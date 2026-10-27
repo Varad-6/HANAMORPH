@@ -1,0 +1,122 @@
+/* HanaMorph Enterprise SAP Fiori Horizon Stylesheet */
+
+/* Responsive Root & Layout */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: "72", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background-color: var(--sapBackgroundColor, #f5f6f7);
+    color: var(--sapTextColor, #1e293b);
+}
+
+/* Studio Modern Horizon Cards */
+.hmStudioCard {
+    background: var(--sapTile_Background, #ffffff);
+    border: 1px solid var(--sapList_BorderColor, #e2e8f0);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.hmStudioCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border-color: var(--sapSelectedColor, #0a6ed1);
+}
+
+.hmCardContent {
+    padding: 1.5rem;
+}
+
+/* Circular Icon Badges */
+.hmIconCircle {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.hmIconCds {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    color: #0284c7;
+}
+
+.hmIconCalc {
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    color: #7c3aed;
+}
+
+/* Hero Section */
+.hmHeroSection {
+    padding: 2.5rem 1rem 1.5rem 1rem;
+    text-align: center;
+}
+
+.hmHeroTitle {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+    color: var(--sapTitleColor, #0f172a);
+}
+
+.hmHeroSubtitle {
+    font-size: 1.05rem;
+    color: var(--sapContent_LabelColor, #64748b);
+    max-width: 720px;
+    margin: 0 auto 1.5rem auto;
+    line-height: 1.5;
+}
+
+/* Elevated Info & Download Cards */
+.hmDownloadCard {
+    background: var(--sapTile_Background, #ffffff);
+    border: 1px solid var(--sapList_BorderColor, #e2e8f0);
+    border-radius: 10px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hmDownloadCard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.hmHeroPackageCard {
+    background: linear-gradient(135deg, #f0fdf4 0%, #e6f7ec 100%);
+    border: 1.5px solid #22c55e;
+    border-radius: 10px;
+    padding: 1.25rem;
+}
+
+/* Code Preview Box */
+.hmCodeTextArea textarea {
+    font-family: "72Mono", "Consolas", "Courier New", monospace !important;
+    font-size: 0.85rem !important;
+    background-color: var(--sapField_ReadOnly_Background, #f8fafc) !important;
+    border-radius: 6px;
+    line-height: 1.45;
+}
+
+/* Sticky Action Footers */
+.hmStickyFooter {
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+    background: var(--sapPageFooter_Background, #ffffff) !important;
+    border-top: 1px solid var(--sapList_BorderColor, #e2e8f0);
+}
+
+/* Typography & Helpers */
+.text-muted {
+    color: var(--sapContent_LabelColor, #64748b);
+}
+
+.text-bold {
+    font-weight: 600;
+}
