@@ -320,16 +320,26 @@ sap.ui.define([
                 MessageBox.warning("No content available to download.");
                 return;
             }
+            const sCleanName = (sFileName || "export.json")
+                .replace(/^[\/\\]+/, "")
+                .replace(/[\/\\]+/g, "_")
+                .replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+
             const blob = new Blob([sContent], { type: sMimeType });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
+            a.style.display = "none";
             a.href = url;
-            a.download = sFileName;
+            a.download = sCleanName;
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            MessageToast.show(`Downloaded: ${sFileName}`);
+            setTimeout(function () {
+                if (document.body.contains(a)) {
+                    document.body.removeChild(a);
+                }
+                window.URL.revokeObjectURL(url);
+            }, 1000);
+            MessageToast.show(`Downloaded: ${sCleanName}`);
         },
 
         _copyToClipboard: function (sText, sSuccessMsg) {

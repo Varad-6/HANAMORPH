@@ -366,6 +366,12 @@
 
                                                 <!-- View Naming -->
                                                 <core:Title text="3. Analytical View (Data Builder -> Views)" />
+                                                <Label text="Semantic Usage" />
+                                                <Select selectedKey="{/naming/semanticUsage}">
+                                                    <core:Item key="FACT" text="Fact (Analytical Cube with Measures)" />
+                                                    <core:Item key="DIMENSION" text="Dimension (Master Data / Attributes)" />
+                                                    <core:Item key="RELATIONAL" text="Relational Dataset" />
+                                                </Select>
                                                 <Label text="View Technical Name" required="true" />
                                                 <Input value="{/naming/viewNameCustom}" />
                                                 <Label text="View Business Name" />
@@ -418,10 +424,10 @@
                                         <Panel headerText="1. SQL View Statement (Pure SELECT for Datasphere New SQL View)" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
                                             <headerToolbar>
                                                 <OverflowToolbar>
-                                                    <Title text="1. SQL View Statement (Pure SELECT)" level="H5" />
+                                                    <Title text="1. SQL View Statements (100% Pure SELECT - Zero WITH syntax)" level="H5" />
                                                     <ToolbarSpacer />
                                                     <Button
-                                                        text="Copy SQL for Datasphere View (SELECT only)"
+                                                        text="Copy Consolidated SQL (Single View)"
                                                         icon="sap-icon://copy"
                                                         type="Emphasized"
                                                         press=".onCopySql" />
@@ -434,16 +440,47 @@
                                             </headerToolbar>
                                             <content>
                                                 <VBox>
-                                                    <Text
-                                                        text="Paste this directly into Datasphere Data Builder -> New SQL View. Set the View Technical Name in the right Model Properties panel."
-                                                        class="sapUiTinyMarginBottom text-muted" />
+                                                    <MessageStrip
+                                                        text="Option A: Multi-Tier Views (1:1 Parity with HANA Studio Lineage) vs Option B: Single Consolidated View. Both options strictly use pure SELECT syntax compatible with Datasphere SQL View grammar."
+                                                        type="Information"
+                                                        showIcon="true"
+                                                        class="sapUiTinyMarginBottom" />
+
+                                                    <!-- Consolidated Single View SQL -->
+                                                    <Title text="Single Consolidated SQL View (Pure SELECT with Inlined Subqueries):" level="H6" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
                                                     <TextArea
                                                         value="{/modularResult/optimizedSql}"
-                                                        rows="12"
+                                                        rows="10"
                                                         width="100%"
                                                         editable="false"
                                                         growing="true"
                                                         growingMaxLines="25" />
+
+                                                    <!-- Multi-Tier Intermediate Views Table -->
+                                                    <Title text="Multi-Tier SQL Views (Individual Steps: Join_1, Projection_1, Union_1):" level="H6" class="sapUiMediumMarginTop sapUiTinyMarginBottom" />
+                                                    <Table items="{/modularResult/tierSqls}" noDataText="No multi-tier breakdown required (single-step view)">
+                                                        <columns>
+                                                            <Column width="5rem"><Text text="Tier" /></Column>
+                                                            <Column width="10rem"><Text text="Node ID" /></Column>
+                                                            <Column width="18rem"><Text text="Target View Name" /></Column>
+                                                            <Column><Text text="Inputs / Predecessors" /></Column>
+                                                            <Column width="9rem" hAlign="End"><Text text="Action" /></Column>
+                                                        </columns>
+                                                        <items>
+                                                            <ColumnListItem>
+                                                                <cells>
+                                                                    <ObjectStatus text="Tier {tier}" state="Information" />
+                                                                    <Text text="{nodeId}" class="sapUiBold" />
+                                                                    <Text text="{viewTechName}" class="sapUiCode" />
+                                                                    <Text text="{inputs}" />
+                                                                    <Button
+                                                                        text="Copy SQL"
+                                                                        icon="sap-icon://copy"
+                                                                        press=".onCopyTierSql" />
+                                                                </cells>
+                                                            </ColumnListItem>
+                                                        </items>
+                                                    </Table>
                                                 </VBox>
                                             </content>
                                         </Panel>
@@ -452,19 +489,44 @@
                                         <Panel headerText="2. Download Native Datasphere CSN JSON Files" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
                                             <content>
                                                 <VBox>
-                                                    <VBox class="sapUiSmallMargin sapUiMediumPadding" style="border: 1px solid #0a6ed1; border-radius: 6px; background: #f5f9fd;">
+                                                    <!-- Multi-Tier Visual DAG Package (Recommended for Lineage Parity) -->
+                                                    <VBox class="sapUiSmallMargin sapUiMediumPadding" style="border: 2px solid #0a6ed1; border-radius: 6px; background: #f0f7ff;">
                                                         <HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
                                                             <HBox alignItems="Center">
-                                                                <core:Icon src="sap-icon://attachment" size="2rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
+                                                                <core:Icon src="sap-icon://org-chart" size="2.5rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
                                                                 <VBox>
-                                                                    <Title text="Recommended: Combined CSN Package (Table + View + Analytic Model)" level="H5" />
-                                                                    <Text text="Contains all definitions at root ($version 2.0). Upload in Datasphere via Data Builder -> Import Objects from CSN/JSON File." class="text-muted" />
+                                                                    <Title text="⭐ Multi-Tier CSN Package (1:1 Architecture Parity with HANA Studio)" level="H5" />
+                                                                    <Text text="Exports Base Tables + Intermediate Views (Join_1, Projection_1) + Fact View (Union_1) + Analytic Model. In Datasphere Impact &amp; Lineage Analysis, this renders the complete multi-tier visual architecture." class="text-muted" />
+                                                                </VBox>
+                                                            </HBox>
+                                                            <HBox class="sapUiSmallMarginTop">
+                                                                <Button
+                                                                    text="Download Multi-Tier CSN Package"
+                                                                    icon="sap-icon://download"
+                                                                    type="Emphasized"
+                                                                    press=".onDownloadMultiTierPackageJson"
+                                                                    class="sapUiTinyMarginEnd" />
+                                                                <Button
+                                                                    text="Copy JSON"
+                                                                    icon="sap-icon://copy"
+                                                                    press=".onCopyMultiTierPackageJson" />
+                                                            </HBox>
+                                                        </HBox>
+                                                    </VBox>
+
+                                                    <!-- Consolidated CSN Package -->
+                                                    <VBox class="sapUiSmallMargin sapUiMediumPadding" style="border: 1px solid #c2c9d1; border-radius: 6px; background: #fafafa;">
+                                                        <HBox alignItems="Center" justifyContent="SpaceBetween" wrap="Wrap">
+                                                            <HBox alignItems="Center">
+                                                                <core:Icon src="sap-icon://attachment" size="2rem" color="#555" class="sapUiSmallMarginEnd" />
+                                                                <VBox>
+                                                                    <Title text="Single Consolidated CSN Package (Table + View + Analytic Model)" level="H5" />
+                                                                    <Text text="Contains all base tables, 1 consolidated fact view, and the analytic model in a single CSN file." class="text-muted" />
                                                                 </VBox>
                                                             </HBox>
                                                             <Button
-                                                                text="Download Complete CSN Package"
+                                                                text="Download Consolidated CSN"
                                                                 icon="sap-icon://download"
-                                                                type="Emphasized"
                                                                 press=".onDownloadPackageJson"
                                                                 class="sapUiSmallMarginTop" />
                                                         </HBox>
@@ -493,6 +555,17 @@
                                                                 text="Download View CSN"
                                                                 icon="sap-icon://download"
                                                                 press=".onDownloadViewJson" />
+                                                        </VBox>
+
+                                                        <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">
+                                                            <core:Icon src="sap-icon://cube" size="2.5rem" color="#0854a0" class="sapUiSmallMarginBottom" />
+                                                            <Title text="Standalone Fact CSN" level="H5" />
+                                                            <Text text="Zero Dependencies (Direct Fact)" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
+                                                            <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
+                                                            <Button
+                                                                text="Download Standalone CSN"
+                                                                icon="sap-icon://download"
+                                                                press=".onDownloadStandaloneFactJson" />
                                                         </VBox>
 
                                                         <VBox class="sapUiMediumMargin" alignItems="Center" width="280px">

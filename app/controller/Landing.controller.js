@@ -32,6 +32,10 @@ sap.ui.define([
             this.getOwnerComponent().getRouter().navTo("calcview");
         },
 
+        onSelectReplicationFlow: function () {
+            this.getOwnerComponent().getRouter().navTo("replication");
+        },
+
         onSelectBulkStudio: function () {
             this.getOwnerComponent().getRouter().navTo("bulk");
         },

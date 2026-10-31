@@ -17,6 +17,31 @@ module.exports = cds.service.impl(async function () {
     });
 
     /**
+     * Function: searchViews
+     * Live search across 120k+ Views
+     */
+    this.on('searchViews', async req => {
+        const { query = '', module = 'ALL', viewType = 'ALL', topLimit = 80 } = req.data;
+        return await hanaConnector.searchViews(query, module, viewType, topLimit);
+    });
+
+    /**
+     * Action: deployReplicationFlow
+     */
+    this.on('deployReplicationFlow', async req => {
+        const { space, flowTechnicalName, flowJsonString } = req.data;
+        const result = await deployService.deployReplicationFlow(space, flowTechnicalName, flowJsonString);
+        return {
+            status: result.status,
+            flowTechnicalName,
+            space: space || 'AIS_HARMONIZATION_',
+            message: result.message || 'Deployed',
+            cliCommand: 'npx @sap/datasphere-cli objects replication-flows create'
+        };
+    });
+
+
+    /**
      * Function: listCDSViews
      * Direct user-specified CAP endpoint
      */
@@ -70,62 +95,81 @@ module.exports = cds.service.impl(async function () {
         const { viewName } = req.data;
         if (!viewName) return [];
 
-        let view = null;
-        if (config.USE_MOCK) {
-            view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
-        } else {
-            // Live query catalog
-            const deps = await hanaConnector.getDependencies(viewName);
-            view = {
-                name: viewName,
-                type: viewName.startsWith('CA_') ? 'CALC_VIEW' : 'CDS',
-                sqlViewName: viewName,
-                columnCount: 20,
-                dependencies: deps
-            };
-        }
+        try {
+            const isCalc = viewName.startsWith('CA_') || viewName.startsWith('CV_');
+            const model = isCalc 
+                ? await extractService.extractCalc(viewName) 
+                : await extractService.extractCDS(viewName);
 
-        const artifacts = [];
-        if (view) {
-            const isCds = view.type === 'CDS';
-            const depNames = (view.dependencies || []).map(d => d.BASE_OBJECT_NAME).join(', ') || 'Source Tables';
+            const artifacts = [];
+            const sourceNames = (model.sources || []).map(s => s.tableName).filter(Boolean);
+            const depNames = sourceNames.length > 0 
+                ? sourceNames.join(', ') 
+                : (model.dependencies || []).map(d => d.BASE_OBJECT_NAME).join(', ') || 'Source Tables';
+            const colCount = model.columns ? model.columns.length : 0;
 
-            // 1. Table Artifact
+            // 1. Physical Table Artifact (Always present)
             artifacts.push({
                 id: cds.utils.uuid(),
                 viewName,
                 artifactType: 'TABLE',
-                name: `Underlying Tables (${depNames})`,
-                columnCount: view.columnCount,
-                details: isCds 
-                    ? `Physical tables referenced by view: ${depNames}`
-                    : `Base DataSources in calculation scenario: ${depNames}`
+                name: `Underlying Physical Tables (${depNames})`,
+                columnCount: colCount,
+                details: isCalc
+                    ? `Base DataSources in calculation scenario: ${depNames}`
+                    : `Physical tables referenced by view: ${depNames}`
             });
 
-            // 2. SQL / XML Artifact
+            // 2. SQL / XML Definition Artifact (Always present)
             artifacts.push({
                 id: cds.utils.uuid(),
                 viewName,
                 artifactType: 'SQL',
-                name: isCds ? `Catalog SQL View (${view.sqlViewName})` : `Calc View XML Definition`,
-                columnCount: view.columnCount,
-                details: isCds ? (view.sqlDdl || 'SQL DDL definition') : (view.xmlDefinition || 'XML scenario definition')
+                name: isCalc ? `Calculation Scenario Definition` : `Catalog SQL View Definition (${model.target || viewName})`,
+                columnCount: colCount,
+                details: isCalc
+                    ? `Active calculation scenario XML definition from HANA repository`
+                    : (model.rawDdl || `SQL DDL definition for ${viewName}`)
             });
 
-            // 3. Graphical Artifact
-            artifacts.push({
-                id: cds.utils.uuid(),
-                viewName,
-                artifactType: 'GRAPHICAL',
-                name: isCds ? `Entity Join Graph (${view.name})` : `Calculation Scenario Graph (${view.name})`,
-                columnCount: view.columnCount,
-                details: isCds 
-                    ? `Relational Join Diagram: ${depNames} connected via Foreign Key attributes`
-                    : `Node Pipeline: DataSources -> Join Views -> Aggregation Views -> Measures`
-            });
+            // 3. Graphical Artifact - ONLY IF isGraphicalEligible (joins, associations, or multi-nodes)
+            if (model.isGraphicalEligible) {
+                artifacts.push({
+                    id: cds.utils.uuid(),
+                    viewName,
+                    artifactType: 'GRAPHICAL',
+                    name: isCalc 
+                        ? `Calculation Scenario Pipeline Graph (${model.nodes?.length || 1} Nodes)`
+                        : `Relational Join Diagram (${model.sources?.length || 1} Sources)`,
+                    columnCount: colCount,
+                    details: isCalc
+                        ? `Node Pipeline: ${depNames} -> Aggregations/Joins -> Measures`
+                        : `Multi-source join graph: ${depNames} connected via join/foreign keys`
+                });
+            }
+
+            return artifacts;
+        } catch (err) {
+            console.error('[getArtifacts error]', err.message);
+            return [
+                {
+                    id: cds.utils.uuid(),
+                    viewName,
+                    artifactType: 'TABLE',
+                    name: `Base Table (${viewName}_TBL)`,
+                    columnCount: 0,
+                    details: `Physical source object for ${viewName}`
+                },
+                {
+                    id: cds.utils.uuid(),
+                    viewName,
+                    artifactType: 'SQL',
+                    name: `Catalog Definition (${viewName})`,
+                    columnCount: 0,
+                    details: `Definition statement for ${viewName}`
+                }
+            ];
         }
-
-        return artifacts;
     });
 
     /**
@@ -135,7 +179,7 @@ module.exports = cds.service.impl(async function () {
         const { viewName } = req.data;
         if (!viewName) return [];
         try {
-            const isCalc = viewName.startsWith('CA_');
+            const isCalc = viewName.startsWith('CA_') || viewName.startsWith('CV_');
             const model = isCalc 
                 ? await extractService.extractCalc(viewName)
                 : await extractService.extractCDS(viewName);
@@ -167,27 +211,39 @@ module.exports = cds.service.impl(async function () {
             viewNameCustom,
             viewBusinessName,
             amName,
-            amBusinessName
+            amBusinessName,
+            viewType,
+            semanticUsage
         } = req.data;
 
         if (!viewName) {
             req.reject(400, 'viewName is required');
         }
 
-        const isCalc = viewName.startsWith('CA_');
+        const isCalc = viewType === 'CALC_VIEW' || viewName.startsWith('CA_') || viewName.startsWith('CV_');
         const model = isCalc 
             ? await extractService.extractCalc(viewName)
             : await extractService.extractCDS(viewName);
 
+        const cleanBase = viewName.replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+        const sTechBase = /^[0-9]/.test(cleanBase) ? `_${cleanBase}` : cleanBase;
+
+        const sanitizeTech = (name, fallback) => {
+            const raw = name || fallback;
+            const cleaned = raw.replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+            return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
+        };
+
         const namingConfig = {
             space: space || config.datasphere.defaultSpace || 'AIS_HARMONIZATION_',
-            fromTableName: fromTableName || tableName || `${viewName}_TBL`,
-            tableName: tableName || `${viewName}_TBL`,
-            tableBusinessName: tableBusinessName || `${viewName} Base Table`,
-            viewName: viewNameCustom || `${viewName}_V`,
-            viewBusinessName: viewBusinessName || `${viewName} Fact View`,
-            analyticModelName: amName || `${viewName}_AM`,
-            analyticModelBusinessName: amBusinessName || `${viewName} Analytical Model`
+            fromTableName: sanitizeTech(fromTableName, `${sTechBase}_TBL`),
+            tableName: sanitizeTech(tableName, `${sTechBase}_TBL`),
+            tableBusinessName: tableBusinessName || `${sTechBase} Base Table`,
+            viewName: sanitizeTech(viewNameCustom, `${sTechBase}_V`),
+            viewBusinessName: viewBusinessName || `${sTechBase} Fact View`,
+            analyticModelName: sanitizeTech(amName, `${sTechBase}_AM`),
+            analyticModelBusinessName: amBusinessName || `${sTechBase} Analytical Model`,
+            semanticUsage: semanticUsage || 'FACT'
         };
 
         let colsInput = selectedColumns;
@@ -210,6 +266,10 @@ module.exports = cds.service.impl(async function () {
             viewJsonString: result.viewJsonString,
             analyticModelJsonString: result.analyticModelJsonString,
             packageJsonString: result.packageJsonString,
+            multiTierPackageJsonString: result.multiTierPackageJsonString,
+            tierSqlsJsonString: result.tierSqlsJsonString,
+            nodeHierarchyJsonString: result.nodeHierarchyJsonString,
+            standaloneFactJsonString: result.standaloneFactJsonString,
             optimizedSql: result.optimizedQuerySql, // Pure SELECT query for Datasphere New SQL View
             completeDdlSql: result.completeDdlSql,
             replicationFlowMasterJsonString: result.replicationFlowMasterJsonString,
@@ -228,7 +288,7 @@ module.exports = cds.service.impl(async function () {
         const models = [];
         for (const name of viewNames) {
             try {
-                const isCalc = name.startsWith('CA_');
+                const isCalc = name.startsWith('CA_') || name.startsWith('CV_');
                 const model = isCalc 
                     ? await extractService.extractCalc(name)
                     : await extractService.extractCDS(name);

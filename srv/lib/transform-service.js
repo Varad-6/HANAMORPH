@@ -14,19 +14,27 @@ class TransformService {
      */
     generateModularArtifacts(model, selectedColumns = null, namingConfig = {}) {
         const space = namingConfig.space || 'AIS_HARMONIZATION_';
-        const baseName = model.name || model.viewName || 'VIEW';
-        
-        const tableTechName = namingConfig.tableName || `${baseName}_TBL`;
-        const tableBusName = namingConfig.tableBusinessName || `${baseName} Base Table`;
+        const rawBase = model.name || model.viewName || 'VIEW';
+        const cleanBase = rawBase.replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+        const sTechBase = /^[0-9]/.test(cleanBase) ? `_${cleanBase}` : cleanBase;
+
+        const sanitizeTech = (name, fallback) => {
+            const raw = name || fallback;
+            const cleaned = raw.replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+            return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
+        };
+
+        const tableTechName = sanitizeTech(namingConfig.tableName, `${sTechBase}_TBL`);
+        const tableBusName = namingConfig.tableBusinessName || `${sTechBase} Base Table`;
         
         // FROM Source Table/View (can be an existing Datasphere table, remote table, or local table)
-        const fromSource = namingConfig.fromTableName || namingConfig.tableName || `${baseName}_TBL`;
+        const fromSource = sanitizeTech(namingConfig.fromTableName, tableTechName);
 
-        const viewTechName = namingConfig.viewName || `${baseName}_V`;
-        const viewBusName = namingConfig.viewBusinessName || `${baseName} Analytical Fact View`;
+        const viewTechName = sanitizeTech(namingConfig.viewNameCustom || namingConfig.viewName, `${sTechBase}_V`);
+        const viewBusName = namingConfig.viewBusinessName || `${sTechBase} Analytical View`;
         
-        const amTechName = namingConfig.analyticModelName || `${baseName}_AM`;
-        const amBusName = namingConfig.analyticModelBusinessName || `${baseName} Consumption Model`;
+        const amTechName = sanitizeTech(namingConfig.amName || namingConfig.analyticModelName, `${sTechBase}_AM`);
+        const amBusName = namingConfig.analyticModelBusinessName || `${sTechBase} Consumption Model`;
 
         // Normalize columns (supports array of strings OR array of mapping objects)
         let normalizedCols = [];
@@ -138,15 +146,111 @@ class TransformService {
             elements: tableElements
         };
 
+        // Determine Semantic Category: FACT (#CUBE) requires measures, DIMENSION (#DIMENSION) for master data
+        let hasMeasures = normalizedCols.some(c => c.isMeasure || this._isMeasure(c.targetName) || this._isMeasure(c.sourceName));
+        let semanticCategory = "#CUBE";
+        if (namingConfig.semanticUsage === 'DIMENSION') {
+            semanticCategory = "#DIMENSION";
+        } else if (namingConfig.semanticUsage === 'RELATIONAL') {
+            semanticCategory = null;
+        } else if (namingConfig.semanticUsage === 'FACT') {
+            semanticCategory = "#CUBE";
+        } else {
+            // Default: #CUBE for Fact views, #DIMENSION only if explicitly master data without measures
+            semanticCategory = hasMeasures ? "#CUBE" : (model.isMasterData ? "#DIMENSION" : "#CUBE");
+        }
+
+        // If semanticCategory is #CUBE (Fact View) or Analytic Model is generated, SAP Datasphere strictly requires at least 1 measure!
+        if (semanticCategory === "#CUBE" && !hasMeasures) {
+            viewElements["RECORD_COUNT"] = {
+                type: "cds.Integer",
+                "@EndUserText.label": "Record Count",
+                "@Analytics.measure": true,
+                "@Aggregation.default": "#SUM"
+            };
+            amElements["RECORD_COUNT"] = {
+                type: "cds.Integer",
+                "@EndUserText.label": "Record Count",
+                "@Analytics.measure": true,
+                "@Aggregation.default": "#SUM"
+            };
+            queryColumns.push({
+                val: 1,
+                as: "RECORD_COUNT"
+            });
+            sqlSelectCols.push('    1 AS "RECORD_COUNT"');
+            hasMeasures = true;
+        } else if (!hasMeasures) {
+            // Even in Dimension or Analytic Model, guarantee AM has a counter if user opens Analytic Model
+            amElements["RECORD_COUNT"] = {
+                type: "cds.Integer",
+                "@EndUserText.label": "Record Count",
+                "@Analytics.measure": true,
+                "@Aggregation.default": "#SUM"
+            };
+        }
+
+        // Key integrity helper: Datasphere rejects any table/view entity with zero key columns
+        const ensureKey = (elements) => {
+            if (!elements || Object.keys(elements).length === 0) return;
+            const hasKey = Object.values(elements).some(el => el.key);
+            if (!hasKey) {
+                const candidate = Object.keys(elements).find(k => !elements[k]['@Analytics.measure']) || Object.keys(elements)[0];
+                if (candidate) elements[candidate].key = true;
+            }
+        };
+        ensureKey(tableElements);
+        ensureKey(viewElements);
+
+        // Build native CQN query structure (supports single source, multi-source joins, and calc views)
+        let queryFrom = { ref: [fromSource] };
+        let queryCols = queryColumns;
+
+        if (model.joinInfo && model.joinInfo.leftTable && model.joinInfo.rightTable) {
+            const leftClean = sanitizeTech(model.joinInfo.leftTable);
+            const rightClean = sanitizeTech(model.joinInfo.rightTable);
+            const onClause = [];
+            const joinAttrs = (model.joinInfo.joinAttrs && model.joinInfo.joinAttrs.length > 0) ? model.joinInfo.joinAttrs : ['MANDT'];
+
+            joinAttrs.forEach((attr, idx) => {
+                if (idx > 0) onClause.push("and");
+                onClause.push({ ref: ["A", attr] });
+                onClause.push("=");
+                onClause.push({ ref: ["B", attr] });
+            });
+
+            queryFrom = {
+                join: model.joinInfo.joinType || "left",
+                args: [
+                    { ref: [leftClean], as: "A" },
+                    { ref: [rightClean], as: "B" }
+                ],
+                on: onClause
+            };
+
+            const leftColSet = new Set((model.sourceColumns?.[model.joinInfo.leftTable] || []).map(c => c.name));
+            queryCols = normalizedCols.map(col => {
+                const isLeft = leftColSet.has(col.sourceName);
+                const tableAlias = isLeft ? "A" : "B";
+                return {
+                    ref: [tableAlias, col.sourceName],
+                    as: col.targetName
+                };
+            });
+            if (viewElements["RECORD_COUNT"]) {
+                queryCols.push({ val: 1, as: "RECORD_COUNT" });
+            }
+        }
+
         const viewDefinition = {
             kind: "entity",
             "@EndUserText.label": viewBusName,
-            "@Analytics.dataCategory": "#CUBE",
+            ...(semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
             elements: viewElements,
             query: {
                 SELECT: {
-                    from: { ref: [fromSource] },
-                    columns: queryColumns
+                    from: queryFrom,
+                    columns: queryCols
                 }
             }
         };
@@ -160,48 +264,140 @@ class TransformService {
             elements: amElements
         };
 
-        // Standard Native CSN Objects (Ready for Data Builder -> Import Objects from CSN/JSON File)
+        // 1. Table CSN (Ready for Data Builder -> Tables)
+        const tableDefinitions = {
+            [fromSource]: tableDefinition
+        };
+        if (tableTechName !== fromSource && !tableDefinitions[tableTechName]) {
+            tableDefinitions[tableTechName] = tableDefinition;
+        }
+        // Bundle all physical DataSources referenced by the model with their exact schema
+        for (const src of (model.sources || [])) {
+            const sName = sanitizeTech(src.tableName);
+            if (sName && !tableDefinitions[sName]) {
+                const specificCols = (model.sourceColumns && model.sourceColumns[src.tableName]) || [];
+                const srcElements = {};
+                if (specificCols.length > 0) {
+                    for (const sc of specificCols) {
+                        srcElements[sc.name] = {
+                            ...this._toCsnType(sc.dataType),
+                            "@EndUserText.label": sc.originalName || sc.name,
+                            ...(sc.isKey ? { key: true } : {})
+                        };
+                    }
+                } else {
+                    Object.assign(srcElements, tableElements);
+                }
+
+                ensureKey(srcElements);
+
+                tableDefinitions[sName] = {
+                    kind: "entity",
+                    "@EndUserText.label": `${sName} Physical Table`,
+                    elements: srcElements
+                };
+            }
+        }
+        // Guarantee all table definitions have at least one key
+        for (const tbl of Object.values(tableDefinitions)) {
+            ensureKey(tbl.elements);
+        }
+
         const tableCsn = {
             $version: "2.0",
-            definitions: {
-                [fromSource]: tableDefinition
-            }
+            definitions: tableDefinitions
         };
 
+        // 2. Fact View CSN (Self-Contained: Bundles all base tables so Datasphere never throws missing object errors)
+        const viewDefinitions = {
+            ...tableDefinitions,
+            [viewTechName]: viewDefinition
+        };
         const viewCsn = {
             $version: "2.0",
-            definitions: {
-                [viewTechName]: viewDefinition
-            }
+            definitions: viewDefinitions
         };
 
-        const analyticModelCsn = {
+        // 3. Standalone Direct Fact / Dimension Entity CSN (Single independent entity, zero dependencies on underlying tables)
+        const standaloneFactDefinition = {
+            kind: "entity",
+            "@EndUserText.label": viewBusName,
+            ...(semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
+            elements: JSON.parse(JSON.stringify(viewElements))
+        };
+        const standaloneFactCsn = {
             $version: "2.0",
             definitions: {
-                [amTechName]: amDefinition
+                [viewTechName]: standaloneFactDefinition
             }
         };
 
-        // Unified CSN Package (Table + View + Analytic Model together)
-        const packageDefinitions = {
+        // 4. Analytic Model CSN (Self-Contained: Bundles Base Tables + Fact View + Analytic Model)
+        const amDefinitions = {
+            ...tableDefinitions,
             [viewTechName]: viewDefinition,
             [amTechName]: amDefinition
         };
-        // Always include the table definition so package is self-contained
-        packageDefinitions[fromSource] = tableDefinition;
-        if (tableTechName !== fromSource) {
-            packageDefinitions[tableTechName] = tableDefinition;
-        }
+        const analyticModelCsn = {
+            $version: "2.0",
+            definitions: amDefinitions
+        };
 
+        // 5. Unified CSN Package (Tables + View + Analytic Model in one complete file)
+        const packageDefinitions = {
+            ...tableDefinitions,
+            [viewTechName]: viewDefinition,
+            [amTechName]: amDefinition
+        };
         const packageCsn = {
             $version: "2.0",
             definitions: packageDefinitions
         };
 
+        // 6. Multi-Tier Visual DAG Package (1:1 Lineage Parity with HANA Studio)
+        let multiTierPackageCsn = null;
+        let multiTierPackageJsonString = '';
+        let tierSqls = [];
+        let optimizedQuerySql = '';
+
+        if (model.type === 'CALC_VIEW' && model.nodeHierarchy && model.nodeHierarchy.length > 1) {
+            const multiTierRes = this._generateMultiTierDagArtifacts(
+                model,
+                normalizedCols,
+                namingConfig,
+                tableDefinitions,
+                viewElements,
+                amDefinition,
+                semanticCategory
+            );
+            multiTierPackageCsn = multiTierRes.packageCsn;
+            multiTierPackageJsonString = JSON.stringify(multiTierPackageCsn, null, 2);
+            tierSqls = multiTierRes.tierSqls;
+            if (multiTierRes.inlinedPureSql) {
+                optimizedQuerySql = multiTierRes.inlinedPureSql;
+            }
+        } else {
+            multiTierPackageCsn = packageCsn;
+            multiTierPackageJsonString = JSON.stringify(packageCsn, null, 2);
+            tierSqls = [{
+                tier: 1,
+                nodeId: viewTechName,
+                viewTechName: viewTechName,
+                label: viewBusName,
+                sql: `SELECT\n${sqlSelectCols.join(',\n')}\nFROM "${fromSource}"`
+            }];
+        }
+
         // Pure SELECT Query (For SAP Datasphere Data Builder -> New SQL View Editor)
-        const optimizedQuerySql = `SELECT\n` +
-            sqlSelectCols.join(',\n') + `\n` +
-            `FROM "${fromSource}"`;
+        if (!optimizedQuerySql) {
+            if (model.type === 'CALC_VIEW' && model.pipelineSql) {
+                optimizedQuerySql = model.pipelineSql;
+            } else {
+                optimizedQuerySql = `SELECT\n` +
+                    sqlSelectCols.join(',\n') + `\n` +
+                    `FROM "${fromSource}"`;
+            }
+        }
 
         // Full DDL Statement (For HANA Database Explorer / SQL Console)
         const completeDdlSql = `-- ==========================================================\n` +
@@ -252,10 +448,20 @@ class TransformService {
             tableJsonString: JSON.stringify(tableCsn, null, 2),
             viewJson: viewCsn,
             viewJsonString: JSON.stringify(viewCsn, null, 2),
+            standaloneFactJson: standaloneFactCsn,
+            standaloneFactJsonString: JSON.stringify(standaloneFactCsn, null, 2),
             analyticModelJson: analyticModelCsn,
             analyticModelJsonString: JSON.stringify(analyticModelCsn, null, 2),
             packageJson: packageCsn,
             packageJsonString: JSON.stringify(packageCsn, null, 2),
+
+            // Multi-Tier Visual DAG CSN Package (1:1 Lineage Parity with HANA Studio)
+            multiTierPackageJson: multiTierPackageCsn,
+            multiTierPackageJsonString: multiTierPackageJsonString,
+            tierSqls: tierSqls,
+            tierSqlsJsonString: JSON.stringify(tierSqls, null, 2),
+            nodeHierarchy: model.nodeHierarchy || [],
+            nodeHierarchyJsonString: JSON.stringify(model.nodeHierarchy || [], null, 2),
 
             // Replication Flow Artifacts (Targeting Local Tables)
             replicationFlowMasterJsonString: rfMaster.flowJsonString,
@@ -306,6 +512,500 @@ class TransformService {
         return t === 'MARA' || t === 'MAKT' || t === 'KNA1' || t === 'LFA1' || 
                t === 'T001W' || t === 'T001' || t.includes('DIMENSION') || 
                t.includes('MASTER') || t.includes('TEXT');
+    }
+
+    _mapHanaTypeToCds(hanaType, length, precision, scale) {
+        switch ((hanaType || '').toUpperCase()) {
+            case 'VARCHAR':
+            case 'NVARCHAR':
+                return length ? `cds.String(${length})` : 'cds.String(100)';
+            case 'INTEGER':
+                return 'cds.Integer';
+            case 'DECIMAL':
+                return precision ? `cds.Decimal(${precision}, ${scale || 0})` : 'cds.Decimal(15, 2)';
+            case 'DATE':
+                return 'cds.Date';
+            case 'TIMESTAMP':
+                return 'cds.Timestamp';
+            default:
+                return length ? `cds.String(${length})` : 'cds.String(100)';
+        }
+    }
+
+    /**
+     * Generate multi-tier CSN and tier-by-tier SQL views mirroring Calculation View DAG
+     */
+    _generateMultiTierDagArtifacts(model, normalizedCols, namingConfig, tableDefinitions, finalViewElements, amDefinition, semanticCategory) {
+        const space = namingConfig.space || 'AIS_HARMONIZATION_';
+        const rawBase = model.name || model.viewName || 'VIEW';
+        const cleanBase = rawBase.replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+        const sTechBase = /^[0-9]/.test(cleanBase) ? `_${cleanBase}` : cleanBase;
+        const viewTechName = namingConfig.viewNameCustom || namingConfig.viewName || `${sTechBase}_V`;
+        const amTechName = namingConfig.amName || namingConfig.analyticModelName || `${sTechBase}_AM`;
+
+        const nodeHierarchy = model.nodeHierarchy || [];
+        const rootNode = nodeHierarchy.find(n => n.isRoot) || nodeHierarchy[nodeHierarchy.length - 1];
+
+        const ensureKey = (elements) => {
+            if (!elements || Object.keys(elements).length === 0) return;
+            const hasKey = Object.values(elements).some(el => el.key);
+            if (!hasKey) {
+                const candidate = Object.keys(elements).find(k => !elements[k]['@Analytics.measure']) || Object.keys(elements)[0];
+                if (candidate) elements[candidate].key = true;
+            }
+        };
+
+        // 1. Identify trivial single-table wrappers (e.g. p_ac_type on FCLM_BAM_AC_TYPE)
+        const collapsedNodes = {};
+        for (const node of nodeHierarchy) {
+            if (node.type === 'PROJECTION' && !node.isRoot && node.inputs && node.inputs.length === 1) {
+                const inputName = node.inputs[0];
+                const isPhysical = tableDefinitions[inputName] || (model.sources && model.sources.some(s => s.tableName === inputName));
+                const isWrapperId = /^p_/i.test(node.id) || node.id.toLowerCase() === `p_${inputName.toLowerCase()}`;
+                if (isPhysical && isWrapperId) {
+                    collapsedNodes[node.id] = {
+                        targetTable: inputName,
+                        mappings: node.mappings || []
+                    };
+                }
+            }
+        }
+
+        const getNodeTechName = (nodeId) => {
+            if (collapsedNodes[nodeId]) {
+                return collapsedNodes[nodeId].targetTable;
+            }
+            if (tableDefinitions[nodeId] || (model.sources && model.sources.some(s => s.tableName === nodeId))) {
+                return nodeId;
+            }
+            const found = nodeHierarchy.find(n => n.id === nodeId);
+            if (found && (found.isRoot || found.id === rootNode?.id)) {
+                return viewTechName;
+            }
+            const clean = (nodeId || '').replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase();
+            return `${sTechBase}_${clean}_V`;
+        };
+
+        const definitions = { ...tableDefinitions };
+        const tierSqls = [];
+        let tierIndex = 1;
+
+        const operationalNodes = nodeHierarchy.filter(n => !collapsedNodes[n.id]);
+
+        for (const node of operationalNodes) {
+            const isRoot = (node.id === rootNode?.id) || node.isRoot;
+            const nodeTech = isRoot ? viewTechName : getNodeTechName(node.id);
+            const nodeLabel = isRoot 
+                ? (namingConfig.viewBusinessName || `${sTechBase} Analytical View`)
+                : `${node.id} Intermediate View`;
+
+            let nodeViewDef = null;
+            let nodeSql = '';
+
+            if (node.type === 'JOIN') {
+                const rawLeft = node.inputs[0];
+                const rawRight = node.inputs[1];
+                const leftTech = getNodeTechName(rawLeft);
+                const rightTech = getNodeTechName(rawRight);
+
+                const conditions = (node.joinConditions && node.joinConditions.length > 0)
+                    ? node.joinConditions
+                    : (node.joinAttributes || ['MANDT']).map(attr => {
+                        const lm = (node.mappings || []).find(m => m.inputNode === rawLeft && m.target === attr);
+                        const rm = (node.mappings || []).find(m => m.inputNode === rawRight && m.target === attr);
+                        return {
+                            targetAttr: attr,
+                            leftSource: lm ? lm.source : attr,
+                            rightSource: rm ? rm.source : attr
+                        };
+                    });
+
+                const joinPairs = conditions.map(cond => {
+                    let lCol = cond.leftSource;
+                    if (collapsedNodes[rawLeft]) {
+                        lCol = collapsedNodes[rawLeft].mappings.find(m => m.target === lCol)?.source || lCol;
+                    }
+                    let rCol = cond.rightSource;
+                    if (collapsedNodes[rawRight]) {
+                        rCol = collapsedNodes[rawRight].mappings.find(m => m.target === rCol)?.source || rCol;
+                    }
+                    return { leftCol: lCol, rightCol: rCol };
+                });
+
+                const onConditions = joinPairs.map(p => `A."${p.leftCol}" = B."${p.rightCol}"`).join(' AND ') || '1 = 1';
+                const onCqn = [];
+                joinPairs.forEach((p, idx) => {
+                    if (idx > 0) onCqn.push("and");
+                    onCqn.push({ ref: ["A", p.leftCol] });
+                    onCqn.push("=");
+                    onCqn.push({ ref: ["B", p.rightCol] });
+                });
+
+                const selectCols = [];
+                const cqnCols = [];
+                const viewElements = {};
+                const seenTargets = new Set();
+
+                for (const m of (node.mappings || [])) {
+                    const isLeft = (m.inputNode === rawLeft) || (collapsedNodes[rawLeft] && m.inputNode === collapsedNodes[rawLeft].targetTable);
+                    const alias = isLeft ? "A" : "B";
+                    const src = m.source;
+                    const tgt = m.target;
+                    if (seenTargets.has(tgt)) continue;
+                    seenTargets.add(tgt);
+
+                    selectCols.push(`    ${alias}."${src}" AS "${tgt}"`);
+                    cqnCols.push({ ref: [alias, src], as: tgt });
+
+                    const inferred = (model.columns || []).find(c => c.name === tgt) || {};
+                    const isMeas = inferred.isMeasure || this._isMeasure(tgt);
+                    const isKey = inferred.isKey || (node.joinAttributes || []).includes(tgt);
+
+                    viewElements[tgt] = {
+                        ...this._toCsnType(inferred.dataType || 'cds.String(40)'),
+                        "@EndUserText.label": tgt,
+                        ...(isKey ? { key: true } : {}),
+                        ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                    };
+                }
+
+                // Add calculated attributes on this JOIN node
+                for (const ca of (node.calculatedAttributes || [])) {
+                    const colId = ca.id;
+                    if (seenTargets.has(colId)) continue;
+                    seenTargets.add(colId);
+
+                    const formula = ca.formula || '';
+                    const isNullMatch = formula.match(/IF\s*\(\s*ISNULL\s*\(\s*"([^"]+)"\s*\)\s*,\s*(.*?)\s*,\s*"([^"]+)"\s*\)/i);
+                    if (isNullMatch) {
+                        const targetCol = isNullMatch[1];
+                        const fallbackRaw = isNullMatch[2].trim();
+                        const fallbackVal = (fallbackRaw === "''" || fallbackRaw === '""') ? "" : (isNaN(Number(fallbackRaw)) ? fallbackRaw : Number(fallbackRaw));
+                        const fallbackSql = (fallbackRaw === "''" || fallbackRaw === '""') ? "''" : fallbackRaw;
+
+                        const mapEntry = (node.mappings || []).find(m => m.target === targetCol);
+                        if (mapEntry) {
+                            const isLeft = (mapEntry.inputNode === rawLeft) || (collapsedNodes[rawLeft] && mapEntry.inputNode === collapsedNodes[rawLeft].targetTable);
+                            const alias = isLeft ? "A" : "B";
+                            const srcCol = mapEntry.source;
+                            selectCols.push(`    COALESCE(${alias}."${srcCol}", ${fallbackSql}) AS "${colId}"`);
+                            cqnCols.push({
+                                func: "coalesce",
+                                args: [
+                                    { ref: [alias, srcCol] },
+                                    { val: fallbackVal }
+                                ],
+                                as: colId
+                            });
+                        } else {
+                            selectCols.push(`    COALESCE("${targetCol}", ${fallbackSql}) AS "${colId}"`);
+                            cqnCols.push({
+                                func: "coalesce",
+                                args: [
+                                    { ref: [targetCol] },
+                                    { val: fallbackVal }
+                                ],
+                                as: colId
+                            });
+                        }
+                    } else if (/^\d+$/.test(formula.trim())) {
+                        const numVal = parseInt(formula.trim(), 10);
+                        selectCols.push(`    ${numVal} AS "${colId}"`);
+                        cqnCols.push({ val: numVal, as: colId });
+                    } else if (/^'.*'$/.test(formula.trim())) {
+                        const strVal = formula.trim().slice(1, -1);
+                        selectCols.push(`    '${strVal}' AS "${colId}"`);
+                        cqnCols.push({ val: strVal, as: colId });
+                    } else {
+                        selectCols.push(`    ${formula} AS "${colId}"`);
+                        cqnCols.push({ ref: [colId] });
+                    }
+
+                    const dt = this._mapHanaTypeToCds(ca.dataType, ca.length, ca.precision, ca.scale);
+                    const inferred = (model.columns || []).find(c => c.name === colId) || {};
+                    const isMeas = inferred.isMeasure || this._isMeasure(colId);
+
+                    viewElements[colId] = {
+                        ...this._toCsnType(dt),
+                        "@EndUserText.label": colId,
+                        ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                    };
+                }
+
+                ensureKey(viewElements);
+
+                nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${leftTech}" AS A\n${node.joinType || 'LEFT OUTER JOIN'} "${rightTech}" AS B\n  ON ${onConditions}`;
+
+                nodeViewDef = {
+                    kind: "entity",
+                    "@EndUserText.label": nodeLabel,
+                    elements: viewElements,
+                    query: {
+                        SELECT: {
+                            from: {
+                                join: (node.joinType || '').toUpperCase().includes('INNER') ? "inner" : "left",
+                                args: [
+                                    { ref: [leftTech], as: "A" },
+                                    { ref: [rightTech], as: "B" }
+                                ],
+                                on: onCqn
+                            },
+                            columns: cqnCols
+                        }
+                    }
+                };
+
+                tierSqls.push({
+                    tier: tierIndex++,
+                    nodeId: node.id,
+                    viewTechName: nodeTech,
+                    label: nodeLabel,
+                    sql: nodeSql,
+                    inputs: [leftTech, rightTech]
+                });
+
+            } else if (node.type === 'PROJECTION') {
+                const rawInput = node.inputs[0];
+                const srcTech = getNodeTechName(rawInput);
+
+                const selectCols = [];
+                const cqnCols = [];
+                const viewElements = {};
+                const seenTargets = new Set();
+
+                for (const m of (node.mappings || [])) {
+                    const src = m.source;
+                    const tgt = m.target;
+                    if (seenTargets.has(tgt)) continue;
+                    seenTargets.add(tgt);
+
+                    if (src === tgt) {
+                        selectCols.push(`    "${src}"`);
+                        cqnCols.push({ ref: [src] });
+                    } else {
+                        selectCols.push(`    "${src}" AS "${tgt}"`);
+                        cqnCols.push({ ref: [src], as: tgt });
+                    }
+
+                    const inferred = (model.columns || []).find(c => c.name === tgt) || {};
+                    const isMeas = inferred.isMeasure || this._isMeasure(tgt);
+                    const isKey = inferred.isKey || (tgt === 'MANDT');
+
+                    viewElements[tgt] = {
+                        ...this._toCsnType(inferred.dataType || 'cds.String(40)'),
+                        "@EndUserText.label": tgt,
+                        ...(isKey ? { key: true } : {}),
+                        ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                    };
+                }
+
+                // Add calculated attributes on this PROJECTION node
+                for (const ca of (node.calculatedAttributes || [])) {
+                    const colId = ca.id;
+                    if (seenTargets.has(colId)) continue;
+                    seenTargets.add(colId);
+
+                    const formula = ca.formula || '';
+                    if (/^\d+$/.test(formula.trim())) {
+                        const numVal = parseInt(formula.trim(), 10);
+                        selectCols.push(`    ${numVal} AS "${colId}"`);
+                        cqnCols.push({ val: numVal, as: colId });
+                    } else if (/^'.*'$/.test(formula.trim())) {
+                        const strVal = formula.trim().slice(1, -1);
+                        selectCols.push(`    '${strVal}' AS "${colId}"`);
+                        cqnCols.push({ val: strVal, as: colId });
+                    } else {
+                        selectCols.push(`    ${formula} AS "${colId}"`);
+                        cqnCols.push({ ref: [colId] });
+                    }
+
+                    const dt = this._mapHanaTypeToCds(ca.dataType, ca.length, ca.precision, ca.scale);
+                    const inferred = (model.columns || []).find(c => c.name === colId) || {};
+                    const isMeas = inferred.isMeasure || this._isMeasure(colId);
+
+                    viewElements[colId] = {
+                        ...this._toCsnType(dt),
+                        "@EndUserText.label": colId,
+                        ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                    };
+                }
+
+                ensureKey(viewElements);
+
+                nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${srcTech}"`;
+
+                nodeViewDef = {
+                    kind: "entity",
+                    "@EndUserText.label": nodeLabel,
+                    elements: viewElements,
+                    query: {
+                        SELECT: {
+                            from: { ref: [srcTech] },
+                            columns: cqnCols
+                        }
+                    }
+                };
+
+                tierSqls.push({
+                    tier: tierIndex++,
+                    nodeId: node.id,
+                    viewTechName: nodeTech,
+                    label: nodeLabel,
+                    sql: nodeSql,
+                    inputs: [srcTech]
+                });
+
+            } else if (node.type === 'UNION') {
+                const unionSqlBranches = [];
+                const unionCqnBranches = [];
+                const inputsList = [];
+
+                for (const rawInput of (node.inputs || [])) {
+                    const branchTech = getNodeTechName(rawInput);
+                    inputsList.push(branchTech);
+                    const branchMappings = (node.mappings || []).filter(m => m.inputNode === rawInput);
+
+                    const branchSelectCols = [];
+                    const branchCqnCols = [];
+
+                    for (const col of normalizedCols) {
+                        const mapEntry = branchMappings.find(m => m.target === col.targetName);
+                        if (mapEntry) {
+                            const src = mapEntry.source;
+                            const tgt = mapEntry.target;
+                            if (src === tgt) {
+                                branchSelectCols.push(`    "${src}"`);
+                                branchCqnCols.push({ ref: [src] });
+                            } else {
+                                branchSelectCols.push(`    "${src}" AS "${tgt}"`);
+                                branchCqnCols.push({ ref: [src], as: tgt });
+                            }
+                        } else {
+                            branchSelectCols.push(`    NULL AS "${col.targetName}"`);
+                            branchCqnCols.push({ val: null, as: col.targetName });
+                        }
+                    }
+
+                    if (isRoot && semanticCategory === '#CUBE') {
+                        branchSelectCols.push('    1 AS "RECORD_COUNT"');
+                        branchCqnCols.push({ val: 1, as: "RECORD_COUNT" });
+                    }
+
+                    unionSqlBranches.push(`SELECT\n${branchSelectCols.join(',\n')}\nFROM "${branchTech}"`);
+                    unionCqnBranches.push({
+                        SELECT: {
+                            from: { ref: [branchTech] },
+                            columns: branchCqnCols
+                        }
+                    });
+                }
+
+                nodeSql = unionSqlBranches.join('\n\nUNION ALL\n\n');
+
+                nodeViewDef = {
+                    kind: "entity",
+                    "@EndUserText.label": nodeLabel,
+                    ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
+                    elements: isRoot ? finalViewElements : finalViewElements,
+                    query: {
+                        SET: {
+                            op: "union",
+                            all: true,
+                            args: unionCqnBranches
+                        }
+                    }
+                };
+
+                tierSqls.push({
+                    tier: tierIndex++,
+                    nodeId: node.id,
+                    viewTechName: nodeTech,
+                    label: nodeLabel,
+                    sql: nodeSql,
+                    inputs: inputsList
+                });
+            }
+
+            if (nodeViewDef) {
+                definitions[nodeTech] = nodeViewDef;
+            }
+        }
+
+        definitions[amTechName] = amDefinition;
+
+        // Inlined Pure SELECT Query (Zero CTE WITH clauses, valid for Datasphere SQL View)
+        let inlinedPureSql = '';
+        if (rootNode && rootNode.type === 'UNION') {
+            const inlinedBranches = [];
+            for (const rawInput of (rootNode.inputs || [])) {
+                const childNode = nodeHierarchy.find(n => n.id === rawInput);
+                const branchMappings = (rootNode.mappings || []).filter(m => m.inputNode === rawInput);
+
+                const branchSelectCols = [];
+                for (const col of normalizedCols) {
+                    const mapEntry = branchMappings.find(m => m.target === col.targetName);
+                    if (mapEntry) {
+                        const src = mapEntry.source;
+                        const tgt = mapEntry.target;
+                        branchSelectCols.push(src === tgt ? `        "${src}"` : `        "${src}" AS "${tgt}"`);
+                    } else {
+                        branchSelectCols.push(`        NULL AS "${col.targetName}"`);
+                    }
+                }
+                if (semanticCategory === '#CUBE') {
+                    branchSelectCols.push('        1 AS "RECORD_COUNT"');
+                }
+
+                if (childNode && childNode.type === 'JOIN') {
+                    const rawLeft = childNode.inputs[0];
+                    const rawRight = childNode.inputs[1];
+                    const leftTable = collapsedNodes[rawLeft] ? collapsedNodes[rawLeft].targetTable : rawLeft;
+                    const rightTable = collapsedNodes[rawRight] ? collapsedNodes[rawRight].targetTable : rawRight;
+
+                    const joinAttrs = (childNode.joinAttributes && childNode.joinAttributes.length > 0) ? childNode.joinAttributes : ['MANDT'];
+                    const onConditions = joinAttrs.map(attr => `A."${attr}" = B."${attr}"`).join(' AND ');
+
+                    const innerCols = [];
+                    const seenInner = new Set();
+                    for (const m of (childNode.mappings || [])) {
+                        const isLeft = (m.inputNode === rawLeft) || (collapsedNodes[rawLeft] && m.inputNode === collapsedNodes[rawLeft].targetTable);
+                        const alias = isLeft ? "A" : "B";
+                        if (seenInner.has(m.target)) continue;
+                        seenInner.add(m.target);
+                        innerCols.push(`        ${alias}."${m.source}" AS "${m.target}"`);
+                    }
+
+                    inlinedBranches.push(
+                        `SELECT\n${branchSelectCols.join(',\n')}\nFROM (\n` +
+                        `    SELECT\n${innerCols.join(',\n')}\n` +
+                        `    FROM "${leftTable}" AS A\n` +
+                        `    ${childNode.joinType || 'LEFT OUTER JOIN'} "${rightTable}" AS B\n` +
+                        `      ON ${onConditions}\n` +
+                        `) AS "${childNode.id}"`
+                    );
+                } else if (childNode && childNode.type === 'PROJECTION') {
+                    const srcTable = collapsedNodes[childNode.inputs[0]] ? collapsedNodes[childNode.inputs[0]].targetTable : childNode.inputs[0];
+                    inlinedBranches.push(
+                        `SELECT\n${branchSelectCols.join(',\n')}\nFROM "${srcTable}" AS "${childNode.id}"`
+                    );
+                } else {
+                    const srcTech = getNodeTechName(rawInput);
+                    inlinedBranches.push(
+                        `SELECT\n${branchSelectCols.join(',\n')}\nFROM "${srcTech}" AS "${rawInput}"`
+                    );
+                }
+            }
+            inlinedPureSql = inlinedBranches.join('\n\nUNION ALL\n\n');
+        }
+
+        return {
+            packageCsn: {
+                $version: "2.0",
+                definitions: definitions
+            },
+            tierSqls: tierSqls,
+            inlinedPureSql: inlinedPureSql
+        };
     }
 
     /**
@@ -620,7 +1320,7 @@ class TransformService {
 
             processedViews.push({
                 viewName: baseName,
-                viewType: model.viewType || (baseName.startsWith('CA_') ? 'CALC_VIEW' : 'CDS'),
+                viewType: model.viewType || ((baseName.startsWith('CA_') || baseName.startsWith('CV_')) ? 'CALC_VIEW' : 'CDS'),
                 columns: (model.columns || []).length
             });
         }

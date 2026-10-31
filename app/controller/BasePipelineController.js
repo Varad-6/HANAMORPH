@@ -17,6 +17,10 @@ sap.ui.define([
                 hasImported: false,
                 views: [],
                 selectedViewName: "",
+                selectedModule: "ALL",
+                searchQuery: "",
+                selectionCart: [],
+                cartCount: 0,
                 selectedView: null,
                 hasViewSelected: false,
                 emptyViewsText: "Click 'Import' to load views from source HANA.",
@@ -167,6 +171,68 @@ sap.ui.define([
         /* ====================================================================
          * STEP 1: IMPORT & SELECT VIEW
          * ==================================================================== */
+        onModuleChange: function () {
+            this.onTriggerSearch();
+        },
+
+        onLiveSearch: function (oEvent) {
+            const sValue = oEvent.getParameter("newValue") || "";
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/searchQuery", sValue);
+
+            if (this._debounceTimer) {
+                clearTimeout(this._debounceTimer);
+            }
+            this._debounceTimer = setTimeout(() => {
+                this.onTriggerSearch();
+            }, 350);
+        },
+
+        onTriggerSearch: function () {
+            const oModel = this.getView().getModel();
+            const sQuery = oModel.getProperty("/searchQuery") || "";
+            const sModule = oModel.getProperty("/selectedModule") || "ALL";
+            const sViewType = this._pipelineType === 'CDS' ? 'CDS' : 'CALC_VIEW';
+
+            oModel.setProperty("/isBusy", true);
+            oModel.setProperty("/hasError", false);
+            oModel.setProperty("/errorViewsText", "");
+
+            const sUrl = `/odata/v4/migration/searchViews(query='${encodeURIComponent(sQuery)}',module='${encodeURIComponent(sModule)}',viewType='${sViewType}',topLimit=80)`;
+
+            fetch(sUrl)
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(e => { throw new Error(e.error?.message || res.statusText); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    const aViews = data.value || [];
+                    oModel.setProperty("/views", aViews);
+                    oModel.setProperty("/hasImported", true);
+                    oModel.setProperty("/isBusy", false);
+
+                    if (aViews.length === 0) {
+                        MessageToast.show("No views matched your filter.");
+                    }
+                })
+                .catch(err => {
+                    oModel.setProperty("/isBusy", false);
+                    oModel.setProperty("/hasError", true);
+                    oModel.setProperty("/errorViewsText", err.message);
+                });
+        },
+
+        onTableSelectionChange: function (oEvent) {
+            const oSelectedItem = oEvent.getParameter("listItem");
+            if (!oSelectedItem) return;
+            const oContext = oSelectedItem.getBindingContext();
+            if (!oContext) return;
+            const sViewName = oContext.getProperty("name");
+            this._selectView(sViewName);
+        },
+
         onImportViews: function () {
             const oModel = this.getView().getModel();
             oModel.setProperty("/isBusy", true);
@@ -258,7 +324,7 @@ sap.ui.define([
                     oModel.setProperty("/selectedArtifactCount", aArtifacts.length);
                     oModel.setProperty("/isArtifactsBusy", false);
 
-                    const oTable = this.byId("artifactTable");
+                    const oTable = this.byId("artifactsTable") || this.byId("artifactTable");
                     if (oTable) {
                         oTable.selectAll();
                     }
@@ -270,7 +336,7 @@ sap.ui.define([
         },
 
         onArtifactSelectionChange: function () {
-            const oTable = this.byId("artifactTable");
+            const oTable = this.byId("artifactsTable") || this.byId("artifactTable");
             const aSelected = oTable ? oTable.getSelectedItems() : [];
             const oModel = this.getView().getModel();
             oModel.setProperty("/selectedArtifactCount", aSelected.length);
@@ -414,19 +480,30 @@ sap.ui.define([
             const sViewName = sName || oModel.getProperty("/selectedViewName") || "VIEW";
             const oSelectedView = oModel.getProperty("/selectedView") || {};
 
+            // Clean technical name for Datasphere (No slashes, valid identifier)
+            const sCleanName = sViewName
+                .replace(/^[\/\\]+/, "")
+                .replace(/[\/\\]+/g, "_")
+                .replace(/[^a-zA-Z0-9_]/g, "_");
+            const sTechBase = /^[0-9]/.test(sCleanName) ? `_${sCleanName}` : sCleanName;
+
             // Build smart suggestions for Source Object in Datasphere
             const aSourceSuggestions = [
-                { key: sViewName, text: `${sViewName} (Existing CDS/Remote Table in Space)` },
-                { key: `${sViewName}_TBL`, text: `${sViewName}_TBL (New Local Table)` }
+                { key: `${sTechBase}_TBL`, text: `${sTechBase}_TBL (New Local Table in Space)` },
+                { key: sTechBase, text: `${sTechBase} (Existing Table/Remote Table in Space)` }
             ];
 
             if (oSelectedView.dependencies && oSelectedView.dependencies.length > 0) {
                 oSelectedView.dependencies.forEach(d => {
-                    if (d.BASE_OBJECT_NAME && !aSourceSuggestions.find(s => s.key === d.BASE_OBJECT_NAME)) {
-                        aSourceSuggestions.splice(1, 0, {
-                            key: d.BASE_OBJECT_NAME,
-                            text: `${d.BASE_OBJECT_NAME} (Underlying Physical Table)`
-                        });
+                    const rawDep = d.BASE_OBJECT_NAME;
+                    if (rawDep) {
+                        const cleanDep = rawDep.replace(/^[\/\\]+/, "").replace(/[\/\\]+/g, "_").replace(/[^a-zA-Z0-9_]/g, "_");
+                        if (!aSourceSuggestions.find(s => s.key === cleanDep)) {
+                            aSourceSuggestions.push({
+                                key: cleanDep,
+                                text: `${cleanDep} (Underlying Physical Table)`
+                            });
+                        }
                     }
                 });
             }
@@ -434,20 +511,21 @@ sap.ui.define([
             oModel.setProperty("/sourceSuggestions", aSourceSuggestions);
             oModel.setProperty("/naming", {
                 space: "AIS_HARMONIZATION_",
-                fromTableName: sViewName, // Default to existing view name so it avoids "missing object" error!
-                tableName: `${sViewName}_TBL`,
-                tableBusinessName: `${sViewName} Base Table`,
-                viewNameCustom: `${sViewName}_V`,
-                viewBusinessName: `${sViewName} Fact View`,
-                amName: `${sViewName}_AM`,
-                amBusinessName: `${sViewName} Consumption Model`
+                fromTableName: `${sTechBase}_TBL`,
+                tableName: `${sTechBase}_TBL`,
+                tableBusinessName: `${sTechBase} Base Table`,
+                viewNameCustom: `${sTechBase}_V`,
+                viewBusinessName: `${sTechBase} Fact View`,
+                amName: `${sTechBase}_AM`,
+                amBusinessName: `${sTechBase} Consumption Model`,
+                semanticUsage: "FACT"
             });
         },
 
         /* ====================================================================
          * STEP 5: GENERATE ARTIFACTS, COPY SQL & DOWNLOADS
          * ==================================================================== */
-        onGenerateArtifacts: function () {
+        onGenerateArtifacts: function (fnSuccessCallback) {
             const oModel = this.getView().getModel();
             const sViewName = oModel.getProperty("/selectedViewName");
             if (!sViewName) {
@@ -456,7 +534,7 @@ sap.ui.define([
             }
 
             const aAllCols = oModel.getProperty("/allColumns") || [];
-            const aSelectedCols = aAllCols.filter(c => c.selected).map(c => ({
+            let aSelectedCols = aAllCols.filter(c => c.selected).map(c => ({
                 sourceName: c.sourceName || c.name,
                 targetName: (c.targetName || c.name).trim(),
                 targetLabel: (c.targetLabel || c.originalName || c.name).trim(),
@@ -465,9 +543,16 @@ sap.ui.define([
                 isMeasure: !!c.isMeasure
             }));
 
-            if (aSelectedCols.length === 0) {
-                MessageBox.warning("Please select at least one column.");
-                return;
+            // If none explicitly checked, default to all available columns
+            if (aSelectedCols.length === 0 && aAllCols.length > 0) {
+                aSelectedCols = aAllCols.map(c => ({
+                    sourceName: c.name,
+                    targetName: c.name,
+                    targetLabel: c.originalName || c.name,
+                    dataType: c.dataType,
+                    isKey: !!c.isKey,
+                    isMeasure: !!c.isMeasure
+                }));
             }
 
             const oNaming = oModel.getProperty("/naming") || {};
@@ -479,8 +564,9 @@ sap.ui.define([
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     viewName: sViewName,
+                    viewType: this._pipelineType,
                     selectedColumns: aSelectedCols.map(c => c.sourceName),
-                    columnsJson: JSON.stringify(aSelectedCols),
+                    columnsJson: aSelectedCols.length > 0 ? JSON.stringify(aSelectedCols) : null,
                     space: oNaming.space || "AIS_HARMONIZATION_",
                     fromTableName: oNaming.fromTableName || oNaming.tableName || `${sViewName}_TBL`,
                     tableName: oNaming.tableName,
@@ -488,7 +574,8 @@ sap.ui.define([
                     viewNameCustom: oNaming.viewNameCustom,
                     viewBusinessName: oNaming.viewBusinessName,
                     amName: oNaming.amName,
-                    amBusinessName: oNaming.amBusinessName
+                    amBusinessName: oNaming.amBusinessName,
+                    semanticUsage: oNaming.semanticUsage || "FACT"
                 })
             })
             .then(res => {
@@ -498,11 +585,22 @@ sap.ui.define([
                 return res.json();
             })
             .then(data => {
-                oModel.setProperty("/modularResult", data);
+                const oResult = (data && data.value) ? data.value : (data && data.d) ? data.d : data;
+                if (oResult && oResult.tierSqlsJsonString) {
+                    try {
+                        oResult.tierSqls = JSON.parse(oResult.tierSqlsJsonString);
+                    } catch (e) {
+                        oResult.tierSqls = [];
+                    }
+                }
+                oModel.setProperty("/modularResult", oResult);
                 oModel.setProperty("/hasGenerated", true);
                 oModel.setProperty("/isGenerating", false);
                 this.goToTab("tabCodeDownloads");
                 MessageToast.show("Optimized View SQL and standard CSN JSONs generated successfully!");
+                if (typeof fnSuccessCallback === "function") {
+                    fnSuccessCallback(oResult);
+                }
             })
             .catch(err => {
                 oModel.setProperty("/isGenerating", false);
@@ -567,75 +665,186 @@ sap.ui.define([
         },
 
         /**
+         * Ensure artifacts are generated before any download or export
+         */
+        _ensureArtifactsGenerated: function (fnCallback) {
+            const oModel = this.getView().getModel();
+            if (oModel.getProperty("/hasGenerated") && oModel.getProperty("/modularResult")) {
+                if (typeof fnCallback === "function") fnCallback();
+                return;
+            }
+            this.onGenerateArtifacts(() => {
+                if (typeof fnCallback === "function") fnCallback();
+            });
+        },
+
+        _getCleanName: function (suffix) {
+            const oModel = this.getView().getModel();
+            const rawName = oModel.getProperty("/modularResult/viewName") || 
+                            oModel.getProperty("/selectedViewName") || 
+                            "Datasphere_Artifact";
+            const clean = rawName
+                .replace(/^[\/\\]+/, "")
+                .replace(/[\/\\]+/g, "_")
+                .replace(/[^a-zA-Z0-9_]/g, "_");
+            const safeBase = /^[0-9]/.test(clean) ? `_${clean}` : clean;
+            return suffix ? `${safeBase}_${suffix}` : safeBase;
+        },
+
+        /**
+         * Download Multi-Tier CSN Package (1:1 Architecture Parity with HANA Studio / Eclipse Lineage)
+         */
+        onDownloadMultiTierPackageJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/multiTierPackageJsonString") || oModel.getProperty("/modularResult/packageJsonString");
+                const sName = this._getCleanName("multi_tier_package");
+                this._downloadFile(`${sName}.csn.json`, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sName}.csn.json (1:1 Multi-Tier Lineage Parity with HANA Studio)`);
+            });
+        },
+
+        onCopyMultiTierPackageJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/multiTierPackageJsonString") || oModel.getProperty("/modularResult/packageJsonString");
+                this._copyTextToClipboard(sJson, "Multi-Tier CSN Package JSON copied to clipboard!");
+            });
+        },
+
+        onCopyTierSql: function (oEvent) {
+            const oContext = oEvent.getSource().getBindingContext();
+            if (oContext) {
+                const sSql = oContext.getProperty("sql");
+                const sViewName = oContext.getProperty("viewTechName");
+                this._copyTextToClipboard(sSql, `SQL for ${sViewName} copied to clipboard!`);
+            }
+        },
+
+        /**
          * Download Unified CSN Package (Table + View + Analytic Model in ONE file)
          */
         onDownloadPackageJson: function () {
-            const oModel = this.getView().getModel();
-            const sJson = oModel.getProperty("/modularResult/packageJsonString");
-            const sName = oModel.getProperty("/modularResult/viewName") || "Package";
-            if (!sJson) {
-                MessageBox.warning("Please generate artifacts first.");
-                return;
-            }
-            this._downloadFile(`${sName}_complete_package.csn.json`, sJson, "application/json");
-            MessageToast.show(`Downloaded ${sName}_complete_package.csn.json (Use in Data Builder -> Import Objects from CSN/JSON File)`);
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/packageJsonString");
+                const sName = this._getCleanName("complete_package");
+                this._downloadFile(`${sName}.csn.json`, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sName}.csn.json (Use in Data Builder -> Import Objects from CSN/JSON File)`);
+            });
         },
 
         onDownloadTableJson: function () {
-            const oModel = this.getView().getModel();
-            const sJson = oModel.getProperty("/modularResult/tableJsonString");
-            const sName = oModel.getProperty("/modularResult/tableName") || "Table";
-            if (!sJson) {
-                MessageBox.warning("Please generate artifacts first.");
-                return;
-            }
-            this._downloadFile(`${sName}_table.csn.json`, sJson, "application/json");
-            MessageToast.show(`Downloaded ${sName}_table.csn.json (Native CSN for Data Builder -> Tables)`);
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/tableJsonString");
+                const sName = this._getCleanName("table");
+                this._downloadFile(`${sName}.csn.json`, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sName}.csn.json (Native CSN for Data Builder -> Tables)`);
+            });
         },
 
         onDownloadViewJson: function () {
-            const oModel = this.getView().getModel();
-            const sJson = oModel.getProperty("/modularResult/viewJsonString");
-            const sName = oModel.getProperty("/modularResult/viewName") || "View";
-            if (!sJson) {
-                MessageBox.warning("Please generate artifacts first.");
-                return;
-            }
-            this._downloadFile(`${sName}_view.csn.json`, sJson, "application/json");
-            MessageToast.show(`Downloaded ${sName}_view.csn.json (Native CSN for Data Builder -> Views)`);
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/viewJsonString");
+                const sName = this._getCleanName("view");
+                this._downloadFile(`${sName}.csn.json`, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sName}.csn.json (Native CSN for Data Builder -> Views)`);
+            });
+        },
+
+        onDownloadStandaloneFactJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/standaloneFactJsonString");
+                const sName = this._getCleanName("standalone_fact");
+                this._downloadFile(`${sName}.csn.json`, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sName}.csn.json (Zero-dependency Standalone Fact/Dimension Entity)`);
+            });
         },
 
         onDownloadAmJson: function () {
-            const oModel = this.getView().getModel();
-            const sJson = oModel.getProperty("/modularResult/analyticModelJsonString");
-            const sName = oModel.getProperty("/modularResult/amName") || "AnalyticModel";
-            if (!sJson) {
-                MessageBox.warning("Please generate artifacts first.");
-                return;
-            }
-            this._downloadFile(`${sName}_am.csn.json`, sJson, "application/json");
-            MessageToast.show(`Downloaded ${sName}_am.csn.json (Native CSN for Business Builder -> Analytic Models)`);
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/analyticModelJsonString");
+                const sName = this._getCleanName("am");
+                this._downloadFile(`${sName}.csn.json`, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sName}.csn.json (Native CSN for Business Builder -> Analytic Models)`);
+            });
+        },
+
+        onDownloadCompleteSql: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sSql = oModel.getProperty("/modularResult/optimizedSql") || oModel.getProperty("/modularResult/completeDdlSql");
+                const sName = this._getCleanName("query");
+                this._downloadFile(`${sName}.sql`, sSql, "text/plain");
+                MessageToast.show(`Downloaded ${sName}.sql`);
+            });
+        },
+
+        onCopyPackageJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/packageJsonString");
+                this._copyTextToClipboard(sJson, "Complete CSN Package JSON copied to clipboard!");
+            });
+        },
+
+        onCopyViewJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/viewJsonString");
+                this._copyTextToClipboard(sJson, "Fact View CSN JSON copied to clipboard!");
+            });
+        },
+
+        onCopyStandaloneFactJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/standaloneFactJsonString");
+                this._copyTextToClipboard(sJson, "Standalone Fact CSN JSON copied to clipboard!");
+            });
+        },
+
+        onCopyTableJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/tableJsonString");
+                this._copyTextToClipboard(sJson, "Table CSN JSON copied to clipboard!");
+            });
+        },
+
+        onCopyAmJson: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sJson = oModel.getProperty("/modularResult/analyticModelJsonString");
+                this._copyTextToClipboard(sJson, "Analytic Model CSN JSON copied to clipboard!");
+            });
         },
 
         /* ====================================================================
          * REPLICATION FLOW GENERATION (TARGET: LOCAL TABLES)
          * ==================================================================== */
         onDownloadReplicationFlow: function () {
-            const oModel = this.getView().getModel();
-            const sMode = oModel.getProperty("/replicationFlowMode") || "DELTA";
-            const sJson = sMode === "MASTER" 
-                ? oModel.getProperty("/modularResult/replicationFlowMasterJsonString")
-                : oModel.getProperty("/modularResult/replicationFlowDeltaJsonString");
-            const sTableName = oModel.getProperty("/modularResult/tableName") || "Table";
+            this._ensureArtifactsGenerated(() => {
+                const oModel = this.getView().getModel();
+                const sMode = oModel.getProperty("/replicationFlowMode") || "DELTA";
+                const sJson = sMode === "MASTER" 
+                    ? oModel.getProperty("/modularResult/replicationFlowMasterJsonString")
+                    : oModel.getProperty("/modularResult/replicationFlowDeltaJsonString");
+                const sTableName = this._getCleanName();
 
-            if (!sJson) {
-                MessageBox.warning("Please generate artifacts first.");
-                return;
-            }
+                if (!sJson) {
+                    MessageBox.warning("No replication flow generated.");
+                    return;
+                }
 
-            const sFileName = `RF_${sTableName}_${sMode.toLowerCase()}.replicationFlow.json`;
-            this._downloadFile(sFileName, sJson, "application/json");
-            MessageToast.show(`Downloaded ${sFileName} (Datasphere Replication Flow to Local Table)`);
+                const sFileName = `RF_${sTableName}_${sMode.toLowerCase()}.replicationFlow.json`;
+                this._downloadFile(sFileName, sJson, "application/json");
+                MessageToast.show(`Downloaded ${sFileName} (Datasphere Replication Flow)`);
+            });
         },
 
         onCopyReplicationCli: function () {
@@ -649,15 +858,52 @@ sap.ui.define([
         },
 
         _downloadFile: function (sFileName, sContent, sMimeType) {
-            const blob = new Blob([sContent], { type: sMimeType });
-            const url = URL.createObjectURL(blob);
+            if (!sContent) {
+                MessageBox.warning("No content available to download.");
+                return;
+            }
+            let fileData = sContent;
+            if (typeof fileData === "object") {
+                try {
+                    fileData = JSON.stringify(fileData, null, 2);
+                } catch (e) {
+                    fileData = String(fileData);
+                }
+            }
+
+            // Sanitize filename for all browsers (remove leading/nested slashes and forbidden characters)
+            const sCleanName = (sFileName || "export.json")
+                .replace(/^[\/\\]+/, "")
+                .replace(/[\/\\]+/g, "_")
+                .replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+
+            const mime = sMimeType || "application/json;charset=utf-8";
+            const blob = new Blob([fileData], { type: mime });
+
+            if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                window.navigator.msSaveOrOpenBlob(blob, sCleanName);
+                return;
+            }
+
+            const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url;
-            a.download = sFileName;
+            a.style.display = "none";
+            a.setAttribute("href", url);
+            a.setAttribute("download", sCleanName);
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            
+            // Asynchronous cleanup so modern Chrome / Edge / Safari don't drop or cancel the download stream
+            setTimeout(function () {
+                try {
+                    if (document.body.contains(a)) {
+                        document.body.removeChild(a);
+                    }
+                    window.URL.revokeObjectURL(url);
+                } catch (e) {
+                    // ignore cleanup error
+                }
+            }, 2000);
         },
 
         /* ====================================================================
@@ -666,7 +912,7 @@ sap.ui.define([
         onTransfer: function () {
             const oModel = this.getView().getModel();
             const sViewName = oModel.getProperty("/selectedViewName");
-            const oTable = this.byId("artifactTable");
+            const oTable = this.byId("artifactsTable") || this.byId("artifactTable");
             const aSelectedItems = oTable ? oTable.getSelectedItems() : [];
 
             if (!sViewName) {

@@ -1,0 +1,109 @@
+<mvc:View
+    controllerName="hanamorph.controller.ReplicationStudio"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:layout="sap.ui.layout"
+    xmlns:form="sap.ui.layout.form">
+    <Page
+        id="replicationStudioPage"
+        title="Replication Flow Studio"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        enableScrolling="true">
+        <headerContent>
+            <ObjectStatus
+                text="{i18n>connStatusConnected}"
+                state="Success"
+                icon="sap-icon://connected" />
+        </headerContent>
+        <content>
+            <VBox width="100%" alignItems="Center" class="sapUiMediumMarginTop sapUiLargeMarginBottom">
+                <VBox width="96%" class="sapUiResponsiveMargin">
+                    
+                    <!-- Header Info Card -->
+                    <Panel headerText="Datasphere Direct Ingestion &amp; Replication Flow Pipeline" expandable="false" class="sapUiSmallMarginBottom">
+                        <content>
+                            <Text text="Configure, validate, and deploy native SAP Datasphere Replication Flows directly to Space AIS_HARMONIZATION_ without requiring view modeling. Supports Master Data (Initial Snapshot) and Transactional CDC (Initial + Delta Replication)." class="text-muted sapUiSmallMarginBottom" />
+                        </content>
+                    </Panel>
+
+                    <!-- Replication Configuration Form -->
+                    <Panel headerText="1. Replication Flow Parameters" expandable="false" class="sapUiSmallMarginBottom">
+                        <content>
+                            <form:SimpleForm
+                                editable="true"
+                                layout="ResponsiveGridLayout"
+                                labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12">
+                                <form:content>
+                                    <core:Title text="Datasphere Target Environment" />
+                                    <Label text="Datasphere Space" />
+                                    <Input value="{/space}" placeholder="AIS_HARMONIZATION_" />
+                                    <Label text="Replication Flow Technical Name" />
+                                    <Input value="{/flowTechnicalName}" placeholder="RF_S4H_INGESTION" />
+                                    <Label text="Replication Mode" />
+                                    <Select selectedKey="{/replicationMode}">
+                                        <core:Item key="DELTA" text="⚡ Initial &amp; Delta (CDC - Recommended for Transactional Data)" />
+                                        <core:Item key="MASTER" text="📦 Initial Only (Full Snapshot - For Master Data)" />
+                                    </Select>
+
+                                    <core:Title text="Source Connection &amp; Entities" />
+                                    <Label text="Source Connection ID" />
+                                    <Input value="{/sourceConnection}" placeholder="S4HANA_SOURCE" />
+                                    <Label text="Source Entities (Comma-separated tables or views)" />
+                                    <Input value="{/sourceEntitiesString}" placeholder="SNWD_SO, EKKO, MARA..." />
+                                </form:content>
+                            </form:SimpleForm>
+                        </content>
+                    </Panel>
+
+                    <!-- Preview & Deployment Toolbar -->
+                    <Toolbar class="sapUiSmallMarginBottom">
+                        <Button
+                            text="Generate Flow Definition"
+                            icon="sap-icon://syntax"
+                            type="Emphasized"
+                            press=".onGenerateFlowJson"
+                            class="sapUiSmallMarginEnd" />
+                        <Button
+                            text="Download Flow JSON"
+                            icon="sap-icon://download"
+                            press=".onDownloadFlowJson"
+                            class="sapUiSmallMarginEnd"
+                            enabled="{/hasGenerated}" />
+                        <ToolbarSpacer />
+                        <Button
+                            text="Deploy to Datasphere via CLI"
+                            icon="sap-icon://upload-to-cloud"
+                            type="Accept"
+                            press=".onDeployFlowDirect"
+                            enabled="{/hasGenerated}" />
+                    </Toolbar>
+
+                    <!-- Generated JSON Viewer -->
+                    <Panel headerText="Native Datasphere Replication Flow JSON Definition" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                        <content>
+                            <TextArea
+                                value="{/flowJsonString}"
+                                rows="12"
+                                width="100%"
+                                editable="false"
+                                placeholder="Click 'Generate Flow Definition' above to inspect the JSON schema..." />
+                        </content>
+                    </Panel>
+
+                    <!-- CLI Command Helper -->
+                    <Panel headerText="Datasphere CLI Command Preview" expandable="true" expanded="false">
+                        <content>
+                            <HBox alignItems="Center">
+                                <Input value="{/cliCommand}" width="80%" editable="false" class="sapUiSmallMarginEnd" />
+                                <Button text="Copy Command" icon="sap-icon://copy" press=".onCopyCliCommand" />
+                            </HBox>
+                        </content>
+                    </Panel>
+
+                </VBox>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>

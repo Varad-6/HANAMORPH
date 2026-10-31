@@ -45,6 +45,10 @@ service MigrationService {
         viewJsonString                  : LargeString;
         analyticModelJsonString         : LargeString;
         packageJsonString               : LargeString;
+        multiTierPackageJsonString      : LargeString;
+        tierSqlsJsonString              : LargeString;
+        nodeHierarchyJsonString         : LargeString;
+        standaloneFactJsonString        : LargeString;
         optimizedSql                    : LargeString;
         completeDdlSql                  : LargeString;
         replicationFlowMasterJsonString : LargeString;
@@ -85,6 +89,22 @@ service MigrationService {
             columns    : Integer;
         };
     }
+
+    type ReplicationFlowDeploymentResult : {
+        status           : String;
+        flowTechnicalName: String;
+        space            : String;
+        message          : LargeString;
+        cliCommand       : LargeString;
+    }
+
+    // Live Fast Search Query across 120k+ Views
+    function searchViews(
+        query     : String,
+        module    : String,
+        viewType  : String,
+        topLimit  : Integer
+    ) returns array of SourceCatalog;
 
     // Direct User Requested API Contract
     function listCDSViews() returns array of SourceCatalog;
@@ -127,8 +147,16 @@ service MigrationService {
         viewNameCustom     : String,
         viewBusinessName   : String,
         amName             : String,
-        amBusinessName     : String
+        amBusinessName     : String,
+        viewType           : String,
+        semanticUsage      : String
     ) returns ModularArtifactsResult;
+
+    action deployReplicationFlow(
+        space            : String,
+        flowTechnicalName: String,
+        flowJsonString   : LargeString
+    ) returns ReplicationFlowDeploymentResult;
 
     action startJob(
         viewName    : String,

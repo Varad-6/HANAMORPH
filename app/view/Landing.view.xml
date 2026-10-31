@@ -31,14 +31,14 @@
                 class="sapUiMediumMarginTop sapUiLargeMarginBottom">
                 
                 <Title
-                    text="Datasphere Migration Studio"
+                    text="SAP Datasphere Migration Cockpit"
                     level="H2"
                     class="sapUiSmallMarginBottom" />
                 <Text
-                    text="Migrate S/4HANA CDS Views and HANA Calculation Views into SAP Datasphere with null-safe SQL and standard CSN"
+                    text="Migrate S/4HANA CDS Views and Calculation Views into SAP Datasphere with on-demand extraction, null-safe SQL, and native Replication Flows"
                     class="text-muted sapUiMediumMarginBottom" />
 
-                <!-- Migration Pipeline Tiles (3 Dedicated Core Studios) -->
+                <!-- Migration Pipeline Tiles (4 Dedicated Core Studios) -->
                 <HBox
                     wrap="Wrap"
                     justifyContent="Center"
@@ -50,7 +50,7 @@
                         header="{i18n>tileCdsTitle}"
                         subheader="{i18n>tileCdsSubtitle}"
                         frameType="TwoByOne"
-                        class="sapUiMediumMargin"
+                        class="sapUiSmallMargin"
                         press=".onSelectCds">
                         <tileContent>
                             <TileContent>
@@ -71,7 +71,7 @@
                         header="{i18n>tileCalcTitle}"
                         subheader="{i18n>tileCalcSubtitle}"
                         frameType="TwoByOne"
-                        class="sapUiMediumMargin"
+                        class="sapUiSmallMargin"
                         press=".onSelectCalcView">
                         <tileContent>
                             <TileContent>
@@ -87,12 +87,12 @@
                         </tileContent>
                     </GenericTile>
 
-                    <!-- Tile 3: Bulk Upload & Deduplication Studio -->
+                    <!-- Tile 3: Bulk Multi-View Migration Studio -->
                     <GenericTile
                         header="{i18n>tileBulkTitle}"
                         subheader="{i18n>tileBulkSubtitle}"
                         frameType="TwoByOne"
-                        class="sapUiMediumMargin"
+                        class="sapUiSmallMargin"
                         press=".onSelectBulkStudio">
                         <tileContent>
                             <TileContent>
@@ -102,6 +102,27 @@
                                             src="sap-icon://chain-link"
                                             size="3rem"
                                             color="#107e3e" />
+                                    </VBox>
+                                </content>
+                            </TileContent>
+                        </tileContent>
+                    </GenericTile>
+
+                    <!-- Tile 4: Dedicated Replication Flow Studio -->
+                    <GenericTile
+                        header="{i18n>tileReplicationTitle}"
+                        subheader="{i18n>tileReplicationSubtitle}"
+                        frameType="TwoByOne"
+                        class="sapUiSmallMargin"
+                        press=".onSelectReplicationFlow">
+                        <tileContent>
+                            <TileContent>
+                                <content>
+                                    <VBox alignItems="Center" justifyContent="Center" height="100%">
+                                        <core:Icon
+                                            src="sap-icon://synchronize"
+                                            size="3rem"
+                                            color="#d1720a" />
                                     </VBox>
                                 </content>
                             </TileContent>
@@ -142,20 +163,26 @@
                                     <VBox width="300px" class="sapUiSmallMargin">
                                         <HBox alignItems="Center" class="sapUiTinyMarginBottom">
                                             <core:Icon src="sap-icon://connected" size="1.5rem" color="#d1720a" class="sapUiSmallMarginEnd" />
-                                            <Title text="Replication Flows" level="H5" />
+                                            <Title text="Replication Flows (Decoupled)" level="H5" />
                                         </HBox>
-                                        <Text text="Automated Master Data (Initial Snapshot) &amp; Transactional Data (Initial + Delta CDC) replication flows directly into Local Tables." class="text-muted" />
+                                        <Text text="Automated Master Data (Initial Snapshot) &amp; Transactional CDC flows directly via Datasphere CLI into Space Local Tables." class="text-muted" />
                                     </VBox>
                                 </HBox>
 
                                 <Toolbar class="sapUiSmallMarginTop">
-                                    <Text text="Ready to migrate? Choose a single view pipeline above, or launch Bulk Studio for multi-view deduplication." class="text-muted" />
+                                    <Text text="Ready to migrate? Choose a single view pipeline above, run Bulk Studio for deduplication, or configure Replication Flows." class="text-muted" />
                                     <ToolbarSpacer />
                                     <Button
                                         text="Open Bulk Studio"
                                         icon="sap-icon://action"
                                         type="Emphasized"
-                                        press=".onSelectBulkStudio" />
+                                        press=".onSelectBulkStudio"
+                                        class="sapUiSmallMarginEnd" />
+                                    <Button
+                                        text="Open Replication Studio"
+                                        icon="sap-icon://synchronize"
+                                        type="Default"
+                                        press=".onSelectReplicationFlow" />
                                 </Toolbar>
                             </VBox>
                         </content>

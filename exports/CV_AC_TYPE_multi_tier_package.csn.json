@@ -1,0 +1,754 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "CV_AC_TYPE_TBL": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_AC_TYPE Base Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DIRE"
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DESC"
+        }
+      }
+    },
+    "FCLM_BAM_AC_TYPE": {
+      "kind": "entity",
+      "@EndUserText.label": "FCLM_BAM_AC_TYPE Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DIRE"
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT"
+        }
+      }
+    },
+    "FCLM_BAM_AC_TYPT": {
+      "kind": "entity",
+      "@EndUserText.label": "FCLM_BAM_AC_TYPT Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DESC"
+        }
+      }
+    },
+    "CashLinefnt": {
+      "kind": "entity",
+      "@EndUserText.label": "CashLinefnt Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "TEXT"
+        },
+        "NotAssignedPlaceholder": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder"
+        },
+        "NotAssignedPlaceholder1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder1"
+        },
+        "NotAssignedPlaceholder2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder2"
+        },
+        "NotAssignedPlaceholder3": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder3"
+        },
+        "NotAssignedPlaceholder4": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder4"
+        },
+        "NotAssignedPlaceholder5": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder5"
+        },
+        "NotAssignedPlaceholder6": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder6"
+        },
+        "NotAssignedPlaceholder7": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder7"
+        },
+        "NotAssignedPlaceholder8": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder8"
+        },
+        "NotAssignedPlaceholder9": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder9"
+        },
+        "NotAssignedPlaceholder10": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder10"
+        },
+        "NotAssignedPlaceholder11": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder11"
+        },
+        "NotAssignedPlaceholder12": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder12"
+        },
+        "NotAssignedPlaceholder13": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder13"
+        },
+        "NotAssignedPlaceholder14": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder14"
+        },
+        "NotAssignedPlaceholder15": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder15"
+        }
+      }
+    },
+    "CV_AC_TYPE_JOIN_1_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Join_1 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DIRE"
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DESC"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "FCLM_BAM_AC_TYPE"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "FCLM_BAM_AC_TYPT"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "ACC_TYPE_ID"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "ACC_TYPE_ID"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_TYPE_ID"
+              ],
+              "as": "ACC_TYPE_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_TYPE_DIRE"
+              ],
+              "as": "ACC_TYPE_DIRE"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_CURRENT"
+              ],
+              "as": "ACC_CURRENT"
+            },
+            {
+              "ref": [
+                "B",
+                "LANGU"
+              ],
+              "as": "LANGU"
+            },
+            {
+              "ref": [
+                "B",
+                "ACC_TYPE_DESC"
+              ],
+              "as": "ACC_TYPE_DESC"
+            }
+          ]
+        }
+      }
+    },
+    "CV_AC_TYPE_PROJECTION_1_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Projection_1 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NAME"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "TEXT"
+        },
+        "NotAssignedPlaceholder": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder"
+        },
+        "NotAssignedPlaceholder1": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder1"
+        },
+        "NotAssignedPlaceholder2": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder2"
+        },
+        "NotAssignedPlaceholder3": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder3"
+        },
+        "NotAssignedPlaceholder4": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder4"
+        },
+        "NotAssignedPlaceholder5": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder5"
+        },
+        "NotAssignedPlaceholder6": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder6"
+        },
+        "NotAssignedPlaceholder7": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder7"
+        },
+        "NotAssignedPlaceholder8": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder8"
+        },
+        "NotAssignedPlaceholder9": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder9"
+        },
+        "NotAssignedPlaceholder10": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder10"
+        },
+        "NotAssignedPlaceholder11": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder11"
+        },
+        "NotAssignedPlaceholder12": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder12"
+        },
+        "NotAssignedPlaceholder13": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder13"
+        },
+        "NotAssignedPlaceholder14": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder14"
+        },
+        "NotAssignedPlaceholder15": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder15"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "CashLinefnt"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "NAME"
+              ]
+            },
+            {
+              "ref": [
+                "LANGU"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder1"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder2"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder3"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder4"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder5"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder6"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder7"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder8"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder9"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder10"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder11"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder12"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder13"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder14"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder15"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_AC_TYPE_V": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_AC_TYPE Fact View",
+      "@Analytics.dataCategory": "#CUBE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DIRE"
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DESC"
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      },
+      "query": {
+        "SET": {
+          "op": "union",
+          "all": true,
+          "args": [
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_AC_TYPE_JOIN_1_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_TYPE_ID"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_TYPE_DIRE"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_CURRENT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "LANGU"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_TYPE_DESC"
+                    ]
+                  },
+                  {
+                    "val": 1,
+                    "as": "RECORD_COUNT"
+                  }
+                ]
+              }
+            },
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_AC_TYPE_PROJECTION_1_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder"
+                    ],
+                    "as": "ACC_TYPE_ID"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder1"
+                    ],
+                    "as": "ACC_TYPE_DIRE"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder2"
+                    ],
+                    "as": "ACC_CURRENT"
+                  },
+                  {
+                    "ref": [
+                      "LANGU"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "ACC_TYPE_DESC"
+                  },
+                  {
+                    "val": 1,
+                    "as": "RECORD_COUNT"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CV_AC_TYPE_AM": {
+      "kind": "analyticModel",
+      "@EndUserText.label": "CV_AC_TYPE Analytic Model",
+      "source": {
+        "ref": [
+          "CV_AC_TYPE_V"
+        ]
+      },
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "@Analytics.dimension": true
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "@Analytics.dimension": true
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DIRE",
+          "@Analytics.dimension": true
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT",
+          "@Analytics.dimension": true
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU",
+          "@Analytics.dimension": true
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DESC",
+          "@Analytics.dimension": true
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      }
+    }
+  }
+}

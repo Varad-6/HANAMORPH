@@ -1,0 +1,1194 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "CV_BANK_TBL": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_BANK Base Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKA"
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PROVZ"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BGRUP"
+        },
+        "RATING": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "RATING"
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PARTNER"
+        }
+      }
+    },
+    "BNKA": {
+      "kind": "entity",
+      "@EndUserText.label": "BNKA Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKA"
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PROVZ"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BGRUP"
+        }
+      }
+    },
+    "FCLM_BAM_BNKA_BP": {
+      "kind": "entity",
+      "@EndUserText.label": "FCLM_BAM_BNKA_BP Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PARTNER"
+        }
+      }
+    },
+    "BP1010": {
+      "kind": "entity",
+      "@EndUserText.label": "BP1010 Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PARTNR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PARTNR"
+        },
+        "RATING": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "RATING"
+        }
+      }
+    },
+    "CashLinefnt": {
+      "kind": "entity",
+      "@EndUserText.label": "CashLinefnt Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "TEXT"
+        },
+        "NotAssignedPlaceholder": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder"
+        },
+        "NotAssignedPlaceholder1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder1"
+        },
+        "NotAssignedPlaceholder2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder2"
+        },
+        "NotAssignedPlaceholder3": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder3"
+        },
+        "NotAssignedPlaceholder4": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder4"
+        },
+        "NotAssignedPlaceholder5": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder5"
+        },
+        "NotAssignedPlaceholder6": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder6"
+        },
+        "NotAssignedPlaceholder7": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder7"
+        },
+        "NotAssignedPlaceholder8": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder8"
+        },
+        "NotAssignedPlaceholder9": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder9"
+        },
+        "NotAssignedPlaceholder10": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder10"
+        },
+        "NotAssignedPlaceholder11": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder11"
+        },
+        "NotAssignedPlaceholder12": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder12"
+        },
+        "NotAssignedPlaceholder13": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder13"
+        },
+        "NotAssignedPlaceholder14": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder14"
+        },
+        "NotAssignedPlaceholder15": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder15"
+        }
+      }
+    },
+    "CV_BANK_JOIN_1_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Join_1 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS",
+          "key": true
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL",
+          "key": true
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKA"
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PROVZ"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BGRUP"
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PARTNER"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "BNKA"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "FCLM_BAM_BNKA_BP"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "BANKS"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "BANKS"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "BANKL"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "BANKL"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKS"
+              ],
+              "as": "BANKS"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKL"
+              ],
+              "as": "BANKL"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKA"
+              ],
+              "as": "BANKA"
+            },
+            {
+              "ref": [
+                "A",
+                "PROVZ"
+              ],
+              "as": "PROVZ"
+            },
+            {
+              "ref": [
+                "A",
+                "ORT01"
+              ],
+              "as": "ORT01"
+            },
+            {
+              "ref": [
+                "A",
+                "BGRUP"
+              ],
+              "as": "BGRUP"
+            },
+            {
+              "ref": [
+                "B",
+                "VALID_FROM"
+              ],
+              "as": "VALID_FROM"
+            },
+            {
+              "ref": [
+                "B",
+                "PARTNER"
+              ],
+              "as": "PARTNER"
+            }
+          ]
+        }
+      }
+    },
+    "CV_BANK_JOIN_2_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Join_2 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKA"
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PROVZ"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BGRUP"
+        },
+        "VALID_FROM_NULL": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM_NULL"
+        },
+        "PARTNER_NULL": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "PARTNER_NULL",
+          "key": true
+        },
+        "RATING_NULL": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "RATING_NULL"
+        },
+        "RATING": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "RATING"
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "PARTNER"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "CV_BANK_JOIN_1_V"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "BP1010"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "PARTNER"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "PARTNR"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKS"
+              ],
+              "as": "BANKS"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKL"
+              ],
+              "as": "BANKL"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKA"
+              ],
+              "as": "BANKA"
+            },
+            {
+              "ref": [
+                "A",
+                "PROVZ"
+              ],
+              "as": "PROVZ"
+            },
+            {
+              "ref": [
+                "A",
+                "ORT01"
+              ],
+              "as": "ORT01"
+            },
+            {
+              "ref": [
+                "A",
+                "BGRUP"
+              ],
+              "as": "BGRUP"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_FROM"
+              ],
+              "as": "VALID_FROM_NULL"
+            },
+            {
+              "ref": [
+                "A",
+                "PARTNER"
+              ],
+              "as": "PARTNER_NULL"
+            },
+            {
+              "ref": [
+                "B",
+                "RATING"
+              ],
+              "as": "RATING_NULL"
+            },
+            {
+              "func": "coalesce",
+              "args": [
+                {
+                  "ref": [
+                    "B",
+                    "RATING"
+                  ]
+                },
+                {
+                  "val": ""
+                }
+              ],
+              "as": "RATING"
+            },
+            {
+              "func": "coalesce",
+              "args": [
+                {
+                  "ref": [
+                    "A",
+                    "VALID_FROM"
+                  ]
+                },
+                {
+                  "val": ""
+                }
+              ],
+              "as": "VALID_FROM"
+            },
+            {
+              "func": "coalesce",
+              "args": [
+                {
+                  "ref": [
+                    "A",
+                    "PARTNER"
+                  ]
+                },
+                {
+                  "val": ""
+                }
+              ],
+              "as": "PARTNER"
+            }
+          ]
+        }
+      }
+    },
+    "CV_BANK_PROJECTION_1_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Projection_1 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NAME"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "LANGU"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "TEXT"
+        },
+        "NotAssignedPlaceholder": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder"
+        },
+        "NotAssignedPlaceholder1": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder1"
+        },
+        "NotAssignedPlaceholder2": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder2"
+        },
+        "NotAssignedPlaceholder3": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder3"
+        },
+        "NotAssignedPlaceholder4": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder4"
+        },
+        "NotAssignedPlaceholder5": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder5"
+        },
+        "NotAssignedPlaceholder6": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder6"
+        },
+        "NotAssignedPlaceholder7": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder7"
+        },
+        "NotAssignedPlaceholder8": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder8"
+        },
+        "NotAssignedPlaceholder9": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder9"
+        },
+        "NotAssignedPlaceholder10": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder10"
+        },
+        "NotAssignedPlaceholder11": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder11"
+        },
+        "NotAssignedPlaceholder12": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder12"
+        },
+        "NotAssignedPlaceholder13": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder13"
+        },
+        "NotAssignedPlaceholder14": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder14"
+        },
+        "NotAssignedPlaceholder15": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder15"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "CashLinefnt"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "NAME"
+              ]
+            },
+            {
+              "ref": [
+                "LANGU"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder1"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder2"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder3"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder4"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder5"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder6"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder7"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder8"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder9"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder10"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder11"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder12"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder13"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder14"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder15"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_BANK_V": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_BANK Fact View",
+      "@Analytics.dataCategory": "#CUBE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKA"
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PROVZ"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BGRUP"
+        },
+        "RATING": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "RATING"
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PARTNER"
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      },
+      "query": {
+        "SET": {
+          "op": "union",
+          "all": true,
+          "args": [
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_BANK_JOIN_2_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BANKS"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BANKL"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BANKA"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "PROVZ"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ORT01"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BGRUP"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "RATING"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "VALID_FROM"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "PARTNER"
+                    ]
+                  },
+                  {
+                    "val": 1,
+                    "as": "RECORD_COUNT"
+                  }
+                ]
+              }
+            },
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_BANK_PROJECTION_1_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder"
+                    ],
+                    "as": "BANKS"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder1"
+                    ],
+                    "as": "BANKL"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "BANKA"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder2"
+                    ],
+                    "as": "PROVZ"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder3"
+                    ],
+                    "as": "ORT01"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder4"
+                    ],
+                    "as": "BGRUP"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder5"
+                    ],
+                    "as": "RATING"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder6"
+                    ],
+                    "as": "VALID_FROM"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder7"
+                    ],
+                    "as": "PARTNER"
+                  },
+                  {
+                    "val": 1,
+                    "as": "RECORD_COUNT"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CV_BANK_AM": {
+      "kind": "analyticModel",
+      "@EndUserText.label": "CV_BANK Analytic Model",
+      "source": {
+        "ref": [
+          "CV_BANK_V"
+        ]
+      },
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "@Analytics.dimension": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS",
+          "@Analytics.dimension": true
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL",
+          "@Analytics.dimension": true
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKA",
+          "@Analytics.dimension": true
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PROVZ",
+          "@Analytics.dimension": true
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01",
+          "@Analytics.dimension": true
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BGRUP",
+          "@Analytics.dimension": true
+        },
+        "RATING": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "RATING",
+          "@Analytics.dimension": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM",
+          "@Analytics.dimension": true
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PARTNER",
+          "@Analytics.dimension": true
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      }
+    }
+  }
+}
