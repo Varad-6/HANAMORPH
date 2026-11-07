@@ -789,6 +789,86 @@ sap.ui.define([
             MessageToast.show("Downloaded Target Local Table(s) CSN schema.");
         },
 
+        onCopyActiveViewSql: async function () {
+            const oModel = this.getView().getModel();
+            const sViewName = oModel.getProperty("/activeViewName") || "CV_AC_TYPE";
+            const sSpace = oModel.getProperty("/targetSpace") || "AIS_INBOUND";
+
+            MessageToast.show(`Generating Pure SELECT SQL for ${sViewName}...`);
+
+            try {
+                const res = await fetch("/odata/v4/migration/generateModularArtifacts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        viewName: sViewName,
+                        viewType: "CALC_VIEW",
+                        space: sSpace
+                    })
+                });
+                const data = await res.json();
+                const oResult = data.value || data;
+                const sSql = oResult.optimizedSql || oResult.completeDdlSql;
+
+                if (!sSql) {
+                    MessageBox.warning(`Could not generate SQL for ${sViewName}`);
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(sSql);
+                }
+
+                const oTextArea = new sap.m.TextArea({
+                    value: sSql,
+                    width: "100%",
+                    rows: 12,
+                    editable: false
+                });
+
+                const oDialog = new sap.m.Dialog({
+                    title: `Datasphere SQL View Query: ${sViewName}`,
+                    contentWidth: "650px",
+                    contentHeight: "400px",
+                    resizable: true,
+                    content: [
+                        new sap.m.VBox({
+                            items: [
+                                new sap.m.MessageStrip({
+                                    text: "✓ SQL statement copied to clipboard! Paste directly into SAP Datasphere Data Builder -> New SQL View (without CREATE VIEW wrapper).",
+                                    type: "Success",
+                                    showIcon: true,
+                                    class: "sapUiSmallMarginBottom"
+                                }),
+                                oTextArea
+                            ]
+                        }).addStyleClass("sapUiSmallMargin")
+                    ],
+                    beginButton: new sap.m.Button({
+                        text: "Copy SQL",
+                        icon: "sap-icon://copy",
+                        type: "Emphasized",
+                        press: function () {
+                            if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(sSql);
+                            }
+                            MessageToast.show("SQL copied to clipboard!");
+                        }
+                    }),
+                    endButton: new sap.m.Button({
+                        text: "Close",
+                        press: function () {
+                            oDialog.close();
+                            oDialog.destroy();
+                        }
+                    })
+                });
+                oDialog.open();
+            } catch (err) {
+                MessageBox.error(`Failed to generate SQL: ${err.message}`);
+            }
+        },
+
         onCopyCliCommands: function () {
             const oModel = this.getView().getModel();
             const sTbl = oModel.getProperty("/cliTableCommand") || "";

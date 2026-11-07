@@ -293,6 +293,13 @@
                                         class="sapUiSmallMarginEnd"
                                         enabled="{/hasGenerated}" />
                                     <Button
+                                        text="📋 Copy View SQL"
+                                        icon="sap-icon://syntax"
+                                        type="Emphasized"
+                                        press=".onCopyActiveViewSql"
+                                        class="sapUiSmallMarginEnd sapUiBold"
+                                        tooltip="Copy Pure SELECT SQL statement for Datasphere New SQL View" />
+                                    <Button
                                         text="Copy CLI Command"
                                         icon="sap-icon://copy"
                                         press=".onCopyCliCommands"
