@@ -563,8 +563,9 @@
                                                             <Text text="Zero Dependencies (Direct Fact)" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
                                                             <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
                                                             <Button
-                                                                text="Download Standalone CSN"
+                                                                text="🧊 Download Standalone Fact CSN (.json)"
                                                                 icon="sap-icon://download"
+                                                                type="Emphasized"
                                                                 press=".onDownloadStandaloneFactJson" />
                                                         </VBox>
 

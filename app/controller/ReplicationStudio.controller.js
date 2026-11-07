@@ -789,6 +789,51 @@ sap.ui.define([
             MessageToast.show("Downloaded Target Local Table(s) CSN schema.");
         },
 
+        onDownloadStandaloneFactCsn: async function () {
+            const oModel = this.getView().getModel();
+            const sViewName = oModel.getProperty("/activeViewName") || "CV_BANK";
+            const sSpace = oModel.getProperty("/targetSpace") || "AIS_INBOUND";
+
+            MessageToast.show(`Generating Standalone Fact CSN for ${sViewName}...`);
+
+            try {
+                const res = await fetch("/odata/v4/migration/generateModularArtifacts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        viewName: sViewName,
+                        viewType: "CALC_VIEW",
+                        space: sSpace
+                    })
+                });
+                const data = await res.json();
+                const oResult = data.value || data;
+                const sJson = oResult.standaloneFactJsonString;
+
+                if (!sJson) {
+                    MessageBox.warning(`Could not generate Standalone Fact CSN for ${sViewName}`);
+                    return;
+                }
+
+                const sClean = sViewName.replace(/^[\/\\]+/, "").replace(/[\/\\]+/g, "_").replace(/[^a-zA-Z0-9_]/g, "_");
+                const blob = new Blob([sJson], { type: "application/json" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = `${sClean}_standalone_fact.csn.json`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    if (document.body.contains(a)) document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 1000);
+                MessageToast.show(`Downloaded ${sClean}_standalone_fact.csn.json (Zero dependency Fact View)!`);
+            } catch (err) {
+                MessageBox.error(`Failed to generate Standalone CSN: ${err.message}`);
+            }
+        },
+
         onCopyActiveViewSql: async function () {
             const oModel = this.getView().getModel();
             const sViewName = oModel.getProperty("/activeViewName") || "CV_AC_TYPE";

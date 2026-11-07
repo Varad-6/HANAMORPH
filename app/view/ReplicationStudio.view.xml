@@ -287,6 +287,13 @@
                                         enabled="{/hasGenerated}"
                                         tooltip="Native CSN schema for Data Builder -> Import Objects from CSN/JSON File" />
                                     <Button
+                                        text="🧊 Download Standalone Fact CSN (.json)"
+                                        icon="sap-icon://cube"
+                                        type="Emphasized"
+                                        press=".onDownloadStandaloneFactCsn"
+                                        class="sapUiSmallMarginEnd sapUiBold"
+                                        tooltip="Direct #CUBE Fact View with zero dependencies for Data Builder -> Import Objects from CSN/JSON File" />
+                                    <Button
                                         text="Download Flow JSON"
                                         icon="sap-icon://attachment"
                                         press=".onDownloadFlowJson"
