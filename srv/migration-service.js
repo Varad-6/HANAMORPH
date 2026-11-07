@@ -26,6 +26,21 @@ module.exports = cds.service.impl(async function () {
     });
 
     /**
+     * Action: deployLocalTable
+     */
+    this.on('deployLocalTable', async req => {
+        const { space, targetTableName, tableCsnString } = req.data;
+        const result = await deployService.deployLocalTable(space, targetTableName, tableCsnString);
+        return {
+            status: result.status,
+            flowTechnicalName: targetTableName,
+            space: space || 'AIS_INBOUND',
+            message: result.message || `Table ${targetTableName} deployed`,
+            cliCommand: result.cliCommand || `npx @sap/datasphere-cli objects local-tables create --space "${space || 'AIS_INBOUND'}"`
+        };
+    });
+
+    /**
      * Action: deployReplicationFlow
      */
     this.on('deployReplicationFlow', async req => {
@@ -34,9 +49,57 @@ module.exports = cds.service.impl(async function () {
         return {
             status: result.status,
             flowTechnicalName,
-            space: space || 'AIS_HARMONIZATION_',
+            space: space || 'AIS_INBOUND',
             message: result.message || 'Deployed',
-            cliCommand: 'npx @sap/datasphere-cli objects replication-flows create'
+            cliCommand: result.cliCommand || `npx @sap/datasphere-cli objects replication-flows create --space "${space || 'AIS_INBOUND'}" --technical-name "${flowTechnicalName}"`
+        };
+    });
+
+    /**
+     * Action: runReplicationFlow
+     * Starts / runs a deployed replication flow in Datasphere
+     */
+    this.on('runReplicationFlow', async req => {
+        const { space, flowTechnicalName } = req.data;
+        const result = await deployService.runReplicationFlow(space, flowTechnicalName);
+        return {
+            status: result.status,
+            flowTechnicalName,
+            space: space || 'AIS_INBOUND',
+            message: result.message || 'Started',
+            cliCommand: result.cliCommand || `npx @sap/datasphere-cli tasks replication-flows run --space "${space || 'AIS_INBOUND'}" --technical-name "${flowTechnicalName}"`
+        };
+    });
+
+    /**
+     * Function: getReplicationFlowStatus
+     * Checks replication flow status
+     */
+    this.on('getReplicationFlowStatus', async req => {
+        const { space, flowTechnicalName } = req.data;
+        const result = await deployService.getReplicationFlowStatus(space, flowTechnicalName);
+        return {
+            status: result.status,
+            flowTechnicalName,
+            space: space || 'AIS_INBOUND',
+            message: result.output || result.message || 'RUNNING',
+            cliCommand: result.cliCommand || `npx @sap/datasphere-cli tasks replication-flows status --space "${space || 'AIS_INBOUND'}" --technical-name "${flowTechnicalName}"`
+        };
+    });
+
+    /**
+     * Action: deployTableAndReplicationFlow
+     * Executes end-to-end Phase 1 to Phase 5
+     */
+    this.on('deployTableAndReplicationFlow', async req => {
+        const { space, targetTableName, tableCsnString, flowTechnicalName, flowJsonString } = req.data;
+        const result = await deployService.deployTableAndReplicationFlow(space, targetTableName, tableCsnString, flowTechnicalName, flowJsonString);
+        return {
+            status: result.status,
+            flowTechnicalName,
+            space: space || 'AIS_INBOUND',
+            message: result.output || result.message || 'Pipeline active',
+            cliCommand: `npx @sap/datasphere-cli tasks replication-flows run --space "${space || 'AIS_INBOUND'}" --technical-name "${flowTechnicalName}"`
         };
     });
 

@@ -14,6 +14,7 @@
     "host": "https://ais-bdc-dsp-tdd.eu10.hcs.cloud.sap",
     "tokenUrl": "https://ais-bdc-dsp-tdd.authentication.eu10.hana.ondemand.com/oauth/token",
     "defaultSpace": "AIS_HARMONIZATION_",
+    "inboundSpace": "AIS_INBOUND",
     "clientId": "sb-dca1d1b1-ae39-4534-9ea3-3b8c9ae1b921!b719915|client!b3650",
     "clientSecret": "d2ce8bb9-a98f-4300-96a3-aecef10a894e$G7v9iiYJ5vysahrALNsnCbdFPptyldIOpTzwmbiY9Mc="
   }

@@ -22,10 +22,8 @@ cds.on('bootstrap', (app) => {
     app.use('/app', express.static(appDir));
     
     // Explicit route for root redirect or index
-    app.get('/', (req, res, next) => {
-        res.sendFile(path.join(appDir, 'index.html'), (err) => {
-            if (err) next();
-        });
+    app.get('/', (req, res) => {
+        res.sendFile(path.join(appDir, 'index.html'));
     });
 });
 

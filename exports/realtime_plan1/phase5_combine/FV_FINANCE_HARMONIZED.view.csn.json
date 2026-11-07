@@ -1,0 +1,119 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "FV_FINANCE_HARMONIZED": {
+      "kind": "entity",
+      "@EndUserText.label": "Harmonized Finance & Procurement Fact View",
+      "@Analytics.dataCategory": "#CUBE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "key": true,
+          "@EndUserText.label": "Client"
+        },
+        "EBELN": {
+          "type": "cds.String",
+          "length": 10,
+          "key": true,
+          "@EndUserText.label": "Purchase Order"
+        },
+        "EBELP": {
+          "type": "cds.String",
+          "length": 5,
+          "key": true,
+          "@EndUserText.label": "Item"
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "Company Code"
+        },
+        "LIFNR": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "Supplier"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "Account Type ID"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "Account Description"
+        },
+        "BANK_NAME": {
+          "type": "cds.String",
+          "length": 60,
+          "@EndUserText.label": "Bank Name"
+        },
+        "ORDER_QUANTITY": {
+          "type": "cds.Decimal",
+          "precision": 13,
+          "scale": 3,
+          "@EndUserText.label": "Order Quantity",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        },
+        "NET_AMOUNT": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "Net Amount",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "LT_C_PURCHASEORDERFS"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "EBELN"
+              ]
+            },
+            {
+              "ref": [
+                "EBELP"
+              ]
+            },
+            {
+              "ref": [
+                "BUKRS"
+              ]
+            },
+            {
+              "ref": [
+                "LIFNR"
+              ]
+            },
+            {
+              "ref": [
+                "MENGE"
+              ],
+              "as": "ORDER_QUANTITY"
+            },
+            {
+              "ref": [
+                "NETWR"
+              ],
+              "as": "NET_AMOUNT"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

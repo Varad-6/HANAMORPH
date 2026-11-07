@@ -1,0 +1,42 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "AM_FINANCE_HARMONIZED": {
+      "kind": "analyticModel",
+      "@EndUserText.label": "Harmonized Finance Consumption Model",
+      "source": {
+        "ref": [
+          "FV_FINANCE_HARMONIZED"
+        ]
+      },
+      "elements": {
+        "MANDT": {
+          "@Analytics.dimension": true,
+          "@EndUserText.label": "Client"
+        },
+        "EBELN": {
+          "@Analytics.dimension": true,
+          "@EndUserText.label": "Purchase Order"
+        },
+        "BUKRS": {
+          "@Analytics.dimension": true,
+          "@EndUserText.label": "Company Code"
+        },
+        "LIFNR": {
+          "@Analytics.dimension": true,
+          "@EndUserText.label": "Supplier"
+        },
+        "ORDER_QUANTITY": {
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM",
+          "@EndUserText.label": "Order Quantity"
+        },
+        "NET_AMOUNT": {
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM",
+          "@EndUserText.label": "Net Amount"
+        }
+      }
+    }
+  }
+}

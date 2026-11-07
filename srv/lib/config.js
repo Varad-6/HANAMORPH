@@ -39,7 +39,8 @@ class ConfigManager {
                 tokenUrl: process.env.DATASPHERE_TOKEN_URL || fileConfig.datasphere?.tokenUrl || '',
                 clientId: process.env.DATASPHERE_CLIENT_ID || fileConfig.datasphere?.clientId || '',
                 clientSecret: process.env.DATASPHERE_CLIENT_SECRET || fileConfig.datasphere?.clientSecret || '',
-                defaultSpace: process.env.DATASPHERE_SPACE || fileConfig.datasphere?.defaultSpace || 'AIS_HARMONIZATION_'
+                defaultSpace: process.env.DATASPHERE_SPACE || fileConfig.datasphere?.defaultSpace || 'AIS_HARMONIZATION_',
+                inboundSpace: process.env.DATASPHERE_INBOUND_SPACE || fileConfig.datasphere?.inboundSpace || 'AIS_INBOUND'
             }
         };
     }

@@ -152,10 +152,34 @@ service MigrationService {
         semanticUsage      : String
     ) returns ModularArtifactsResult;
 
+    action deployLocalTable(
+        space          : String,
+        targetTableName: String,
+        tableCsnString : LargeString
+    ) returns ReplicationFlowDeploymentResult;
+
     action deployReplicationFlow(
         space            : String,
         flowTechnicalName: String,
         flowJsonString   : LargeString
+    ) returns ReplicationFlowDeploymentResult;
+
+    action runReplicationFlow(
+        space            : String,
+        flowTechnicalName: String
+    ) returns ReplicationFlowDeploymentResult;
+
+    function getReplicationFlowStatus(
+        space            : String,
+        flowTechnicalName: String
+    ) returns ReplicationFlowDeploymentResult;
+
+    action deployTableAndReplicationFlow(
+        space             : String,
+        targetTableName   : String,
+        tableCsnString    : LargeString,
+        flowTechnicalName : String,
+        flowJsonString    : LargeString
     ) returns ReplicationFlowDeploymentResult;
 
     action startJob(

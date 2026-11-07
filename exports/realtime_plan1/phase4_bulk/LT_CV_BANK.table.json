@@ -1,0 +1,54 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "LT_CV_BANK": {
+      "kind": "entity",
+      "@EndUserText.label": "Inbound Staged Local Table for CV_BANK",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "key": true,
+          "@EndUserText.label": "Client"
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 3,
+          "key": true,
+          "@EndUserText.label": "Bank Country Key"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 15,
+          "key": true,
+          "@EndUserText.label": "Bank Keys"
+        },
+        "BANKA": {
+          "type": "cds.String",
+          "length": 60,
+          "@EndUserText.label": "Bank Name"
+        },
+        "PROVZ": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "Region"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 35,
+          "@EndUserText.label": "City"
+        },
+        "BGRUP": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "Bank Group"
+        },
+        "PARTNER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "Business Partner"
+        }
+      }
+    }
+  }
+}

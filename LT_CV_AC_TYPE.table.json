@@ -1,0 +1,44 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "LT_CV_AC_TYPE": {
+      "kind": "entity",
+      "@EndUserText.label": "Inbound Staged Local Table for CV_AC_TYPE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "key": true,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "key": true,
+          "@EndUserText.label": "ACC_TYPE_ID"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 2,
+          "key": true,
+          "@EndUserText.label": "LANGU"
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DIRE"
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_TYPE_DESC"
+        }
+      }
+    }
+  }
+}

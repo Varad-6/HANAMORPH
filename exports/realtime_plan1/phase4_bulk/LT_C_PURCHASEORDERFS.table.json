@@ -1,0 +1,61 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "LT_C_PURCHASEORDERFS": {
+      "kind": "entity",
+      "@EndUserText.label": "Inbound Staged Local Table for C_PurchaseOrderFs",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "key": true,
+          "@EndUserText.label": "Client"
+        },
+        "EBELN": {
+          "type": "cds.String",
+          "length": 10,
+          "key": true,
+          "@EndUserText.label": "Purchasing Document Number"
+        },
+        "EBELP": {
+          "type": "cds.String",
+          "length": 5,
+          "key": true,
+          "@EndUserText.label": "Item Number"
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "Company Code"
+        },
+        "LIFNR": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "Supplier Account Number"
+        },
+        "MATNR": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "Material Number"
+        },
+        "WERKS": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "Plant"
+        },
+        "MENGE": {
+          "type": "cds.Decimal",
+          "precision": 13,
+          "scale": 3,
+          "@EndUserText.label": "Order Quantity"
+        },
+        "NETWR": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "Net Order Value"
+        }
+      }
+    }
+  }
+}

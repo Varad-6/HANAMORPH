@@ -1,0 +1,44 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "LT_CV_AC_TYPE": {
+      "kind": "entity",
+      "@EndUserText.label": "Inbound Staged Local Table for CV_AC_TYPE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "key": true,
+          "@EndUserText.label": "Client"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "key": true,
+          "@EndUserText.label": "Account Type ID"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 2,
+          "key": true,
+          "@EndUserText.label": "Language Key"
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "Account Direction"
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "Current Account Flag"
+        },
+        "ACC_TYPE_DESC": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "Account Description"
+        }
+      }
+    }
+  }
+}

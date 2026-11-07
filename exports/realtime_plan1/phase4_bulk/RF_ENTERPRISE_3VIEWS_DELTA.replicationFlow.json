@@ -1,0 +1,173 @@
+{
+  "$schema": "https://schema.datasphere.cloud.sap/replicationflow/v1/schema.json",
+  "version": "1.0.0",
+  "name": "RF_ENTERPRISE_3VIEWS_DELTA",
+  "description": "Bulk 1:1 Real-Time CDC Replication Flow for 3 Views into Space AIS_INBOUND",
+  "source": {
+    "connection": "S4HANA_SOURCE"
+  },
+  "target": {
+    "connection": "LOCAL",
+    "containerType": "LocalTable",
+    "space": "AIS_INBOUND"
+  },
+  "tasks": [
+    {
+      "name": "TASK_CV_AC_TYPE",
+      "sourceObject": {
+        "name": "CV_AC_TYPE",
+        "type": "CALC_VIEW"
+      },
+      "targetObject": {
+        "name": "LT_CV_AC_TYPE",
+        "loadType": "InitialAndDelta",
+        "truncationMode": "NONE"
+      },
+      "mappings": [
+        {
+          "sourceColumn": "MANDT",
+          "targetColumn": "MANDT",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "ACC_TYPE_ID",
+          "targetColumn": "ACC_TYPE_ID",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "LANGU",
+          "targetColumn": "LANGU",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "ACC_TYPE_DIRE",
+          "targetColumn": "ACC_TYPE_DIRE",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "ACC_CURRENT",
+          "targetColumn": "ACC_CURRENT",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "ACC_TYPE_DESC",
+          "targetColumn": "ACC_TYPE_DESC",
+          "isKey": false
+        }
+      ]
+    },
+    {
+      "name": "TASK_CV_BANK",
+      "sourceObject": {
+        "name": "CV_BANK",
+        "type": "CALC_VIEW"
+      },
+      "targetObject": {
+        "name": "LT_CV_BANK",
+        "loadType": "InitialAndDelta",
+        "truncationMode": "NONE"
+      },
+      "mappings": [
+        {
+          "sourceColumn": "MANDT",
+          "targetColumn": "MANDT",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "BANKS",
+          "targetColumn": "BANKS",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "BANKL",
+          "targetColumn": "BANKL",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "BANKA",
+          "targetColumn": "BANKA",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "PROVZ",
+          "targetColumn": "PROVZ",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "ORT01",
+          "targetColumn": "ORT01",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "BGRUP",
+          "targetColumn": "BGRUP",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "PARTNER",
+          "targetColumn": "PARTNER",
+          "isKey": false
+        }
+      ]
+    },
+    {
+      "name": "TASK_C_PURCHASEORDERFS",
+      "sourceObject": {
+        "name": "C_PurchaseOrderFs",
+        "type": "CDS"
+      },
+      "targetObject": {
+        "name": "LT_C_PURCHASEORDERFS",
+        "loadType": "InitialAndDelta",
+        "truncationMode": "NONE"
+      },
+      "mappings": [
+        {
+          "sourceColumn": "MANDT",
+          "targetColumn": "MANDT",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "EBELN",
+          "targetColumn": "EBELN",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "EBELP",
+          "targetColumn": "EBELP",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "BUKRS",
+          "targetColumn": "BUKRS",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "LIFNR",
+          "targetColumn": "LIFNR",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "MATNR",
+          "targetColumn": "MATNR",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "WERKS",
+          "targetColumn": "WERKS",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "MENGE",
+          "targetColumn": "MENGE",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "NETWR",
+          "targetColumn": "NETWR",
+          "isKey": false
+        }
+      ]
+    }
+  ]
+}

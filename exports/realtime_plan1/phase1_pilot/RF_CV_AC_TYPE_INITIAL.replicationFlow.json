@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.datasphere.cloud.sap/replicationflow/v1/schema.json",
+  "version": "1.0.0",
+  "name": "RF_CV_AC_TYPE_PILOT_INITIAL",
+  "description": "Pilot Replication Flow for CV_AC_TYPE (Initial Snapshot Only)",
+  "source": {
+    "connection": "S4HANA_SOURCE"
+  },
+  "target": {
+    "connection": "LOCAL",
+    "containerType": "LocalTable",
+    "space": "AIS_INBOUND"
+  },
+  "tasks": [
+    {
+      "name": "TASK_CV_AC_TYPE_INITIAL",
+      "sourceObject": {
+        "name": "CV_AC_TYPE",
+        "type": "CALC_VIEW"
+      },
+      "targetObject": {
+        "name": "LT_CV_AC_TYPE",
+        "loadType": "Initial",
+        "truncationMode": "NONE"
+      },
+      "mappings": [
+        {
+          "sourceColumn": "MANDT",
+          "targetColumn": "MANDT",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "ACC_TYPE_ID",
+          "targetColumn": "ACC_TYPE_ID",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "LANGU",
+          "targetColumn": "LANGU",
+          "isKey": true
+        },
+        {
+          "sourceColumn": "ACC_TYPE_DIRE",
+          "targetColumn": "ACC_TYPE_DIRE",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "ACC_CURRENT",
+          "targetColumn": "ACC_CURRENT",
+          "isKey": false
+        },
+        {
+          "sourceColumn": "ACC_TYPE_DESC",
+          "targetColumn": "ACC_TYPE_DESC",
+          "isKey": false
+        }
+      ]
+    }
+  ]
+}
