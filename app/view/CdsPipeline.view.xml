@@ -484,6 +484,117 @@
                                             </content>
                                         </Panel>
 
+                                        <!-- ============================================================ -->
+                                        <!-- REPLICATION FLOW PANEL — Auto-wired to CDS base tables       -->
+                                        <!-- ============================================================ -->
+                                        <Panel
+                                            headerText="📡 Replication Flow — Data Ingestion Pipeline"
+                                            expandable="true"
+                                            expanded="true"
+                                            class="sapUiSmallMarginBottom">
+                                            <content>
+                                                <VBox class="sapUiSmallMargin">
+                                                    <Text
+                                                        text="Auto-generates a SAP Datasphere Replication Flow for all HANA source tables feeding this CDS view. Base tables are auto-detected from the extracted model."
+                                                        class="text-muted sapUiSmallMarginBottom" />
+
+                                                    <!-- Configuration Row -->
+                                                    <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
+                                                        <VBox class="sapUiSmallMarginEnd">
+                                                            <Label text="Connection ID" class="sapUiTinyMarginBottom" />
+                                                            <Input value="{/rfConnectionId}" placeholder="HDD_HANA_SOURCE" width="200px" />
+                                                        </VBox>
+                                                        <VBox class="sapUiSmallMarginEnd">
+                                                            <Label text="Schema / Container" class="sapUiTinyMarginBottom" />
+                                                            <Input value="{/rfContainer}" placeholder="SAPHANADB" width="160px" />
+                                                        </VBox>
+                                                        <VBox class="sapUiSmallMarginEnd">
+                                                            <Label text="RF Technical Name" class="sapUiTinyMarginBottom" />
+                                                            <Input value="{/rfTechName}" placeholder="RF_CV_BANK_V" width="220px" />
+                                                        </VBox>
+                                                    </HBox>
+
+                                                    <!-- Action Buttons -->
+                                                    <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
+                                                        <Button
+                                                            text="⚡ Generate RF JSON"
+                                                            icon="sap-icon://process"
+                                                            type="Emphasized"
+                                                            press=".onGenerateReplicationFlow"
+                                                            busy="{/isRFBusy}"
+                                                            class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
+                                                        <Button
+                                                            text="⬇ Download RF JSON"
+                                                            icon="sap-icon://download"
+                                                            press=".onDownloadRFJson"
+                                                            enabled="{/hasRF}"
+                                                            class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
+                                                        <Button
+                                                            text="🚀 Deploy to Datasphere"
+                                                            icon="sap-icon://upload-to-cloud"
+                                                            type="Accept"
+                                                            press=".onDeployRFToDatasphere"
+                                                            enabled="{/hasRF}"
+                                                            class="sapUiTinyMarginBottom" />
+                                                    </HBox>
+
+                                                    <!-- Source Objects Table -->
+                                                    <Panel
+                                                        headerText="Auto-Detected Source Objects"
+                                                        expandable="true"
+                                                        expanded="true"
+                                                        visible="{/hasRF}"
+                                                        class="sapUiTinyMarginBottom">
+                                                        <content>
+                                                            <Table items="{/rfSourceObjects}" noDataText="Click Generate RF JSON to detect base tables.">
+                                                                <columns>
+                                                                    <Column width="25%"><Text text="Source Table (HANA)" class="sapUiBold" /></Column>
+                                                                    <Column width="30%"><Text text="Target Local Table (Datasphere)" class="sapUiBold" /></Column>
+                                                                    <Column width="20%"><Text text="Columns Mapped" class="sapUiBold" /></Column>
+                                                                    <Column width="25%"><Text text="Load Type" class="sapUiBold" /></Column>
+                                                                </columns>
+                                                                <items>
+                                                                    <ColumnListItem vAlign="Middle">
+                                                                        <cells>
+                                                                            <ObjectIdentifier title="{sourceObject}" />
+                                                                            <Text text="{targetObject}" class="sapUiBold" />
+                                                                            <Text text="{mappingCount}" />
+                                                                            <ObjectStatus text="{loadType}" state="Information" icon="sap-icon://arrow-right" />
+                                                                        </cells>
+                                                                    </ColumnListItem>
+                                                                </items>
+                                                            </Table>
+                                                        </content>
+                                                    </Panel>
+
+                                                    <!-- RF JSON Preview -->
+                                                    <Panel headerText="RF JSON Definition Preview" expandable="true" expanded="false" visible="{/hasRF}" class="sapUiTinyMarginBottom">
+                                                        <content>
+                                                            <TextArea value="{/rfJsonString}" rows="10" width="100%" editable="false" placeholder="RF JSON will appear here after generation..." />
+                                                        </content>
+                                                    </Panel>
+
+                                                    <!-- CLI Command -->
+                                                    <Panel headerText="Datasphere CLI Deploy Command" expandable="true" expanded="false" visible="{/hasRF}" class="sapUiTinyMarginBottom">
+                                                        <content>
+                                                            <HBox alignItems="Center" class="sapUiSmallMargin">
+                                                                <Input value="{/rfCliCommand}" width="85%" editable="false" class="sapUiSmallMarginEnd" />
+                                                                <Button text="Copy" icon="sap-icon://copy" press=".onCopyRFCliCommand" />
+                                                            </HBox>
+                                                        </content>
+                                                    </Panel>
+
+                                                    <!-- Status Message -->
+                                                    <MessageStrip
+                                                        text="{/rfStatusMessage}"
+                                                        type="{/rfStatusType}"
+                                                        showIcon="true"
+                                                        visible="{/hasRFStatus}"
+                                                        class="sapUiSmallMarginTop" />
+                                                </VBox>
+                                            </content>
+                                        </Panel>
+
                                         <!-- Code Viewer -->
                                         <Panel headerText="Pure SQL Canvas Query" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
                                             <content>

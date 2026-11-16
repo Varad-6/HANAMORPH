@@ -79,7 +79,20 @@ sap.ui.define([
                 job: null,
                 isJobRunning: false,
                 currentStage: "",
-                jobLogs: []
+                jobLogs: [],
+
+                // Replication Flow state
+                rfConnectionId:  "HDD_HANA_SOURCE",
+                rfContainer:     "SAPHANADB",
+                rfTechName:      "",
+                rfJsonString:    "",
+                rfCliCommand:    "",
+                rfSourceObjects: [],
+                hasRF:           false,
+                isRFBusy:        false,
+                hasRFStatus:     false,
+                rfStatusMessage: "",
+                rfStatusType:    "Information"
             });
             this.getView().setModel(oViewModel);
 
@@ -509,6 +522,7 @@ sap.ui.define([
             }
 
             oModel.setProperty("/sourceSuggestions", aSourceSuggestions);
+            oModel.setProperty("/rfTechName", `RF_${sTechBase}`);
             oModel.setProperty("/naming", {
                 space: "AIS_HARMONIZATION_",
                 fromTableName: `${sTechBase}_TBL`,
@@ -825,31 +839,194 @@ sap.ui.define([
         },
 
         /* ====================================================================
-         * REPLICATION FLOW GENERATION (TARGET: LOCAL TABLES)
+         * REPLICATION FLOW — GENERATE, DOWNLOAD, DEPLOY (CDS/CalcView Wired)
          * ==================================================================== */
-        onDownloadReplicationFlow: function () {
-            this._ensureArtifactsGenerated(() => {
-                const oModel = this.getView().getModel();
-                const sMode = oModel.getProperty("/replicationFlowMode") || "DELTA";
-                const sJson = sMode === "MASTER" 
-                    ? oModel.getProperty("/modularResult/replicationFlowMasterJsonString")
-                    : oModel.getProperty("/modularResult/replicationFlowDeltaJsonString");
-                const sTableName = this._getCleanName();
 
-                if (!sJson) {
-                    MessageBox.warning("No replication flow generated.");
-                    return;
+        /**
+         * onGenerateReplicationFlow
+         * Calls generateReplicationFlowForView backend action.
+         * Auto-detects base tables from model, uses selected columns from Step 3.
+         */
+        onGenerateReplicationFlow: function () {
+            const oModel    = this.getView().getModel();
+            const sViewName = oModel.getProperty("/selectedViewName");
+
+            if (!sViewName) {
+                MessageBox.warning("Please select a view in Step 1 first.");
+                return;
+            }
+
+            const aAllCols   = oModel.getProperty("/allColumns") || [];
+            const aSelected  = aAllCols.filter(c => c.selected);
+            const aColSource = aSelected.length > 0 ? aSelected : aAllCols;
+            const aColPayload = aColSource.map(c => ({
+                sourceName: c.sourceName || c.name,
+                targetName: c.targetName || c.name,
+                isKey:      !!c.isKey,
+                isMeasure:  !!c.isMeasure,
+                dataType:   c.dataType || "cds.String(40)"
+            }));
+
+            const cleanName   = sViewName.replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+            const sRFTechName = oModel.getProperty("/rfTechName") || `RF_${cleanName}`;
+            const sConnId     = oModel.getProperty("/rfConnectionId") || "HDD_HANA_SOURCE";
+            const sContainer  = oModel.getProperty("/rfContainer")    || "SAPHANADB";
+            const sSpace      = oModel.getProperty("/naming/space")   || "AIS_HARMONIZATION_";
+
+            oModel.setProperty("/isRFBusy",        true);
+            oModel.setProperty("/hasRFStatus",     false);
+            oModel.setProperty("/rfTechName",      sRFTechName);
+
+            fetch("/odata/v4/migration/generateReplicationFlowForView", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    viewName:     sViewName,
+                    viewType:     this._pipelineType,
+                    columnsJson:  JSON.stringify(aColPayload),
+                    space:        sSpace,
+                    flowName:     sRFTechName,
+                    connectionId: sConnId,
+                    container:    sContainer
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(e => { throw new Error(e.error?.message || res.statusText); });
                 }
+                return res.json();
+            })
+            .then(data => {
+                const oResult = data.value || data;
+                let aSourceObjects = [];
+                try { aSourceObjects = JSON.parse(oResult.sourceObjectsJson || "[]"); } catch (e) { /* ignore */ }
 
-                const sFileName = `RF_${sTableName}_${sMode.toLowerCase()}.replicationFlow.json`;
-                this._downloadFile(sFileName, sJson, "application/json");
-                MessageToast.show(`Downloaded ${sFileName} (Datasphere Replication Flow)`);
+                oModel.setProperty("/rfJsonString",    oResult.rfJsonString    || "");
+                oModel.setProperty("/rfCliCommand",    oResult.cliCommand      || "");
+                oModel.setProperty("/rfTechName",      oResult.rfTechName      || sRFTechName);
+                oModel.setProperty("/rfSourceObjects", aSourceObjects);
+                oModel.setProperty("/hasRF",           true);
+                oModel.setProperty("/isRFBusy",        false);
+                oModel.setProperty("/hasRFStatus",     true);
+                oModel.setProperty("/rfStatusMessage", "✅ RF JSON generated for " + aSourceObjects.length + " source table(s). Ready to download or deploy.");
+                oModel.setProperty("/rfStatusType",    "Success");
+
+                MessageToast.show("Replication Flow JSON ready — " + aSourceObjects.length + " source table(s) detected.");
+            })
+            .catch(err => {
+                oModel.setProperty("/isRFBusy",        false);
+                oModel.setProperty("/hasRFStatus",     true);
+                oModel.setProperty("/rfStatusMessage", "Error: " + err.message);
+                oModel.setProperty("/rfStatusType",    "Error");
+                MessageBox.error("RF Generation failed: " + err.message);
             });
         },
 
+        /**
+         * onDownloadRFJson — Downloads the generated RF JSON as a .json file
+         */
+        onDownloadRFJson: function () {
+            const oModel  = this.getView().getModel();
+            const sJson   = oModel.getProperty("/rfJsonString");
+            const sName   = oModel.getProperty("/rfTechName") || "ReplicationFlow";
+            if (!sJson) {
+                MessageBox.warning("Generate the Replication Flow JSON first.");
+                return;
+            }
+            this._downloadFile(sName + ".json", sJson, "application/json");
+            MessageToast.show("Downloaded " + sName + ".json — Ready for Datasphere CLI deploy.");
+        },
+
+        /**
+         * onDeployRFToDatasphere — Deploys RF JSON to Datasphere via existing CLI action
+         */
+        onDeployRFToDatasphere: function () {
+            const oModel  = this.getView().getModel();
+            const sJson   = oModel.getProperty("/rfJsonString");
+            const sName   = oModel.getProperty("/rfTechName")      || "RF_UNNAMED";
+            const sSpace  = oModel.getProperty("/naming/space")    || "AIS_HARMONIZATION_";
+
+            if (!sJson) {
+                MessageBox.warning("Generate the Replication Flow JSON first.");
+                return;
+            }
+
+            oModel.setProperty("/isRFBusy",        true);
+            oModel.setProperty("/rfStatusMessage",  "Deploying Replication Flow to Datasphere via CLI...");
+            oModel.setProperty("/rfStatusType",     "Information");
+            oModel.setProperty("/hasRFStatus",      true);
+
+            fetch("/odata/v4/migration/deployReplicationFlow", {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    space:             sSpace,
+                    flowTechnicalName: sName,
+                    flowJsonString:    sJson
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const oResult = data.value || data;
+                oModel.setProperty("/isRFBusy", false);
+                if (oResult.status === "SUCCESS") {
+                    oModel.setProperty("/rfStatusMessage", "✅ '" + sName + "' deployed to space '" + sSpace + "'. Go to Datasphere → Data Integration Monitor → Run the flow.");
+                    oModel.setProperty("/rfStatusType",    "Success");
+                    MessageBox.success("Replication Flow '" + sName + "' deployed!\n\nNext step: Datasphere → Data Integration Monitor → Run RF to start Initial Load.");
+                } else {
+                    oModel.setProperty("/rfStatusMessage", "ℹ️ " + (oResult.message || "Deployed via CLI"));
+                    oModel.setProperty("/rfStatusType",    "Information");
+                    MessageBox.information("Deploy notice: " + (oResult.message || "CLI executed"));
+                }
+            })
+            .catch(err => {
+                oModel.setProperty("/isRFBusy",        false);
+                oModel.setProperty("/rfStatusMessage", "Deploy error: " + err.message);
+                oModel.setProperty("/rfStatusType",    "Error");
+                MessageBox.error("Deploy failed: " + err.message);
+            });
+        },
+
+        /**
+         * onCopyRFCliCommand — Copies the CLI command to clipboard
+         */
+        onCopyRFCliCommand: function () {
+            const oModel = this.getView().getModel();
+            const sCmd   = oModel.getProperty("/rfCliCommand");
+            if (sCmd) {
+                this._copyTextToClipboard(sCmd, "CLI deploy command copied to clipboard!");
+            } else {
+                MessageBox.warning("Generate the RF JSON first to get the CLI command.");
+            }
+        },
+
+        /**
+         * onDownloadReplicationFlow — Legacy method: downloads old-style RF from modularResult
+         */
+        onDownloadReplicationFlow: function () {
+            this._ensureArtifactsGenerated(() => {
+                const oModel     = this.getView().getModel();
+                const sMode      = oModel.getProperty("/replicationFlowMode") || "DELTA";
+                const sJson      = sMode === "MASTER"
+                    ? oModel.getProperty("/modularResult/replicationFlowMasterJsonString")
+                    : oModel.getProperty("/modularResult/replicationFlowDeltaJsonString");
+                const sTableName = this._getCleanName();
+                if (!sJson) {
+                    MessageBox.warning("No replication flow generated. Use the new RF panel above.");
+                    return;
+                }
+                const sFileName = "RF_" + sTableName + "_" + sMode.toLowerCase() + ".replicationFlow.json";
+                this._downloadFile(sFileName, sJson, "application/json");
+                MessageToast.show("Downloaded " + sFileName);
+            });
+        },
+
+        /**
+         * onCopyReplicationCli — Legacy: copies old CLI command
+         */
         onCopyReplicationCli: function () {
             const oModel = this.getView().getModel();
-            const sCmd = oModel.getProperty("/modularResult/replicationFlowCliCommand");
+            const sCmd   = oModel.getProperty("/modularResult/replicationFlowCliCommand");
             if (!sCmd) {
                 MessageBox.warning("No CLI command available yet.");
                 return;

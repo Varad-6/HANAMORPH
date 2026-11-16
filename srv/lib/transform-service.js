@@ -1156,6 +1156,119 @@ class TransformService {
     }
 
     /**
+     * Generate a Datasphere Replication Flow for a single extracted CDS/CalcView model.
+     * Uses the selected columns from Step 3 to build field-level mappings per source table.
+     *
+     * @param {object} model        Extracted model (has .sources[], .columns[], .nodeHierarchy[])
+     * @param {Array}  selectedCols Column objects: [{ sourceName, targetName, isKey, dataType }]
+     * @param {object} namingConfig { space, flowName, connectionId, container }
+     * @returns {object} { rfDefinition, rfJsonString, rfTechName, cliCommand, sourceObjects[], sourceTableCount }
+     */
+    generateReplicationFlowForView(model, selectedCols = [], namingConfig = {}) {
+        const space        = namingConfig.space        || 'AIS_HARMONIZATION_';
+        const connectionId = namingConfig.connectionId || 'HDD_HANA_SOURCE';
+        const container    = namingConfig.container    || 'SAPHANADB';
+        const rawViewName  = model.name || model.viewName || 'VIEW';
+        const cleanName    = rawViewName
+            .replace(/^[\/\\]+/, '')
+            .replace(/[\/\\]+/g, '_')
+            .replace(/[^a-zA-Z0-9_]/g, '_');
+        const rfTechName   = namingConfig.flowName || `RF_${cleanName}`;
+
+        // ── 1. Collect unique physical source tables ──────────────────────────
+        const sourceTables = [];
+        const seen = new Set();
+        const addTable = (name) => {
+            if (!name || typeof name !== 'string') return;
+            const up = name.toUpperCase().trim();
+            if (!up || seen.has(up)) return;
+            seen.add(up);
+            sourceTables.push(up);
+        };
+
+        if (model.sources && model.sources.length > 0) {
+            model.sources.forEach(s => addTable(s.tableName || s.name));
+        }
+        if (model.nodeHierarchy && model.nodeHierarchy.length > 0) {
+            model.nodeHierarchy.forEach(node => {
+                if (node.type === 'DataSource' || node.isPhysical) {
+                    addTable(node.id || node.name);
+                }
+            });
+        }
+        if (sourceTables.length === 0 && model.dependencies) {
+            model.dependencies.forEach(d => addTable(d.BASE_OBJECT_NAME));
+        }
+        if (sourceTables.length === 0) {
+            addTable(rawViewName);
+        }
+
+        // ── 2. Determine if column selection is partial or full ───────────────
+        const allModelCols  = model.columns || [];
+        const isAllSelected = selectedCols.length === 0 ||
+                              selectedCols.length >= allModelCols.length;
+
+        // ── 3. Build replicationObjects[] — one entry per source table ────────
+        const sourceObjects        = [];
+        const replicationObjects   = sourceTables.map(tableName => {
+            const targetObject = `${tableName}_TBL`;
+            const loadType     = 'InitialOnly';
+
+            let mappings = [];
+            if (!isAllSelected && selectedCols.length > 0) {
+                const colsToMap = sourceTables.length === 1
+                    ? selectedCols
+                    : selectedCols.filter(c =>
+                        allModelCols.some(mc => mc.name === (c.sourceName || c.name))
+                    );
+                mappings = colsToMap.map(col => ({
+                    sourceField: col.sourceName || col.name,
+                    targetField: col.targetName  || col.sourceName || col.name,
+                    key:         !!col.isKey
+                }));
+            }
+
+            sourceObjects.push({
+                sourceObject: tableName,
+                targetObject,
+                loadType,
+                mappingCount: isAllSelected ? 'ALL (auto-map)' : String(mappings.length),
+                columnNames:  isAllSelected ? [] : mappings.map(m => m.sourceField)
+            });
+
+            return { sourceObject: tableName, targetObject, loadType, mappings };
+        });
+
+        // ── 4. Build Datasphere CLI-compatible RF JSON ────────────────────────
+        const rfDefinition = {
+            '$schema':   'https://sap.com/datasphere/ns/replication-flow-schema.json',
+            type:        'ReplicationFlow',
+            name:        rfTechName,
+            space,
+            description: `HanaMorph Auto-Generated RF for ${rawViewName} — Initial Load of ${sourceTables.length} base table(s)`,
+            source: { connectionId, container },
+            target: {
+                connectionId: 'LOCAL_SAP_DATASPHERE',
+                container:    space,
+                options:      { createOnDeploy: true, mode: 'UPSERT' }
+            },
+            replicationObjects
+        };
+
+        // ── 5. Build CLI command ──────────────────────────────────────────────
+        const cliCommand = `npx @sap/datasphere-cli objects replication-flows create --space "${space}" --technical-name "${rfTechName}" --file-path "${rfTechName}.json"`;
+
+        return {
+            rfDefinition,
+            rfJsonString:     JSON.stringify(rfDefinition, null, 2),
+            rfTechName,
+            cliCommand,
+            sourceObjects,
+            sourceTableCount: sourceTables.length
+        };
+    }
+
+    /**
      * Generate a single Master CSN Bundle containing all deduplicated tables, views, and AMs
      * @param {Array} models Array of extracted view models
      * @param {object} options Configuration (space, namingPattern, deduplicationDecisions)

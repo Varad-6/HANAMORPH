@@ -98,6 +98,14 @@ service MigrationService {
         cliCommand       : LargeString;
     }
 
+    type ReplicationFlowForViewResult : {
+        rfJsonString      : LargeString;
+        rfTechName        : String;
+        cliCommand        : LargeString;
+        sourceObjectsJson : LargeString;
+        sourceTableCount  : Integer;
+    }
+
     // Live Fast Search Query across 120k+ Views
     function searchViews(
         query     : String,
@@ -174,4 +182,14 @@ service MigrationService {
     function exportCsn(
         jobId : UUID
     ) returns LargeString;
+
+    action generateReplicationFlowForView(
+        viewName     : String,
+        viewType     : String,
+        columnsJson  : LargeString,
+        space        : String,
+        flowName     : String,
+        connectionId : String,
+        container    : String
+    ) returns ReplicationFlowForViewResult;
 }

@@ -42,6 +42,56 @@ module.exports = cds.service.impl(async function () {
 
 
     /**
+     * Action: generateReplicationFlowForView
+     * Generates a Datasphere Replication Flow JSON for a single CDS/CalcView.
+     * Auto-detects source tables from the extracted model and builds column-level mappings.
+     */
+    this.on('generateReplicationFlowForView', async req => {
+        const {
+            viewName,
+            viewType,
+            columnsJson,
+            space        = config.datasphere.defaultSpace || 'AIS_HARMONIZATION_',
+            flowName,
+            connectionId = 'HDD_HANA_SOURCE',
+            container    = 'SAPHANADB'
+        } = req.data;
+
+        if (!viewName) req.reject(400, 'viewName is required');
+
+        const isCalc = viewType === 'CALC_VIEW' || viewName.startsWith('CA_') || viewName.startsWith('CV_');
+        const model  = isCalc
+            ? await extractService.extractCalc(viewName)
+            : await extractService.extractCDS(viewName);
+
+        let selectedCols = [];
+        if (columnsJson) {
+            try { selectedCols = JSON.parse(columnsJson); }
+            catch (e) { console.warn('[generateRF] columnsJson parse failed:', e.message); }
+        }
+
+        const cleanName = viewName
+            .replace(/^[\/\\]+/, '')
+            .replace(/[\/\\]+/g, '_')
+            .replace(/[^a-zA-Z0-9_]/g, '_');
+
+        const result = transformService.generateReplicationFlowForView(model, selectedCols, {
+            space,
+            flowName:    flowName || `RF_${cleanName}`,
+            connectionId,
+            container
+        });
+
+        return {
+            rfJsonString:      result.rfJsonString,
+            rfTechName:        result.rfTechName,
+            cliCommand:        result.cliCommand,
+            sourceObjectsJson: JSON.stringify(result.sourceObjects),
+            sourceTableCount:  result.sourceTableCount
+        };
+    });
+
+    /**
      * Function: listCDSViews
      * Direct user-specified CAP endpoint
      */
