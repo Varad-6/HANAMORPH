@@ -46,7 +46,7 @@ sap.ui.define([
 
                 // Tab 4: Object Renaming
                 naming: {
-                    space: "AIS_HARMONIZATION_",
+                    space: "AIS_INBOUND",
                     tableName: "",
                     tableBusinessName: "",
                     viewNameCustom: "",
@@ -129,10 +129,19 @@ sap.ui.define([
 
         onGoToArtifacts: function () {
             const oModel = this.getView().getModel();
-            if (!oModel.getProperty("/selectedViewName")) {
-                MessageBox.warning("Please select a view first.");
+            const sViewName = oModel.getProperty("/selectedViewName");
+
+            if (!sViewName) {
+                MessageBox.warning("Please select a CDS view first.");
                 return;
             }
+
+            const aArtifacts = oModel.getProperty("/artifacts");
+            if (!aArtifacts || aArtifacts.length === 0) {
+                this._loadArtifacts(sViewName);
+                this._loadColumns(sViewName);
+            }
+
             this.goToTab("tabArtifacts");
         },
 
@@ -151,11 +160,12 @@ sap.ui.define([
 
         onGoToNaming: function () {
             const oModel = this.getView().getModel();
-            if (!oModel.getProperty("/selectedViewName")) {
+            const sViewName = oModel.getProperty("/selectedViewName");
+            if (!sViewName) {
                 MessageBox.warning("Please select a view first.");
                 return;
             }
-            this._initDefaultNaming();
+            this._initDefaultNaming(sViewName);
             this.goToTab("tabNaming");
         },
 
@@ -213,6 +223,17 @@ sap.ui.define([
                     oModel.setProperty("/hasImported", true);
                     oModel.setProperty("/isBusy", false);
 
+                    // Ensure unselected state on new search (1-on-1 mode)
+                    oModel.setProperty("/selectedViewName", "");
+                    oModel.setProperty("/selectedView", null);
+                    oModel.setProperty("/hasViewSelected", false);
+                    oModel.setProperty("/selectedViews", []);
+                    oModel.setProperty("/selectedViewsCount", 0);
+                    const oTable = this.byId("viewsResultTable");
+                    if (oTable && oTable.removeSelections) {
+                        oTable.removeSelections(true);
+                    }
+
                     if (aViews.length === 0) {
                         MessageToast.show("No views matched your filter.");
                     }
@@ -225,60 +246,59 @@ sap.ui.define([
         },
 
         onTableSelectionChange: function (oEvent) {
-            const oTable = oEvent.getSource();
-            const aSelectedItems = oTable.getSelectedItems ? oTable.getSelectedItems() : [];
-            const oModel = this.getView().getModel();
-
-            const aSelectedViews = aSelectedItems.map(item => {
-                const ctx = item.getBindingContext();
-                return ctx ? ctx.getObject() : null;
-            }).filter(Boolean);
-
-            oModel.setProperty("/selectedViews", aSelectedViews);
-            oModel.setProperty("/selectedViewsCount", aSelectedViews.length);
-
             const oSelectedItem = oEvent.getParameter("listItem");
-            if (oSelectedItem && oSelectedItem.getBindingContext()) {
-                const sViewName = oSelectedItem.getBindingContext().getProperty("name");
-                this._selectView(sViewName);
-            } else if (aSelectedViews.length > 0) {
-                this._selectView(aSelectedViews[aSelectedViews.length - 1].name);
+            let oView = null;
+
+            if (oSelectedItem) {
+                const ctx = oSelectedItem.getBindingContext();
+                oView = ctx ? ctx.getObject() : null;
             } else {
-                oModel.setProperty("/hasViewSelected", false);
-                oModel.setProperty("/selectedViewName", "");
+                const oTable = oEvent.getSource ? oEvent.getSource() : this.byId("viewsResultTable");
+                const oItem = oTable && oTable.getSelectedItem ? oTable.getSelectedItem() : null;
+                if (oItem) {
+                    const ctx = oItem.getBindingContext();
+                    oView = ctx ? ctx.getObject() : null;
+                }
+            }
+
+            if (oView && oView.name) {
+                this._selectView(oView.name);
+            } else {
+                this._selectView("");
             }
         },
 
-        onSelectAllCdsViews: function () {
-            const oTable = this.byId("viewsResultTable");
-            if (!oTable) return;
-            oTable.selectAll();
-            const aItems = oTable.getItems() || [];
-            const aSelectedViews = aItems.map(item => {
-                const ctx = item.getBindingContext();
-                return ctx ? ctx.getObject() : null;
-            }).filter(Boolean);
-
-            const oModel = this.getView().getModel();
-            oModel.setProperty("/selectedViews", aSelectedViews);
-            oModel.setProperty("/selectedViewsCount", aSelectedViews.length);
-            if (aSelectedViews.length > 0) {
-                this._selectView(aSelectedViews[0].name);
+        onTableItemPress: function (oEvent) {
+            const oItem = oEvent.getParameter("listItem");
+            if (oItem) {
+                const oTable = this.byId("viewsResultTable");
+                if (oTable && oTable.setSelectedItem) {
+                    oTable.setSelectedItem(oItem, true);
+                }
+                const ctx = oItem.getBindingContext();
+                const oView = ctx ? ctx.getObject() : null;
+                if (oView && oView.name) {
+                    this._selectView(oView.name);
+                }
             }
-        },
-
-        onDeselectAllCdsViews: function () {
-            const oTable = this.byId("viewsResultTable");
-            if (!oTable) return;
-            oTable.removeSelections(true);
-            const oModel = this.getView().getModel();
-            oModel.setProperty("/selectedViews", []);
-            oModel.setProperty("/selectedViewsCount", 0);
-            oModel.setProperty("/hasViewSelected", false);
-            oModel.setProperty("/selectedViewName", "");
         },
 
         onOpenInReplicationStudio: function () {
+            const oModel = this.getView().getModel();
+            const aSelectedViews = oModel.getProperty("/selectedViews") || [];
+            const aSelectedNames = aSelectedViews.map(v => v.name).filter(Boolean);
+            const sType = this._pipelineType === 'CALC_VIEW' ? 'CALC_VIEW' : 'CDS';
+
+            const oSystemModel = this.getOwnerComponent().getModel("system");
+            if (oSystemModel) {
+                oSystemModel.setProperty("/pendingReplicationViews", aSelectedNames);
+                oSystemModel.setProperty("/pendingReplicationCategory", sType);
+            }
+            try {
+                sessionStorage.setItem("hanamorph_pending_replication_views", JSON.stringify(aSelectedNames));
+                sessionStorage.setItem("hanamorph_pending_replication_category", sType);
+            } catch (e) {}
+
             const oRouter = this.getOwnerComponent().getRouter();
             oRouter.navTo("replication");
         },
@@ -310,9 +330,12 @@ sap.ui.define([
                         oModel.setProperty("/emptyViewsText", `No ${this._pipelineType} views found on source HANA.`);
                     } else {
                         MessageToast.show(`Imported ${aViews.length} views from source HANA.`);
-                        if (!oModel.getProperty("/selectedViewName") && aViews.length > 0) {
-                            this._selectView(aViews[0].name);
-                        }
+                        // Ensure blank checkboxes by default on initial page load
+                        oModel.setProperty("/selectedViewName", "");
+                        oModel.setProperty("/selectedView", null);
+                        oModel.setProperty("/hasViewSelected", false);
+                        oModel.setProperty("/selectedViews", []);
+                        oModel.setProperty("/selectedViewsCount", 0);
                     }
                 })
                 .catch(err => {
@@ -333,6 +356,8 @@ sap.ui.define([
             if (!sViewName) {
                 oModel.setProperty("/selectedViewName", "");
                 oModel.setProperty("/selectedView", null);
+                oModel.setProperty("/selectedViews", []);
+                oModel.setProperty("/selectedViewsCount", 0);
                 oModel.setProperty("/hasViewSelected", false);
                 oModel.setProperty("/artifacts", []);
                 oModel.setProperty("/hasArtifacts", false);
@@ -345,6 +370,8 @@ sap.ui.define([
             const oSelected = aViews.find(v => v.name === sViewName);
             oModel.setProperty("/selectedViewName", sViewName);
             oModel.setProperty("/selectedView", oSelected);
+            oModel.setProperty("/selectedViews", oSelected ? [oSelected] : []);
+            oModel.setProperty("/selectedViewsCount", oSelected ? 1 : 0);
             oModel.setProperty("/hasViewSelected", true);
             oModel.setProperty("/isArtifactsBusy", true);
             oModel.setProperty("/job", null);
@@ -385,6 +412,41 @@ sap.ui.define([
                 });
         },
 
+        _loadMultipleArtifacts: function (aViews) {
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/isArtifactsBusy", true);
+
+            const promises = aViews.map(v =>
+                fetch(`/odata/v4/migration/getArtifacts(viewName='${encodeURIComponent(v.name)}')`)
+                    .then(r => r.ok ? r.json() : { value: [] })
+                    .catch(() => ({ value: [] }))
+            );
+
+            Promise.all(promises).then(results => {
+                const aAllArtifacts = [];
+                results.forEach((res, idx) => {
+                    const v = aViews[idx];
+                    (res.value || []).forEach(art => {
+                        art.selected = true;
+                        art.viewName = v.name;
+                        aAllArtifacts.push(art);
+                    });
+                });
+                oModel.setProperty("/artifacts", aAllArtifacts);
+                oModel.setProperty("/hasArtifacts", aAllArtifacts.length > 0);
+                oModel.setProperty("/selectedArtifactCount", aAllArtifacts.length);
+                oModel.setProperty("/isArtifactsBusy", false);
+
+                const oTable = this.byId("artifactsTable") || this.byId("artifactTable");
+                if (oTable) {
+                    oTable.selectAll();
+                }
+            }).catch(err => {
+                oModel.setProperty("/isArtifactsBusy", false);
+                console.error("Multi-artifacts load error:", err);
+            });
+        },
+
         onArtifactSelectionChange: function () {
             const oTable = this.byId("artifactsTable") || this.byId("artifactTable");
             const aSelected = oTable ? oTable.getSelectedItems() : [];
@@ -419,6 +481,37 @@ sap.ui.define([
                     oModel.setProperty("/isColumnsBusy", false);
                     console.error("Column load error:", err);
                 });
+        },
+
+        _loadMultipleColumns: function (aViews) {
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/isColumnsBusy", true);
+
+            const promises = aViews.map(v =>
+                fetch(`/odata/v4/migration/getColumns(viewName='${encodeURIComponent(v.name)}')`)
+                    .then(r => r.ok ? r.json() : { value: [] })
+                    .then(data => (data.value || []).map(c => ({
+                        ...c,
+                        viewName: v.name,
+                        selected: true,
+                        sourceName: c.name,
+                        targetName: c.name,
+                        targetLabel: c.originalName || c.name
+                    })))
+                    .catch(() => [])
+            );
+
+            Promise.all(promises).then(results => {
+                const aAllCols = results.flat();
+                oModel.setProperty("/allColumns", aAllCols);
+                oModel.setProperty("/columns", aAllCols);
+                oModel.setProperty("/totalColumnCount", aAllCols.length);
+                oModel.setProperty("/selectedColumnCount", aAllCols.length);
+                oModel.setProperty("/isColumnsBusy", false);
+            }).catch(err => {
+                oModel.setProperty("/isColumnsBusy", false);
+                console.error("Multi-columns load error:", err);
+            });
         },
 
         onSearchColumns: function (oEvent) {
@@ -560,7 +653,7 @@ sap.ui.define([
 
             oModel.setProperty("/sourceSuggestions", aSourceSuggestions);
             oModel.setProperty("/naming", {
-                space: "AIS_HARMONIZATION_",
+                space: "AIS_INBOUND",
                 fromTableName: `${sTechBase}_TBL`,
                 tableName: `${sTechBase}_TBL`,
                 tableBusinessName: `${sTechBase} Base Table`,
@@ -577,9 +670,61 @@ sap.ui.define([
          * ==================================================================== */
         onGenerateArtifacts: function (fnSuccessCallback) {
             const oModel = this.getView().getModel();
-            const sViewName = oModel.getProperty("/selectedViewName");
-            if (!sViewName) {
+            const aSelectedViews = oModel.getProperty("/selectedViews") || [];
+            const sViewName = oModel.getProperty("/selectedViewName") || (aSelectedViews[0] ? aSelectedViews[0].name : "");
+
+            if (!sViewName && aSelectedViews.length === 0) {
                 MessageBox.warning("Please select a view first.");
+                return;
+            }
+
+            const oNaming = oModel.getProperty("/naming") || {};
+            oModel.setProperty("/isGenerating", true);
+
+            // Multi-view batch generation in CDS View Migration
+            if (aSelectedViews.length > 1) {
+                fetch("/odata/v4/migration/generateBulkArtifacts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        viewNames: aSelectedViews.map(v => v.name),
+                        space: oNaming.space || "AIS_INBOUND",
+                        namingPattern: "DEFAULT"
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(e => { throw new Error(e.error?.message || res.statusText); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    const res = data.value || data;
+                    const oResult = {
+                        viewName: `${aSelectedViews.length}_CDS_Views_Bundle`,
+                        tableJsonString: res.masterCsnJsonString,
+                        viewJsonString: res.masterCsnJsonString,
+                        analyticModelJsonString: res.masterCsnJsonString,
+                        packageJsonString: res.masterCsnJsonString,
+                        multiTierPackageJsonString: res.masterCsnJsonString,
+                        optimizedSql: res.aggregatedSql,
+                        processedViewCount: res.processedViewCount,
+                        tableCount: res.tableCount,
+                        views: res.views
+                    };
+                    oModel.setProperty("/modularResult", oResult);
+                    oModel.setProperty("/hasGenerated", true);
+                    oModel.setProperty("/isGenerating", false);
+                    this.goToTab("tabCodeDownloads");
+                    MessageToast.show(`Generated Datasphere artifacts for ${aSelectedViews.length} CDS Views!`);
+                    if (typeof fnSuccessCallback === "function") {
+                        fnSuccessCallback(oResult);
+                    }
+                })
+                .catch(err => {
+                    oModel.setProperty("/isGenerating", false);
+                    MessageBox.error(`Generation failed: ${err.message}`);
+                });
                 return;
             }
 
@@ -605,7 +750,7 @@ sap.ui.define([
                 }));
             }
 
-            const oNaming = oModel.getProperty("/naming") || {};
+            // If single view, proceed with modular generation
 
             oModel.setProperty("/isGenerating", true);
 
@@ -617,7 +762,7 @@ sap.ui.define([
                     viewType: this._pipelineType,
                     selectedColumns: aSelectedCols.map(c => c.sourceName),
                     columnsJson: aSelectedCols.length > 0 ? JSON.stringify(aSelectedCols) : null,
-                    space: oNaming.space || "AIS_HARMONIZATION_",
+                    space: oNaming.space || "AIS_INBOUND",
                     fromTableName: oNaming.fromTableName || oNaming.tableName || `${sViewName}_TBL`,
                     tableName: oNaming.tableName,
                     tableBusinessName: oNaming.tableBusinessName,
@@ -987,7 +1132,7 @@ sap.ui.define([
                     viewName: sViewName,
                     viewType: this._pipelineType,
                     artifacts: aArtifactNames,
-                    targetSpace: oModel.getProperty("/naming/space") || "AIS_HARMONIZATION_"
+                    targetSpace: oModel.getProperty("/naming/space") || "AIS_INBOUND"
                 })
             })
             .then(res => {

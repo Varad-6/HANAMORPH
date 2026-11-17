@@ -94,12 +94,13 @@
                                                         </VBox>
                                                     </HBox>
 
-                                                    <!-- Live Results Table (Multiple Selection Enabled) -->
+                                                    <!-- Live Results Table (Single-Select 1-on-1 Mode) -->
                                                     <Table
                                                         id="viewsResultTable"
                                                         items="{/views}"
-                                                        mode="MultiSelect"
+                                                        mode="SingleSelectMaster"
                                                         selectionChange=".onTableSelectionChange"
+                                                        itemPress=".onTableItemPress"
                                                         noDataText="No views found. Enter a keyword above to search live in S/4HANA (HDD)."
                                                         growing="true"
                                                         growingThreshold="20"
@@ -109,11 +110,10 @@
                                                                 <Title text="Matching CDS Entities ({= ${/views} ? ${/views}.length : 0 })" level="H5" />
                                                                 <ToolbarSpacer />
                                                                 <ObjectStatus
-                                                                    text="{= ${/selectedViewsCount} > 0 ? (${/selectedViewsCount} + ' CDS Views Selected') : 'Select one or more views' }"
-                                                                    state="{= ${/selectedViewsCount} > 0 ? 'Success' : 'None' }"
+                                                                    text="{= ${/selectedViewName} ? ('Selected: ' + ${/selectedViewName}) : 'Click any view below to select' }"
+                                                                    state="{= ${/selectedViewName} ? 'Success' : 'None' }"
+                                                                    icon="{= ${/selectedViewName} ? 'sap-icon://sys-enter-2' : '' }"
                                                                     class="sapUiSmallMarginEnd sapUiBold" />
-                                                                <Button text="Select All" icon="sap-icon://multiselect-all" press=".onSelectAllCdsViews" />
-                                                                <Button text="Deselect All" icon="sap-icon://clear-all" press=".onDeselectAllCdsViews" />
                                                             </OverflowToolbar>
                                                         </headerToolbar>
                                                         <columns>
@@ -149,9 +149,11 @@
                                                         visible="{/hasError}"
                                                         class="sapUiSmallMarginTop" />
 
-                                                    <!-- Selected View Summary Card -->
+                                                    <!-- Selected View Summary Card (1-on-1 Selection) -->
                                                     <VBox visible="{/hasViewSelected}" class="sapUiMediumMarginTop">
-                                                        <Panel headerText="Selected View Ready for Extraction" expandable="false">
+                                                        <Panel
+                                                            headerText="Selected View Ready for Extraction: {/selectedView/name}"
+                                                            expandable="false">
                                                             <form:SimpleForm
                                                                 editable="false"
                                                                 layout="ResponsiveGridLayout"
@@ -177,15 +179,9 @@
 
                                         <!-- Step 1 Navigation Footer -->
                                         <Toolbar class="sapUiSmallMarginTop">
-                                            <Button
-                                                text="Open in Replication Studio (Deduplication) ➔"
-                                                icon="sap-icon://chain-link"
-                                                type="Default"
-                                                visible="{= ${/selectedViewsCount} > 1 }"
-                                                press=".onOpenInReplicationStudio" />
                                             <ToolbarSpacer />
                                             <Button
-                                                text="{= ${/selectedViewsCount} > 1 ? ('Next: Configure Selected (' + ${/selectedViewsCount} + ' CDS Views)') : 'Next: Select Artifacts' }"
+                                                text="Next: Select Artifacts"
                                                 type="Emphasized"
                                                 icon="sap-icon://navigation-right-arrow"
                                                 iconFirst="false"
@@ -235,8 +231,8 @@
                                                                     <ObjectStatus
                                                                         text="{artifactType}"
                                                                         state="{= ${artifactType} === 'TABLE' ? 'Success' : (${artifactType} === 'SQL' ? 'Information' : 'Warning') }" />
-                                                                    <Text text="{name}" class="sapUiBold" />
-                                                                    <Text text="{details}" />
+                                                                    <ObjectIdentifier title="{name}" text="{= ${viewName} ? ('Source View: ' + ${viewName}) : '' }" />
+                                                                    <Text text="{details}" maxLines="4" />
                                                                 </cells>
                                                             </ColumnListItem>
                                                         </items>
@@ -324,7 +320,7 @@
                                                             <ColumnListItem vAlign="Middle">
                                                                 <cells>
                                                                     <CheckBox selected="{selected}" select=".onColumnCheckboxChange" />
-                                                                    <Text text="{sourceName}" />
+                                                                    <ObjectIdentifier title="{sourceName}" text="{= ${viewName} ? ('Source: ' + ${viewName}) : '' }" />
                                                                     <Input value="{targetName}" />
                                                                     <Input value="{targetLabel}" />
                                                                     <Text text="{dataType}" class="text-muted" />
@@ -386,7 +382,7 @@
                                                     <form:content>
                                                         <core:Title text="Datasphere Space" />
                                                         <Label text="Target Space" />
-                                                        <Input value="{/naming/space}" placeholder="AIS_HARMONIZATION_" />
+                                                        <Input value="{/naming/space}" placeholder="AIS_INBOUND" />
 
                                                         <core:Title text="Base Ingestion Table" />
                                                         <Label text="Technical Table Name" />

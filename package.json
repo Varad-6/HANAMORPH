@@ -21,6 +21,10 @@
     "watch": "cds watch"
   },
   "cds": {
+    "server": {
+      "port": 5000,
+      "host": "0.0.0.0"
+    },
     "requires": {
       "db": {
         "kind": "sqlite",

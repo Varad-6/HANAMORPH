@@ -177,13 +177,37 @@ class HanaConnector {
         }
 
         // Build text search clause
+        let normalizedQuery = (query || '').trim();
+        if (/matari/i.test(normalizedQuery)) {
+            normalizedQuery = normalizedQuery.replace(/matari/gi, 'materi');
+        }
+
         let searchCondition = '';
+        let orderClause = 'ORDER BY d.DDLNAME ASC';
         const params = [];
-        if (query && query.trim()) {
-            const raw = query.trim().toUpperCase().replace(/\*/g, '%');
+        if (normalizedQuery) {
+            const raw = normalizedQuery.toUpperCase().replace(/\*/g, '%');
             const pattern = raw.includes('%') ? raw : `%${raw}%`;
             searchCondition = `AND (UPPER(d.DDLNAME) LIKE ? OR UPPER(d.DDLNAME) LIKE ?)`;
             params.push(pattern, pattern);
+
+            // Smart relevance ordering: exact match first, I_<query> second, C_<query> third, non-slash standard views next
+            const cleanQ = raw.replace(/%/g, '');
+            orderClause = `
+                ORDER BY 
+                    CASE 
+                        WHEN UPPER(d.DDLNAME) = ? THEN 1
+                        WHEN UPPER(d.DDLNAME) = 'I_' || ? THEN 2
+                        WHEN UPPER(d.DDLNAME) = 'C_' || ? THEN 3
+                        WHEN UPPER(d.DDLNAME) LIKE ? || '%' THEN 4
+                        WHEN UPPER(d.DDLNAME) LIKE 'I_' || ? || '%' THEN 5
+                        WHEN UPPER(d.DDLNAME) LIKE 'C_' || ? || '%' THEN 6
+                        WHEN UPPER(d.DDLNAME) NOT LIKE '/%' THEN 7
+                        ELSE 8
+                    END,
+                    d.DDLNAME ASC
+            `;
+            params.push(cleanQ, cleanQ, cleanQ, cleanQ, cleanQ, cleanQ);
         }
 
         const sql = `
@@ -200,7 +224,7 @@ class HanaConnector {
             WHERE d.AS4LOCAL = 'A'
             ${moduleCondition}
             ${searchCondition}
-            ORDER BY d.DDLNAME ASC
+            ${orderClause}
         `;
 
         try {

@@ -95,24 +95,47 @@ class ExtractService {
      * Parse ABAP CDS DDL or SQL DDL of CDS view into common AST
      */
     _parseCdsDdl(viewName, ddl, sqlViewName) {
-        // Strip ABAP internal metadata block /*+[internal] ... */
-        const cleanDdl = ddl.replace(/\/\*\+\[internal\][\s\S]*?\*\//gi, '').trim();
+        // Strip multi-line comments /* ... */ and ABAP internal metadata /*+[internal] ... */
+        let cleanDdl = ddl.replace(/\/\*[\s\S]*?\*\//g, '');
+        // Strip single-line comments // ... and -- ...
+        cleanDdl = cleanDdl.replace(/(?:\/\/|--).*$/gm, '').trim();
 
         const hasJoins = /\bjoin\b/i.test(cleanDdl);
         const hasAssociations = /\bassociation\b/i.test(cleanDdl);
 
-        // 1. Try ABAP CDS syntax: define [root] view [entity] <viewName> as select from <source> { <columns> }
-        const abapCdsMatch = cleanDdl.match(/define\s+(?:root\s+)?view\s+(?:entity\s+)?([^\s{]+)[\s\S]*?as\s+select\s+from\s+([^\s{]+)[\s\S]*?\{([\s\S]+?)\}/i);
-        if (abapCdsMatch) {
-            const definedViewName = abapCdsMatch[1].trim();
-            const sourceEntity = abapCdsMatch[2].trim().replace(/["\s]/g, '');
-            const body = abapCdsMatch[3].trim();
+        // 1. Try ABAP CDS syntax: define [root] [custom] view [entity] <viewName> ... as (select from | projection on) <source> { <columns> }
+        const headerMatch = cleanDdl.match(/define\s+(?:root\s+)?(?:custom\s+)?view\s+(?:entity\s+)?([^\s{]+)[\s\S]*?as\s+(?:select\s+from|projection\s+on)\s+([^\s{]+)/i);
+        if (headerMatch) {
+            const definedViewName = headerMatch[1].trim();
+            const sourceEntity = headerMatch[2].trim().replace(/["\s]/g, '');
+
+            // Robust balanced brace matching to extract the column block (handles nested annotations with braces)
+            let body = '';
+            const startIdx = cleanDdl.indexOf('{', headerMatch.index + headerMatch[0].length);
+            if (startIdx !== -1) {
+                let depth = 0;
+                let endIdx = -1;
+                for (let i = startIdx; i < cleanDdl.length; i++) {
+                    const ch = cleanDdl[i];
+                    if (ch === '{') depth++;
+                    else if (ch === '}') {
+                        depth--;
+                        if (depth === 0) {
+                            endIdx = i;
+                            break;
+                        }
+                    }
+                }
+                if (endIdx !== -1) {
+                    body = cleanDdl.substring(startIdx + 1, endIdx);
+                }
+            }
 
             const columns = this._parseCdsColumns(body);
             let sources = [{ tableName: sourceEntity.toUpperCase(), alias: sourceEntity, isBase: true }];
 
             // If there's a join clause before the column block, extract all joined sources
-            const fromSelectMatch = cleanDdl.match(/as\s+select\s+from\s+([\s\S]+?)\{/i);
+            const fromSelectMatch = cleanDdl.match(/as\s+(?:select\s+from|projection\s+on)\s+([\s\S]+?)\{/i);
             if (fromSelectMatch && hasJoins) {
                 const multiSources = this._extractSources(fromSelectMatch[1]);
                 if (multiSources.length > 0) {
@@ -163,14 +186,18 @@ class ExtractService {
     }
 
     _parseCdsColumns(columnBlock) {
-        return columnBlock.split(',').map(colStr => {
-            const clean = colStr.trim();
+        if (!columnBlock) return [];
+        // Strip CDS annotations like @UI.lineItem: [ ... ] or @Consumption.semanticObject: '...'
+        const stripped = columnBlock.replace(/@[\w\.]+(?:\s*:\s*(?:'[^']*'|"[^"]*"|\[[^\]]*\]|\{[^\}]*\}|[^\s,;]+))?/g, '');
+        return stripped.split(',').map(colStr => {
+            let clean = colStr.trim();
             if (!clean) return null;
 
             const isKey = /^\s*key\s+/i.test(clean);
-            const expr = clean.replace(/^\s*key\s+/i, '').trim();
+            clean = clean.replace(/^\s*key\s+/i, '').trim();
+            if (!clean) return null;
 
-            const asMatch = expr.match(/(?:(?:"?([\w\/]+)"?)\.)?(?:"?([\w\/]+)"?)\s+AS\s+(?:"?([\w\/]+)"?)/i);
+            const asMatch = clean.match(/(?:(?:"?([\w\/]+)"?)\.)?(?:"?([\w\/]+)"?)\s+AS\s+(?:"?([\w\/]+)"?)/i);
             if (asMatch) {
                 const colName = asMatch[3].replace(/["\/]/g, '_');
                 return {
@@ -184,10 +211,11 @@ class ExtractService {
                 };
             }
 
-            const simpleCol = expr.split(/\s+/)[0].replace(/["\/]/g, '_');
+            const simpleCol = clean.split(/\s+/)[0].replace(/["\/]/g, '_');
+            if (!simpleCol || /^[@\{\}]/.test(simpleCol)) return null;
             return {
                 name: simpleCol,
-                originalName: expr,
+                originalName: simpleCol,
                 dataType: this._inferDataType(simpleCol),
                 isKey: isKey || this._isKeyColumn(simpleCol),
                 isMeasure: this._isMeasure(simpleCol)

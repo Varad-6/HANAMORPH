@@ -69,6 +69,7 @@
                                         placeholder="Search source objects..."
                                         value="{/viewSearchTerm}"
                                         liveChange=".onSearchView"
+                                        search=".onSearchView"
                                         class="sapUiSmallMarginEnd" />
 
                                     <Button
@@ -112,7 +113,7 @@
                                         <Column width="300px">
                                             <Text text="Source Object Name (HANA)" />
                                         </Column>
-                                        <Column width="150px">
+                                        <Column width="170px">
                                             <Text text="Extraction Type" />
                                         </Column>
                                         <Column width="180px">
@@ -147,9 +148,9 @@
                                                     <Text text="{description}" class="text-muted sapUiTinyMarginTop" maxLines="1" />
                                                 </VBox>
                                                 <ObjectStatus
-                                                    text="{= ${type} === 'CDS' ? 'CDS Extraction' : 'Calc View CDC' }"
-                                                    state="{= ${type} === 'CDS' ? 'Success' : 'Information' }"
-                                                    inverted="true" />
+                                                    text="{= ${type} === 'CDS' ? 'CDS View' : 'Calculation View' }"
+                                                    icon="{= ${type} === 'CDS' ? 'sap-icon://table-view' : 'sap-icon://dimension' }"
+                                                    state="{= ${type} === 'CDS' ? 'Success' : 'Information' }" />
                                                 <Text text="SAPHANADB" class="sapUiBold" />
                                                 <ObjectStatus
                                                     text="{= ${configuredColumnsCount} > 0 ? (${selectedColsCount} + ' of ' + ${configuredColumnsCount} + ' fields (' + ${keyColsCount} + ' keys)') : 'Default (All fields &amp; keys)' }"
