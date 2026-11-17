@@ -1582,7 +1582,7 @@ class TransformService {
 
             const finalTargetTechName = sanitizeTech(override.targetTable || tbl.targetTable, `${tbl.sourceTable}_TBL`);
             const finalBusinessName = override.businessName || tbl.businessName || `${tbl.sourceTable} Local Table`;
-            const finalLoadType = override.loadType || tbl.loadType || 'InitialAndDelta';
+            const finalLoadType = override.loadType || tbl.loadType || 'Initial';
             const finalCategory = override.category || tbl.category || (finalLoadType === 'Initial' ? 'MasterData' : 'TransactionalData');
 
             // Columns to include (use override columns if present, otherwise default superset)

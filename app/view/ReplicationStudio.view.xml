@@ -218,8 +218,8 @@
                                                 </VBox>
                                                 <ObjectStatus text="{= ${columnCount} + ' fields' }" state="None" />
                                                 <Select selectedKey="{loadType}" change=".onTableLoadTypeChange">
-                                                    <core:Item key="InitialAndDelta" text="⚡ Initial Snapshot + Live Changes (CDC)" />
                                                     <core:Item key="Initial" text="📦 One-Time Copy (Initial Only)" />
+                                                    <core:Item key="InitialAndDelta" text="⚡ Initial Snapshot + Live Changes (CDC)" />
                                                     <core:Item key="Delta" text="🔄 Changes Only (Delta)" />
                                                 </Select>
                                                 <Button
@@ -301,8 +301,8 @@
 
                                         <Label text="Default Replication Mode" required="true" />
                                         <Select selectedKey="{/loadMode}" change=".onLoadModeChange">
-                                            <core:Item key="INITIAL_AND_DELTA" text="⚡ INITIAL_AND_DELTA (Copy All Data + Stream Live Changes)" />
                                             <core:Item key="INITIAL" text="📦 INITIAL (One-Time Static Snapshot)" />
+                                            <core:Item key="INITIAL_AND_DELTA" text="⚡ INITIAL_AND_DELTA (Copy All Data + Stream Live Changes)" />
                                             <core:Item key="DELTA" text="🔄 DELTA (Stream Incremental Changes Only)" />
                                         </Select>
                                     </form:content>

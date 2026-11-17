@@ -17,7 +17,7 @@ sap.ui.define([
                 // Target Environment & Defaults
                 targetSpace: "AIS_INBOUND",
                 sourceConnection: "AIS_S21_S4HANA_2023_Inbound",
-                loadMode: "INITIAL_AND_DELTA", // "INITIAL_AND_DELTA", "INITIAL", or "DELTA"
+                loadMode: "INITIAL", // "INITIAL", "INITIAL_AND_DELTA", or "DELTA"
                 flowTechnicalName: "RF_INBOUND_PIPELINE",
 
                 // View Discovery & Multi-Selection State
@@ -481,7 +481,7 @@ sap.ui.define([
                     const prevOverride = this._tableOverridesCache[tbl.sourceTable] || {};
                     const targetTable = prevOverride.targetTable || tbl.targetTable || `${tbl.sourceTable}_TBL`;
                     const businessName = prevOverride.businessName || tbl.businessName || `${tbl.sourceTable} Local Table`;
-                    const loadType = prevOverride.loadType || tbl.loadType || (tbl.category === "MasterData" ? "Initial" : "InitialAndDelta");
+                    const loadType = prevOverride.loadType || tbl.loadType || "Initial";
                     const selected = prevOverride.selected !== undefined ? prevOverride.selected : true;
 
                     // Merge columns with any cached column changes
@@ -550,7 +550,7 @@ sap.ui.define([
                         targetTable: `${sTable}_TBL`,
                         businessName: `${sTable} Local Table`,
                         category: (sTable === "MARA" || sTable === "MAKT" || sTable === "BNKA" || sTable.includes("BANK")) ? "MasterData" : "TransactionalData",
-                        loadType: (sTable === "MARA" || sTable === "MAKT" || sTable === "BNKA") ? "Initial" : "InitialAndDelta",
+                        loadType: "Initial",
                         selected: true,
                         referencingViews: [view.name],
                         referencingViewCount: 1,
@@ -653,6 +653,7 @@ sap.ui.define([
 
             if (!this._tableOverridesCache[oItem.sourceTable]) this._tableOverridesCache[oItem.sourceTable] = {};
             this._tableOverridesCache[oItem.sourceTable].loadType = oItem.loadType;
+            this._tableOverridesCache[oItem.sourceTable].hasExplicitLoadType = true;
 
             this.onGenerateDefinitions();
         },
@@ -741,6 +742,18 @@ sap.ui.define([
         },
 
         onLoadModeChange: function () {
+            const oModel = this.getView().getModel();
+            const sNewMode = oModel.getProperty("/loadMode") || "INITIAL";
+            const sTableLoadType = sNewMode === "INITIAL_AND_DELTA" ? "InitialAndDelta" : (sNewMode === "DELTA" ? "Delta" : "Initial");
+
+            const aTables = oModel.getProperty("/deduplicatedTables") || [];
+            aTables.forEach(t => {
+                if (!this._tableOverridesCache[t.sourceTable] || !this._tableOverridesCache[t.sourceTable].hasExplicitLoadType) {
+                    t.loadType = sTableLoadType;
+                }
+            });
+            oModel.setProperty("/deduplicatedTables", [...aTables]);
+
             this.onGenerateDefinitions();
         },
 
@@ -758,7 +771,7 @@ sap.ui.define([
 
             const sSpace = (oModel.getProperty("/targetSpace") || "AIS_INBOUND").trim();
             const sConn = (oModel.getProperty("/sourceConnection") || "S4HANA_SOURCE").trim();
-            const sDefaultLoadMode = oModel.getProperty("/loadMode") || "INITIAL_AND_DELTA";
+            const sDefaultLoadMode = oModel.getProperty("/loadMode") || "INITIAL";
             const sFlowName = (oModel.getProperty("/flowTechnicalName") || "RF_INBOUND_PIPELINE").trim();
 
             if (aActiveTables.length === 0) {
@@ -823,8 +836,9 @@ sap.ui.define([
 
             for (const tbl of aActiveTables) {
                 const sTarget = tbl.targetTable;
-                const isMaster = tbl.loadType === "Initial" || tbl.category === "MasterData";
-                const loadMode = tbl.loadType || (isMaster ? "INITIAL_ONLY" : (sDefaultLoadMode === "DELTA" ? "DELTA_ONLY" : "INITIAL_AND_DELTA"));
+                const isInitial = tbl.loadType === "Initial" || (!tbl.loadType && sDefaultLoadMode === "INITIAL");
+                const isDelta = tbl.loadType === "Delta" || (!tbl.loadType && sDefaultLoadMode === "DELTA");
+                const loadMode = isInitial ? "INITIAL_ONLY" : (isDelta ? "DELTA_ONLY" : "INITIAL_AND_DELTA");
 
                 // Elements in CSN
                 const elements = {};
