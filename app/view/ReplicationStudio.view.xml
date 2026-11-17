@@ -22,24 +22,6 @@
             <VBox width="100%" alignItems="Center" class="sapUiMediumMarginTop sapUiLargeMarginBottom">
                 <VBox width="96%" class="sapUiResponsiveMargin">
                     
-                    <!-- Overview Banner & Visual Step Roadmap -->
-                    <Panel headerText="Automated Harmonization &amp; Data Pipeline (From S/4HANA ➔ To SAP Datasphere: {/targetSpace})" expandable="false" class="sapUiSmallMarginBottom">
-                        <content>
-                            <VBox class="sapUiSmallMargin">
-                                <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
-                                    <ObjectStatus text="Step 1: Pick Source Objects" state="Information" icon="sap-icon://source-code" class="sapUiSmallMarginEnd sapUiBold" />
-                                    <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiSmallMarginEnd text-muted" />
-                                    <ObjectStatus text="Step 2: Remove Duplicates &amp; Name Target Tables" state="Information" icon="sap-icon://chain-link" class="sapUiSmallMarginEnd sapUiBold" />
-                                    <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiSmallMarginEnd text-muted" />
-                                    <ObjectStatus text="Step 3: Review Columns &amp; Delta Keys" state="Information" icon="sap-icon://table-view" class="sapUiSmallMarginEnd sapUiBold" />
-                                    <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiSmallMarginEnd text-muted" />
-                                    <ObjectStatus text="Step 4: Download Files or Deploy Live" state="Success" icon="sap-icon://begin" class="sapUiBold" />
-                                </HBox>
-                                <Text text="💡 How It Works in Simple Terms: When you pick views from S/4HANA, they often share the exact same underlying database tables (e.g., ACDOCA or BNKA). Instead of creating wasteful duplicate copies in Datasphere, HanaMorph finds the underlying tables, combines their fields into a single canonical table, and keeps the name 100% identical across the Table Blueprint (CSN) and the Data Pipeline (Replication Flow)." class="text-muted" />
-                            </VBox>
-                        </content>
-                    </Panel>
-
                     <!-- STEP 1: SOURCE OBJECT SELECTION & METADATA EXPLORER -->
                     <Panel headerText="Step 1: Select Source Views or Tables from S/4HANA" expandable="false" class="sapUiSmallMarginBottom">
                         <content>
@@ -178,14 +160,14 @@
                         class="sapUiSmallMarginBottom">
                         <content>
                             <VBox busy="{/isDeduplicationBusy}">
-                                <Text text="🔍 No More Duplicate Tables: Instead of copying the same table multiple times (for example, creating 15 copies of ACDOCA), HanaMorph merges them into one single canonical table. You can edit the Target Table Technical Name and Business Label below — whatever name you type here is automatically matched in the CSN Table Blueprint and the Replication Flow pipeline." class="text-muted sapUiSmallMarginBottom" />
+                                <Text text="Physical database tables identified from selected source objects. Shared tables are consolidated into unified target entities for SAP Datasphere." class="text-muted sapUiSmallMarginBottom" />
 
                                 <OverflowToolbar class="sapUiTinyMarginBottom">
                                     <core:Icon src="sap-icon://chain-link" color="#0070f2" class="sapUiSmallMarginEnd" />
-                                    <Title text="Target Tables List (What will be created in Datasphere)" level="H5" />
+                                    <Title text="Harmonized Target Tables" level="H5" />
                                     <ToolbarSpacer />
                                     <ObjectStatus
-                                        text="{= ${/deduplicatedTablesCount} + ' Unique Table(s) to Create | ' + ${/deduplicatedOverlapsCount} + ' Duplicate(s) Saved' }"
+                                        text="{= ${/deduplicatedTablesCount} + ' Target Table(s) | ' + ${/deduplicatedOverlapsCount} + ' Consolidated' }"
                                         state="{= ${/deduplicatedOverlapsCount} > 0 ? 'Success' : 'Information' }"
                                         icon="sap-icon://accelerated"
                                         class="sapUiSmallMarginEnd sapUiBold" />
@@ -262,7 +244,7 @@
                         class="sapUiSmallMarginBottom">
                         <content>
                             <VBox busy="{/isColumnsBusy}">
-                                <Text text="Combined Fields (Superset): These are all the fields merged from every view that uses '{/activeDeduplicatedTable}'. The 'Delta Key' switch tells SAP Datasphere which columns uniquely identify each record so it can automatically track and replicate new or modified rows in real time." class="text-muted sapUiSmallMarginBottom" />
+                                <Text text="Consolidated column mapping for '{/activeDeduplicatedTable}'. Configure delta keys to identify records for real-time replication in SAP Datasphere." class="text-muted sapUiSmallMarginBottom" />
 
                                 <OverflowToolbar class="sapUiTinyMarginBottom">
                                     <core:Icon src="sap-icon://table-view" class="sapUiSmallMarginEnd" color="#0070f2" />
