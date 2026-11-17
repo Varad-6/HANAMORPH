@@ -378,6 +378,49 @@ module.exports = cds.service.impl(async function () {
     });
 
     /**
+     * Action: extractAndDeduplicateTables
+     * Extracts underlying physical base tables across selected views,
+     * merging superset columns and identifying deduplicated sources.
+     */
+    this.on('extractAndDeduplicateTables', async req => {
+        let { viewNames = [] } = req.data;
+        if (!viewNames || viewNames.length === 0) {
+            return [];
+        }
+        const models = await _extractModels(viewNames);
+        return transformService.extractAndDeduplicateTables(models);
+    });
+
+    /**
+     * Action: generateDeduplicatedReplicationPackage
+     * Generates synchronized Target Tables CSN Bundle ($version: "2.0") and
+     * native Datasphere Replication Flow JSON with 100% naming parity.
+     */
+    this.on('generateDeduplicatedReplicationPackage', async req => {
+        const {
+            viewNames = [],
+            space = config.datasphere.defaultSpace,
+            sourceConnection = 'S4HANA_SOURCE',
+            flowName = 'RF_DEDUPLICATED_ENTERPRISE',
+            flowDescription = 'Enterprise Deduplicated Multi-Table Replication Flow',
+            tableOverridesJson = null
+        } = req.data;
+
+        if (!viewNames || viewNames.length === 0) {
+            req.reject(400, 'viewNames array is required to generate replication package');
+        }
+
+        const models = await _extractModels(viewNames);
+        return transformService.generateDeduplicatedMultiTableReplicationPackage(models, {
+            space,
+            sourceConnection,
+            flowName,
+            flowDescription,
+            tableOverrides: tableOverridesJson
+        });
+    });
+
+    /**
      * Action: generateBulkArtifacts
      */
     this.on('generateBulkArtifacts', async req => {

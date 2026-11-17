@@ -510,6 +510,7 @@ class TransformService {
     _isMasterData(tableName) {
         const t = (tableName || '').toUpperCase();
         return t === 'MARA' || t === 'MAKT' || t === 'KNA1' || t === 'LFA1' || 
+               t === 'BNKA' || t.includes('BANK') || t === 'SKA1' || t === 'SKB1' || t === 'CSKS' ||
                t === 'T001W' || t === 'T001' || t.includes('DIMENSION') || 
                t.includes('MASTER') || t.includes('TEXT');
     }
@@ -1095,6 +1096,7 @@ class TransformService {
         const name = tableName.toUpperCase();
         const masterPatterns = [
             'MARA', 'MAKT', 'MARC', 'MARD', 'T001', 'T001W', 'T001K', 'KNA1', 'LFA1', 
+            'BNKA', 'BANK', 'SKA1', 'SKB1', 'CSKS',
             'CUSTOMER', 'MATERIAL', 'PLANT', 'COMPANY', 'VENDOR', 'DIM_', 'DIMENSION', 
             'WORK_CENTER', 'WORKCENTER', 'SHIFT', 'CALENDAR', 'TEXT', 'CATEGORY'
         ];
@@ -1352,6 +1354,348 @@ class TransformService {
             tableCount,
             viewCount,
             views: processedViews
+        };
+    }
+
+    /**
+     * Extract underlying base tables from multiple models and deduplicate them into canonical tables
+     * with merged superset columns and delta key harmonization.
+     * 
+     * @param {Array} models Array of extracted view/table models
+     * @returns {Array} Deduplicated table summaries
+     */
+    extractAndDeduplicateTables(models = []) {
+        const tableMap = {};
+
+        const sanitizeTech = (name) => {
+            const raw = (name || '').trim().replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+            return /^[0-9]/.test(raw) ? `_${raw}` : raw;
+        };
+
+        for (const model of models) {
+            const viewName = model.name || model.viewName || 'VIEW';
+            
+            // 1. Collect all underlying physical table sources for this model
+            const physicalSources = new Set();
+
+            if (model.type === 'TABLE') {
+                physicalSources.add(viewName.toUpperCase());
+            }
+
+            if (Array.isArray(model.sources) && model.sources.length > 0) {
+                for (const s of model.sources) {
+                    const srcTable = (s.tableName || s.name || '').toUpperCase().trim();
+                    if (srcTable && srcTable !== 'DUMMY') {
+                        // Strip schema prefix if any (e.g. SAPHANADB.ACDOCA -> ACDOCA)
+                        const cleanTbl = srcTable.includes('.') ? srcTable.split('.').pop() : srcTable;
+                        physicalSources.add(cleanTbl);
+                    }
+                }
+            }
+
+            if (Array.isArray(model.nodeHierarchy) && model.nodeHierarchy.length > 0) {
+                for (const node of model.nodeHierarchy) {
+                    if (node.type === 'DATA_SOURCE' || node.type === 'PROJECTION') {
+                        if (node.inputs && Array.isArray(node.inputs)) {
+                            for (const input of node.inputs) {
+                                const cleanInput = (input || '').toUpperCase().trim();
+                                if (cleanInput && !cleanInput.startsWith('P_') && cleanInput !== 'DUMMY') {
+                                    const cleanTbl = cleanInput.includes('.') ? cleanInput.split('.').pop() : cleanInput;
+                                    physicalSources.add(cleanTbl);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (Array.isArray(model.dependencies) && model.dependencies.length > 0) {
+                for (const dep of model.dependencies) {
+                    if (dep.BASE_OBJECT_TYPE === 'TABLE' || !dep.BASE_OBJECT_TYPE) {
+                        const depTbl = (dep.BASE_OBJECT_NAME || '').toUpperCase().trim();
+                        if (depTbl && depTbl !== 'DUMMY') {
+                            const cleanTbl = depTbl.includes('.') ? depTbl.split('.').pop() : depTbl;
+                            physicalSources.add(cleanTbl);
+                        }
+                    }
+                }
+            }
+
+            // Fallback: If no underlying source tables were discovered, treat the view name itself as base
+            if (physicalSources.size === 0) {
+                const clean = viewName.toUpperCase().replace(/^CV_|^CA_|^V_/, '');
+                physicalSources.add(clean || viewName.toUpperCase());
+            }
+
+            // 2. Associate referencing views & merge column superset for each base table
+            const modelCols = Array.isArray(model.columns) ? model.columns : [];
+
+            for (const rawTbl of physicalSources) {
+                const tbl = rawTbl.toUpperCase();
+                if (!tableMap[tbl]) {
+                    const sClean = sanitizeTech(tbl);
+                    const isMaster = this._isMasterData(tbl);
+                    tableMap[tbl] = {
+                        sourceTable: tbl,
+                        targetTable: `${sClean}_TBL`,
+                        businessName: `${sClean} Local Table`,
+                        category: isMaster ? 'MasterData' : 'TransactionalData',
+                        loadType: isMaster ? 'Initial' : 'InitialAndDelta',
+                        referencingViews: new Set(),
+                        columnsMap: {}
+                    };
+                }
+
+                tableMap[tbl].referencingViews.add(viewName);
+
+                // Merge column definitions into superset
+                for (const col of modelCols) {
+                    const colName = col.name || col.sourceName;
+                    if (!colName) continue;
+
+                    const uCol = colName.toUpperCase();
+                    const isColKey = Boolean(col.isKey) || uCol === 'MANDT' || uCol === 'CLIENT' || uCol === 'ID';
+                    const isColMeasure = Boolean(col.isMeasure) || this._isMeasure(colName);
+                    const dt = col.dataType || 'cds.String(40)';
+                    const label = col.originalName || col.targetLabel || col.name;
+
+                    if (!tableMap[tbl].columnsMap[colName]) {
+                        tableMap[tbl].columnsMap[colName] = {
+                            sourceName: colName,
+                            targetName: colName,
+                            targetLabel: label,
+                            dataType: dt,
+                            isKey: isColKey,
+                            isMeasure: isColMeasure
+                        };
+                    } else {
+                        // Merge attributes
+                        const existing = tableMap[tbl].columnsMap[colName];
+                        if (isColKey) existing.isKey = true;
+                        if (isColMeasure) existing.isMeasure = true;
+                        if (label && (!existing.targetLabel || existing.targetLabel === colName)) {
+                            existing.targetLabel = label;
+                        }
+                        if (dt && dt !== 'cds.String(40)' && existing.dataType === 'cds.String(40)') {
+                            existing.dataType = dt;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Convert tableMap into formatted output array
+        const result = Object.values(tableMap).map(t => {
+            const refViews = Array.from(t.referencingViews);
+            const cols = Object.values(t.columnsMap);
+
+            // Sort columns: primary keys first, then alphabetical
+            cols.sort((a, b) => {
+                if (a.isKey && !b.isKey) return -1;
+                if (!a.isKey && b.isKey) return 1;
+                return a.sourceName.localeCompare(b.sourceName);
+            });
+
+            // Ensure at least one key if keys are missing
+            if (cols.length > 0 && !cols.some(c => c.isKey)) {
+                const mandt = cols.find(c => c.sourceName.toUpperCase() === 'MANDT');
+                if (mandt) mandt.isKey = true;
+                else cols[0].isKey = true;
+            }
+
+            return {
+                sourceTable: t.sourceTable,
+                targetTable: t.targetTable,
+                businessName: t.businessName,
+                category: t.category,
+                loadType: t.loadType,
+                referencingViews: refViews,
+                referencingViewCount: refViews.length,
+                columnCount: cols.length,
+                columns: cols,
+                isDeduplicated: refViews.length > 1
+            };
+        });
+
+        // Sort deduplicated/most-shared tables first
+        result.sort((a, b) => b.referencingViewCount - a.referencingViewCount || a.sourceTable.localeCompare(b.sourceTable));
+        return result;
+    }
+
+    /**
+     * Generate complete Deduplicated Multi-Table Replication Package:
+     * - Synchronized Table CSN Bundle ($version: "2.0")
+     * - Synchronized Native Datasphere Replication Flow JSON
+     * - Guaranteed 100% technical name parity across all artifacts
+     * 
+     * @param {Array} models Array of extracted view models
+     * @param {object} options Configuration (space, sourceConnection, flowName, tableOverrides)
+     */
+    generateDeduplicatedMultiTableReplicationPackage(models = [], options = {}) {
+        const space = (options.space || 'AIS_INBOUND').trim();
+        const sourceConnection = (options.sourceConnection || 'S4HANA_SOURCE').trim();
+        const flowName = (options.flowName || 'RF_DEDUPLICATED_ENTERPRISE').trim();
+        const flowDescription = options.flowDescription || `Enterprise Deduplicated Replication Flow targeting Local Tables in ${space}`;
+
+        // 1. Extract deduplicated base tables and superset columns
+        const deduplicatedTables = this.extractAndDeduplicateTables(models);
+
+        // Parse tableOverrides if string
+        let overrides = {};
+        if (typeof options.tableOverrides === 'string') {
+            try {
+                overrides = JSON.parse(options.tableOverrides);
+            } catch (e) {
+                overrides = {};
+            }
+        } else if (typeof options.tableOverrides === 'object' && options.tableOverrides !== null) {
+            overrides = options.tableOverrides;
+        }
+
+        // Support overrides either as { "BNKA": { ... } } or [ { sourceTable: "BNKA", ... } ]
+        const overrideMap = {};
+        if (Array.isArray(overrides)) {
+            for (const o of overrides) {
+                if (o.sourceTable) overrideMap[o.sourceTable.toUpperCase()] = o;
+            }
+        } else {
+            for (const [k, v] of Object.entries(overrides)) {
+                overrideMap[k.toUpperCase()] = v;
+            }
+        }
+
+        const sanitizeTech = (name, fallback) => {
+            const raw = (name || fallback || '').trim().replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_');
+            return /^[0-9]/.test(raw) ? `_${raw}` : raw;
+        };
+
+        const targetTableDefinitions = {};
+        const replicationTasks = [];
+        const processedTables = [];
+        const individualTableCsns = {};
+
+        for (const tbl of deduplicatedTables) {
+            const override = overrideMap[tbl.sourceTable.toUpperCase()] || {};
+
+            // If explicitly excluded by user, skip
+            if (override.selected === false) continue;
+
+            const finalTargetTechName = sanitizeTech(override.targetTable || tbl.targetTable, `${tbl.sourceTable}_TBL`);
+            const finalBusinessName = override.businessName || tbl.businessName || `${tbl.sourceTable} Local Table`;
+            const finalLoadType = override.loadType || tbl.loadType || 'InitialAndDelta';
+            const finalCategory = override.category || tbl.category || (finalLoadType === 'Initial' ? 'MasterData' : 'TransactionalData');
+
+            // Columns to include (use override columns if present, otherwise default superset)
+            const activeCols = (override.columns && Array.isArray(override.columns) && override.columns.length > 0)
+                ? override.columns.filter(c => c.selected !== false)
+                : tbl.columns;
+
+            // Build CSN Elements
+            const elements = {};
+            for (const col of activeCols) {
+                const targetColName = sanitizeTech(col.targetName || col.sourceName, col.sourceName);
+                const isKey = Boolean(col.isKey);
+                elements[targetColName] = {
+                    ...this._toCsnType(col.dataType),
+                    '@EndUserText.label': col.targetLabel || col.sourceName,
+                    ...(isKey ? { key: true } : {})
+                };
+            }
+
+            // Ensure at least 1 key element
+            const hasKey = Object.values(elements).some(el => el.key);
+            if (!hasKey && Object.keys(elements).length > 0) {
+                const mandtKey = Object.keys(elements).find(k => k.toUpperCase() === 'MANDT') || Object.keys(elements)[0];
+                elements[mandtKey].key = true;
+            }
+
+            // 1. Add to CSN Bundle (Keyed by the exact finalTargetTechName!)
+            targetTableDefinitions[finalTargetTechName] = {
+                kind: "entity",
+                "@EndUserText.label": finalBusinessName,
+                elements: elements
+            };
+
+            // Individual Table CSN for single-table CLI or import
+            individualTableCsns[finalTargetTechName] = {
+                $version: "2.0",
+                definitions: {
+                    [finalTargetTechName]: targetTableDefinitions[finalTargetTechName]
+                }
+            };
+
+            // 2. Add to Replication Flow Task (Target is the exact same finalTargetTechName!)
+            const isMaster = finalLoadType === 'Initial' || finalCategory === 'MasterData';
+            replicationTasks.push({
+                sourceObject: tbl.sourceTable,
+                targetObject: finalTargetTechName,
+                category: finalCategory,
+                loadType: finalLoadType,
+                truncate: isMaster,
+                status: 'Configured',
+                description: `Replication of ${tbl.sourceTable} into Local Table ${finalTargetTechName}`
+            });
+
+            processedTables.push({
+                sourceTable: tbl.sourceTable,
+                targetTable: finalTargetTechName,
+                businessName: finalBusinessName,
+                category: finalCategory,
+                loadType: finalLoadType,
+                referencingViews: tbl.referencingViews,
+                referencingViewCount: tbl.referencingViewCount,
+                columnCount: Object.keys(elements).length,
+                columns: activeCols,
+                isDeduplicated: tbl.isDeduplicated
+            });
+        }
+
+        // Master Target Tables CSN
+        const targetTablesCsn = {
+            $version: "2.0",
+            definitions: targetTableDefinitions
+        };
+
+        // Native Datasphere Replication Flow JSON
+        const flowDefinition = {
+            $schema: "https://schema.datasphere.cloud.sap/replicationflow/v1/schema.json",
+            version: "1.0.0",
+            name: flowName,
+            description: flowDescription,
+            source: {
+                connection: sourceConnection
+            },
+            target: {
+                connection: "LOCAL",
+                containerType: "LocalTable",
+                space: space
+            },
+            settings: {
+                allowMissingDependencies: true,
+                autoCreateTargetTables: true
+            },
+            tasks: replicationTasks
+        };
+
+        const cliDeployFlowCommand = `datasphere objects replication-flows create -y ${space} -f ${flowName}.replicationFlow.json`;
+        const cliDeployTablesCommand = processedTables.map(t => 
+            `datasphere objects local-tables create -y ${space} -f ${t.targetTable}.table.json`
+        ).join('\n');
+
+        return {
+            flowName,
+            space,
+            sourceConnection,
+            tableCount: processedTables.length,
+            taskCount: replicationTasks.length,
+            targetTablesCsn: JSON.stringify(targetTablesCsn, null, 2),
+            replicationFlowJsonString: JSON.stringify(flowDefinition, null, 2),
+            flowDefinition,
+            targetTablesCsnObject: targetTablesCsn,
+            individualTableCsns,
+            cliDeployFlowCommand,
+            cliDeployTablesCommand,
+            tables: processedTables
         };
     }
 

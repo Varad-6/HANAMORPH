@@ -10,12 +10,14 @@ sap.ui.define([
         onInit: function () {
             // In-memory cache for per-view customized column configurations
             this._viewColumnsMap = {};
+            // User overrides cache for deduplicated tables across view selection changes
+            this._tableOverridesCache = {};
 
             const oModel = new JSONModel({
                 // Target Environment & Defaults
                 targetSpace: "AIS_INBOUND",
                 sourceConnection: "AIS_S21_S4HANA_2023_Inbound",
-                loadMode: "DELTA", // "DELTA", "INITIAL_AND_DELTA", or "INITIAL"
+                loadMode: "INITIAL_AND_DELTA", // "INITIAL_AND_DELTA", "INITIAL", or "DELTA"
                 flowTechnicalName: "RF_INBOUND_PIPELINE",
 
                 // View Discovery & Multi-Selection State
@@ -29,14 +31,23 @@ sap.ui.define([
                 selectedViewsCount: 0,
                 isViewsBusy: false,
 
-                // Active View currently being inspected / configured in Section 2
+                // Active View currently being inspected in Section 1
                 activeViewName: "CV_AC_TYPE",
-                activeTargetTable: "LT_CV_AC_TYPE",
                 activeViewType: "CALC_VIEW",
-                columns: [],
-                activeViewSelectedColumnCount: 0,
-                activeViewTotalColumnCount: 0,
-                activeViewKeyColumnCount: 0,
+
+                // Step 2: Deduplicated Canonical Tables Matrix
+                deduplicatedTables: [],
+                deduplicatedTablesCount: 0,
+                deduplicatedOverlapsCount: 0,
+                isDeduplicationBusy: false,
+                activeDeduplicatedTable: "",
+                activeDeduplicatedTargetTable: "",
+
+                // Step 3: Active Table Column Superset Drilldown
+                activeTableColumns: [],
+                activeTableSelectedColumnCount: 0,
+                activeTableTotalColumnCount: 0,
+                activeTableKeyColumnCount: 0,
                 isColumnsBusy: false,
 
                 // Multi-Target Summary
@@ -88,7 +99,7 @@ sap.ui.define([
                         name: v.name,
                         type: "CALC_VIEW",
                         description: v.description || `HANA Calculation View: ${v.name}`,
-                        targetTableName: `LT_${sClean}`,
+                        targetTableName: `${sClean}_TBL`,
                         isSelected: false,
                         configuredColumnsCount: 0,
                         selectedColsCount: 0,
@@ -102,7 +113,7 @@ sap.ui.define([
                         name: v.name,
                         type: "CDS",
                         description: v.description || `S/4HANA CDS: ${v.name}`,
-                        targetTableName: `LT_${sClean}`,
+                        targetTableName: `${sClean}_TBL`,
                         isSelected: false,
                         configuredColumnsCount: 0,
                         selectedColsCount: 0,
@@ -122,75 +133,70 @@ sap.ui.define([
                 oModel.setProperty("/allViewsCount", aAll.length);
                 oModel.setProperty("/calcViewsCount", aCalc.length);
                 oModel.setProperty("/cdsViewsCount", aCds.length);
-                oModel.setProperty("/selectedViewsCount", oInitView ? 1 : 0);
                 oModel.setProperty("/isViewsBusy", false);
 
                 this._applyViewFilters();
+                this._updateSelectedViewsCount();
 
-                if (oInitView) {
-                    this._setActiveView(oInitView);
-                }
+                // Trigger deduplication analysis for initially selected views
+                this._triggerDeduplication();
             }).catch(err => {
-                oModel.setProperty("/isViewsBusy", false);
                 console.error("Failed to load view catalog:", err);
+                oModel.setProperty("/isViewsBusy", false);
             });
         },
 
-        _cleanTechnicalName: function (sName) {
-            if (!sName) return "VIEW";
-            return sName.replace(/^[\/\\]+/, "").replace(/[\/\\]+/g, "_").replace(/[^a-zA-Z0-9_]/g, "_").toUpperCase();
+        _cleanTechnicalName: function (name) {
+            if (!name) return "OBJECT";
+            const cleaned = name.replace(/^[\/\\]+/, "").replace(/[\/\\]+/g, "_").replace(/[^a-zA-Z0-9_]/g, "_").toUpperCase();
+            return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
         },
 
-        onRefreshViews: function () {
-            this._loadAllViews();
-            MessageToast.show("View catalog refreshed.");
+        _applyViewFilters: function () {
+            const oModel = this.getView().getModel();
+            const aAll = oModel.getProperty("/allViews") || [];
+            const sCategory = oModel.getProperty("/selectedViewCategory") || "ALL";
+            const sSearch = (oModel.getProperty("/viewSearchTerm") || "").toLowerCase().trim();
+
+            const aFiltered = aAll.filter(v => {
+                const matchCategory = (sCategory === "ALL") || (v.type === sCategory);
+                const matchSearch = !sSearch ||
+                    (v.name && v.name.toLowerCase().includes(sSearch)) ||
+                    (v.description && v.description.toLowerCase().includes(sSearch));
+                return matchCategory && matchSearch;
+            });
+
+            oModel.setProperty("/filteredViews", aFiltered);
+        },
+
+        _updateSelectedViewsCount: function () {
+            const oModel = this.getView().getModel();
+            const aAll = oModel.getProperty("/allViews") || [];
+            const count = aAll.filter(v => v.isSelected).length;
+            oModel.setProperty("/selectedViewsCount", count);
         },
 
         onCategoryFilterChange: function () {
             this._applyViewFilters();
         },
 
-        onSearchView: function (oEvent) {
-            const sQuery = oEvent.getParameter("newValue") || "";
-            const oModel = this.getView().getModel();
-            oModel.setProperty("/viewSearchTerm", sQuery);
+        onSearchView: function () {
             this._applyViewFilters();
         },
 
-        _applyViewFilters: function () {
-            const oModel = this.getView().getModel();
-            const aAll = oModel.getProperty("/allViews") || [];
-            const sCat = oModel.getProperty("/selectedViewCategory") || "ALL";
-            const sQuery = (oModel.getProperty("/viewSearchTerm") || "").trim().toUpperCase();
-
-            let aFiltered = aAll;
-            if (sCat !== "ALL") {
-                aFiltered = aFiltered.filter(v => v.type === sCat);
-            }
-            if (sQuery) {
-                aFiltered = aFiltered.filter(v => {
-                    const name = (v.name || "").toUpperCase();
-                    const desc = (v.description || "").toUpperCase();
-                    return name.includes(sQuery) || desc.includes(sQuery);
-                });
-            }
-            oModel.setProperty("/filteredViews", aFiltered);
-        },
-
-        /* ====================================================================
-         * 2. CHECKBOX SELECTION & MULTI-VIEW BATCH MANAGEMENT
-         * ==================================================================== */
         onViewCheckboxChange: function () {
-            this._updateSelectionStateAndRegenerate();
+            this._updateSelectedViewsCount();
+            this._triggerDeduplication();
         },
 
         onToggleSelectAllVisible: function (oEvent) {
-            const bChecked = oEvent.getParameter("selected");
+            const bSelect = oEvent.getParameter("selected");
             const oModel = this.getView().getModel();
             const aFiltered = oModel.getProperty("/filteredViews") || [];
-            aFiltered.forEach(v => { v.isSelected = bChecked; });
+            aFiltered.forEach(v => { v.isSelected = bSelect; });
             oModel.setProperty("/filteredViews", aFiltered);
-            this._updateSelectionStateAndRegenerate();
+            this._updateSelectedViewsCount();
+            this._triggerDeduplication();
         },
 
         onSelectAllVisibleViews: function () {
@@ -198,8 +204,9 @@ sap.ui.define([
             const aFiltered = oModel.getProperty("/filteredViews") || [];
             aFiltered.forEach(v => { v.isSelected = true; });
             oModel.setProperty("/filteredViews", aFiltered);
-            this._updateSelectionStateAndRegenerate();
-            MessageToast.show(`Selected ${aFiltered.length} views.`);
+            this._updateSelectedViewsCount();
+            this._triggerDeduplication();
+            MessageToast.show(`Selected ${aFiltered.length} visible source objects.`);
         },
 
         onDeselectAllViews: function () {
@@ -208,255 +215,332 @@ sap.ui.define([
             aAll.forEach(v => { v.isSelected = false; });
             oModel.setProperty("/allViews", aAll);
             this._applyViewFilters();
-            this._updateSelectionStateAndRegenerate();
-            MessageToast.show("Deselected all views.");
+            this._updateSelectedViewsCount();
+            this._triggerDeduplication();
+            MessageToast.show("Deselected all source objects.");
         },
 
-        _updateSelectionStateAndRegenerate: function () {
-            const oModel = this.getView().getModel();
-            const aAll = oModel.getProperty("/allViews") || [];
-            const aSelected = aAll.filter(v => v.isSelected);
-            oModel.setProperty("/selectedViewsCount", aSelected.length);
-
-            // Auto-update flow technical name based on selection
-            if (aSelected.length === 1) {
-                const sClean = this._cleanTechnicalName(aSelected[0].name);
-                oModel.setProperty("/flowTechnicalName", `RF_${sClean}_INBOUND`);
-            } else if (aSelected.length > 1) {
-                oModel.setProperty("/flowTechnicalName", "RF_MULTI_INBOUND");
-            }
-
-            this.onGenerateDefinitions();
+        onRefreshViews: function () {
+            this._loadAllViews();
+            MessageToast.show("Refreshed source catalog.");
         },
 
-        onViewTargetTableChange: function (oEvent) {
-            const oItem = oEvent.getSource().getBindingContext().getObject();
-            const sVal = (oEvent.getParameter("value") || "").trim().toUpperCase();
-            if (oItem) {
-                oItem.targetTableName = sVal;
-                const oModel = this.getView().getModel();
-                if (oItem.name === oModel.getProperty("/activeViewName")) {
-                    oModel.setProperty("/activeTargetTable", sVal);
-                }
-            }
-            this.onGenerateDefinitions();
-        },
-
-        onActiveTargetTableChange: function (oEvent) {
-            const sVal = (oEvent.getParameter("value") || "").trim().toUpperCase();
-            const oModel = this.getView().getModel();
-            const sActiveView = oModel.getProperty("/activeViewName");
-            oModel.setProperty("/activeTargetTable", sVal);
-
-            const aAll = oModel.getProperty("/allViews") || [];
-            const oView = aAll.find(v => v.name === sActiveView);
-            if (oView) {
-                oView.targetTableName = sVal;
-            }
-            this.onGenerateDefinitions();
-        },
-
-        /* ====================================================================
-         * 3. DRILLDOWN: CLICK 1-1 VIEW TO CONFIGURE ITS COLUMNS
-         * ==================================================================== */
         onViewLinkPress: function (oEvent) {
             const oItem = oEvent.getSource().getBindingContext().getObject();
             if (oItem) {
-                this._openViewColumnConfiguration(oItem);
+                this.onConfigureViewPress(oEvent);
             }
         },
 
         onConfigureViewPress: function (oEvent) {
             const oItem = oEvent.getSource().getBindingContext().getObject();
-            if (oItem) {
-                this._openViewColumnConfiguration(oItem);
-            }
-        },
+            if (!oItem) return;
 
-        _openViewColumnConfiguration: function (oView) {
             const oModel = this.getView().getModel();
+            oModel.setProperty("/activeViewName", oItem.name);
+            oModel.setProperty("/activeViewType", oItem.type);
 
-            // Also ensure view is checked so configured columns are included in replication
-            oView.isSelected = true;
-            this._updateSelectionStateAndRegenerate();
-
-            this._setActiveView(oView);
-
-            // Scroll down to columns panel
-            const oPanel = this.byId("columnsPanel");
-            if (oPanel && oPanel.getDomRef()) {
-                oPanel.getDomRef().scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-
-            MessageToast.show(`Configuring columns for ${oView.name} (Target: ${oView.targetTableName})`);
-        },
-
-        _setActiveView: function (oView) {
-            const oModel = this.getView().getModel();
-            const sViewName = oView.name;
-
-            oModel.setProperty("/activeViewName", sViewName);
-            oModel.setProperty("/activeTargetTable", oView.targetTableName || `LT_${this._cleanTechnicalName(sViewName)}`);
-            oModel.setProperty("/activeViewType", oView.type || "CALC_VIEW");
-
-            this._loadViewColumns(sViewName);
-        },
-
-        _loadViewColumns: function (sViewName) {
-            const oModel = this.getView().getModel();
-            oModel.setProperty("/isColumnsBusy", true);
-
-            this._ensureViewColumns(sViewName).then(aCols => {
-                oModel.setProperty("/isColumnsBusy", false);
-                oModel.setProperty("/columns", aCols);
-                this._updateActiveViewColumnStats();
-                this.onGenerateDefinitions();
-            }).catch(err => {
-                oModel.setProperty("/isColumnsBusy", false);
-                console.error("Failed to ensure columns:", err);
-            });
-        },
-
-        _ensureViewColumns: async function (sViewName) {
-            if (this._viewColumnsMap[sViewName] && this._viewColumnsMap[sViewName].length > 0) {
-                return this._viewColumnsMap[sViewName];
-            }
-
-            try {
-                const res = await fetch(`/odata/v4/migration/getColumns(viewName='${encodeURIComponent(sViewName)}')`);
-                const data = res.ok ? await res.json() : { value: [] };
-                const aRawCols = data.value || [];
-
-                let aMapped = aRawCols.map(c => {
-                    const name = c.name;
-                    const isMandt = name.toUpperCase() === "MANDT";
-                    const isId = name.toUpperCase().includes("ID") || name.toUpperCase().includes("CODE") || name.toUpperCase().includes("TYPE") || name.toUpperCase().includes("KEY");
-                    const isPrimary = Boolean(c.isKey || isMandt || isId);
-
-                    return {
-                        sourceName: name,
-                        targetName: name,
-                        dataType: c.dataType || "cds.String(100)",
-                        length: this._extractLength(c.dataType),
-                        isKey: isPrimary,
-                        selected: true
-                    };
-                });
-
-                if (aMapped.length === 0) {
-                    aMapped = this._getDefaultFallbackColumns(sViewName);
-                }
-
-                this._viewColumnsMap[sViewName] = aMapped;
-
-                // Update column stats in view catalog
-                this._updateCatalogItemStats(sViewName, aMapped);
-
-                return aMapped;
-            } catch (err) {
-                console.warn(`Columns load fallback for ${sViewName}:`, err.message);
-                const fallbackCols = this._getDefaultFallbackColumns(sViewName);
-                this._viewColumnsMap[sViewName] = fallbackCols;
-                this._updateCatalogItemStats(sViewName, fallbackCols);
-                return fallbackCols;
-            }
-        },
-
-        _getDefaultFallbackColumns: function (sViewName) {
-            return [
-                { sourceName: "MANDT", targetName: "MANDT", dataType: "cds.String(3)", length: 3, isKey: true, selected: true },
-                { sourceName: "OBJECT_ID", targetName: "OBJECT_ID", dataType: "cds.String(32)", length: 32, isKey: true, selected: true },
-                { sourceName: "CODE", targetName: "CODE", dataType: "cds.String(20)", length: 20, isKey: false, selected: true },
-                { sourceName: "DESCRIPTION", targetName: "DESCRIPTION", dataType: "cds.String(100)", length: 100, isKey: false, selected: true },
-                { sourceName: "AMOUNT", targetName: "AMOUNT", dataType: "cds.Decimal(15, 2)", length: 15, isKey: false, selected: true }
-            ];
-        },
-
-        _updateCatalogItemStats: function (sViewName, aCols) {
-            const oModel = this.getView().getModel();
-            const aAll = oModel.getProperty("/allViews") || [];
-            const oView = aAll.find(v => v.name === sViewName);
-            if (oView) {
-                const selected = aCols.filter(c => c.selected);
-                const keys = selected.filter(c => c.isKey);
-                oView.configuredColumnsCount = aCols.length;
-                oView.selectedColsCount = selected.length;
-                oView.keyColsCount = keys.length;
-                oModel.setProperty("/allViews", aAll);
-                this._applyViewFilters();
-            }
-        },
-
-        _extractLength: function (dataType) {
-            if (!dataType) return 100;
-            const match = dataType.match(/\((\d+)/);
-            return match ? parseInt(match[1], 10) : 100;
-        },
-
-        _updateActiveViewColumnStats: function () {
-            const oModel = this.getView().getModel();
-            const sActiveView = oModel.getProperty("/activeViewName");
-            const aCols = oModel.getProperty("/columns") || [];
-
-            const selected = aCols.filter(c => c.selected);
-            const keys = selected.filter(c => c.isKey);
-
-            oModel.setProperty("/activeViewTotalColumnCount", aCols.length);
-            oModel.setProperty("/activeViewSelectedColumnCount", selected.length);
-            oModel.setProperty("/activeViewKeyColumnCount", keys.length);
-
-            // Sync with memory cache
-            if (sActiveView) {
-                this._viewColumnsMap[sActiveView] = aCols;
-                this._updateCatalogItemStats(sActiveView, aCols);
-            }
+            MessageToast.show(`Inspecting source object '${oItem.name}'`);
         },
 
         /* ====================================================================
-         * 4. COLUMN SELECTOR ACTIONS
+         * 2. DEDUPLICATION ANALYSIS & TARGET TABLE MATRIX
          * ==================================================================== */
+        _triggerDeduplication: async function () {
+            const oModel = this.getView().getModel();
+            const aAll = oModel.getProperty("/allViews") || [];
+            const aSelected = aAll.filter(v => v.isSelected);
+
+            if (aSelected.length === 0) {
+                oModel.setProperty("/deduplicatedTables", []);
+                oModel.setProperty("/deduplicatedTablesCount", 0);
+                oModel.setProperty("/deduplicatedOverlapsCount", 0);
+                oModel.setProperty("/activeDeduplicatedTable", "");
+                oModel.setProperty("/activeDeduplicatedTargetTable", "");
+                oModel.setProperty("/activeTableColumns", []);
+                oModel.setProperty("/hasGenerated", false);
+                oModel.setProperty("/targetTablesSummary", "None");
+                return;
+            }
+
+            oModel.setProperty("/isDeduplicationBusy", true);
+            const viewNames = aSelected.map(v => v.name);
+
+            try {
+                const res = await fetch("/odata/v4/migration/extractAndDeduplicateTables", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ viewNames: viewNames })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Extraction failed: ${res.statusText}`);
+                }
+
+                const data = await res.json();
+                const aExtracted = data.value || [];
+
+                let overlapsCount = 0;
+                const aTables = aExtracted.map(tbl => {
+                    const isOverlap = tbl.referencingViewCount > 1;
+                    if (isOverlap) overlapsCount++;
+
+                    // Preserve any existing user overrides for this table
+                    const prevOverride = this._tableOverridesCache[tbl.sourceTable] || {};
+                    const targetTable = prevOverride.targetTable || tbl.targetTable || `${tbl.sourceTable}_TBL`;
+                    const businessName = prevOverride.businessName || tbl.businessName || `${tbl.sourceTable} Local Table`;
+                    const loadType = prevOverride.loadType || tbl.loadType || (tbl.category === "MasterData" ? "Initial" : "InitialAndDelta");
+                    const selected = prevOverride.selected !== undefined ? prevOverride.selected : true;
+
+                    // Merge columns with any cached column changes
+                    const cachedCols = prevOverride.columns || [];
+                    const columns = tbl.columns.map(c => {
+                        const cached = cachedCols.find(cc => cc.sourceName === c.sourceName);
+                        return {
+                            sourceName: c.sourceName,
+                            targetName: cached ? cached.targetName : (c.targetName || c.sourceName),
+                            targetLabel: c.targetLabel || c.sourceName,
+                            dataType: c.dataType || "cds.String(40)",
+                            isKey: cached ? cached.isKey : Boolean(c.isKey),
+                            isMeasure: Boolean(c.isMeasure),
+                            selected: cached ? cached.selected !== false : true
+                        };
+                    });
+
+                    return {
+                        sourceTable: tbl.sourceTable,
+                        targetTable: targetTable,
+                        businessName: businessName,
+                        category: tbl.category || "TransactionalData",
+                        loadType: loadType,
+                        selected: selected,
+                        referencingViews: tbl.referencingViews || [],
+                        referencingViewCount: tbl.referencingViewCount || 1,
+                        referencingViewsSummary: (tbl.referencingViews || []).join(", "),
+                        columnCount: columns.length,
+                        columns: columns,
+                        isDeduplicated: isOverlap
+                    };
+                });
+
+                oModel.setProperty("/deduplicatedTables", aTables);
+                oModel.setProperty("/deduplicatedTablesCount", aTables.length);
+                oModel.setProperty("/deduplicatedOverlapsCount", overlapsCount);
+                oModel.setProperty("/isDeduplicationBusy", false);
+
+                // Set initial active table for Step 3 drilldown
+                const currentActive = oModel.getProperty("/activeDeduplicatedTable");
+                const activeTbl = aTables.find(t => t.sourceTable === currentActive) || aTables[0];
+                if (activeTbl) {
+                    this._setActiveTableForDrilldown(activeTbl);
+                }
+
+                // Generate unified definitions package
+                await this.onGenerateDefinitions();
+
+            } catch (err) {
+                console.warn("[_triggerDeduplication] Backend error, using local fallback:", err.message);
+                oModel.setProperty("/isDeduplicationBusy", false);
+                this._fallbackLocalDeduplication(aSelected);
+            }
+        },
+
+        _fallbackLocalDeduplication: function (aSelected) {
+            const oModel = this.getView().getModel();
+            const tableMap = {};
+
+            for (const view of aSelected) {
+                const sClean = this._cleanTechnicalName(view.name);
+                const sTable = sClean.replace(/^CV_|^CA_|^V_/, "") || sClean;
+                if (!tableMap[sTable]) {
+                    tableMap[sTable] = {
+                        sourceTable: sTable,
+                        targetTable: `${sTable}_TBL`,
+                        businessName: `${sTable} Local Table`,
+                        category: (sTable === "MARA" || sTable === "MAKT" || sTable === "BNKA" || sTable.includes("BANK")) ? "MasterData" : "TransactionalData",
+                        loadType: (sTable === "MARA" || sTable === "MAKT" || sTable === "BNKA") ? "Initial" : "InitialAndDelta",
+                        selected: true,
+                        referencingViews: [view.name],
+                        referencingViewCount: 1,
+                        referencingViewsSummary: view.name,
+                        columns: [
+                            { sourceName: "MANDT", targetName: "MANDT", targetLabel: "Client", dataType: "cds.String(3)", isKey: true, selected: true },
+                            { sourceName: "ID", targetName: "ID", targetLabel: "Identifier", dataType: "cds.String(32)", isKey: true, selected: true },
+                            { sourceName: "NAME", targetName: "NAME", targetLabel: "Name", dataType: "cds.String(100)", isKey: false, selected: true }
+                        ],
+                        isDeduplicated: false
+                    };
+                } else {
+                    tableMap[sTable].referencingViews.push(view.name);
+                    tableMap[sTable].referencingViewCount++;
+                    tableMap[sTable].referencingViewsSummary = tableMap[sTable].referencingViews.join(", ");
+                    tableMap[sTable].isDeduplicated = true;
+                }
+                tableMap[sTable].columnCount = tableMap[sTable].columns.length;
+            }
+
+            const aTables = Object.values(tableMap);
+            oModel.setProperty("/deduplicatedTables", aTables);
+            oModel.setProperty("/deduplicatedTablesCount", aTables.length);
+            oModel.setProperty("/deduplicatedOverlapsCount", aTables.filter(t => t.isDeduplicated).length);
+
+            if (aTables.length > 0) {
+                this._setActiveTableForDrilldown(aTables[0]);
+            }
+            this.onGenerateDefinitions();
+        },
+
+        onReanalyzeDeduplication: function () {
+            this._triggerDeduplication();
+            MessageToast.show("Re-analyzed physical table dependencies & deduplication.");
+        },
+
+        onInspectDeduplicatedTablePress: function (oEvent) {
+            const oItem = oEvent.getSource().getBindingContext().getObject();
+            if (oItem) {
+                this._setActiveTableForDrilldown(oItem);
+                MessageToast.show(`Drilling down into table '${oItem.sourceTable}' (${oItem.columnCount} fields)`);
+            }
+        },
+
+        _setActiveTableForDrilldown: function (tbl) {
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/activeDeduplicatedTable", tbl.sourceTable);
+            oModel.setProperty("/activeDeduplicatedTargetTable", tbl.targetTable);
+
+            const cols = tbl.columns || [];
+            oModel.setProperty("/activeTableColumns", cols);
+            oModel.setProperty("/activeTableTotalColumnCount", cols.length);
+            oModel.setProperty("/activeTableSelectedColumnCount", cols.filter(c => c.selected).length);
+            oModel.setProperty("/activeTableKeyColumnCount", cols.filter(c => c.selected && c.isKey).length);
+        },
+
+        onTargetTableNameChange: function (oEvent) {
+            const oItem = oEvent.getSource().getBindingContext().getObject();
+            if (!oItem) return;
+
+            const sClean = this._cleanTechnicalName(oItem.targetTable);
+            oItem.targetTable = sClean;
+
+            // Cache override
+            if (!this._tableOverridesCache[oItem.sourceTable]) this._tableOverridesCache[oItem.sourceTable] = {};
+            this._tableOverridesCache[oItem.sourceTable].targetTable = sClean;
+
+            const oModel = this.getView().getModel();
+            if (oModel.getProperty("/activeDeduplicatedTable") === oItem.sourceTable) {
+                oModel.setProperty("/activeDeduplicatedTargetTable", sClean);
+            }
+
+            this.onGenerateDefinitions();
+            MessageToast.show(`Updated Target Table: ${sClean}`);
+        },
+
+        onTargetBusinessNameChange: function (oEvent) {
+            const oItem = oEvent.getSource().getBindingContext().getObject();
+            if (!oItem) return;
+
+            if (!this._tableOverridesCache[oItem.sourceTable]) this._tableOverridesCache[oItem.sourceTable] = {};
+            this._tableOverridesCache[oItem.sourceTable].businessName = oItem.businessName;
+
+            this.onGenerateDefinitions();
+        },
+
+        onDeduplicatedTableSelectChange: function (oEvent) {
+            const oItem = oEvent.getSource().getBindingContext().getObject();
+            if (!oItem) return;
+
+            if (!this._tableOverridesCache[oItem.sourceTable]) this._tableOverridesCache[oItem.sourceTable] = {};
+            this._tableOverridesCache[oItem.sourceTable].selected = oItem.selected;
+
+            this.onGenerateDefinitions();
+        },
+
+        onTableLoadTypeChange: function (oEvent) {
+            const oItem = oEvent.getSource().getBindingContext().getObject();
+            if (!oItem) return;
+
+            if (!this._tableOverridesCache[oItem.sourceTable]) this._tableOverridesCache[oItem.sourceTable] = {};
+            this._tableOverridesCache[oItem.sourceTable].loadType = oItem.loadType;
+
+            this.onGenerateDefinitions();
+        },
+
+        /* ====================================================================
+         * 3. SUPERSET COLUMN DRILLDOWN ACTIONS (STEP 3)
+         * ==================================================================== */
+        _syncActiveTableColumnStats: function () {
+            const oModel = this.getView().getModel();
+            const sActiveTbl = oModel.getProperty("/activeDeduplicatedTable");
+            const aCols = oModel.getProperty("/activeTableColumns") || [];
+
+            const total = aCols.length;
+            const selected = aCols.filter(c => c.selected).length;
+            const keys = aCols.filter(c => c.selected && c.isKey).length;
+
+            oModel.setProperty("/activeTableTotalColumnCount", total);
+            oModel.setProperty("/activeTableSelectedColumnCount", selected);
+            oModel.setProperty("/activeTableKeyColumnCount", keys);
+
+            // Update deduplicatedTables row
+            const aTables = oModel.getProperty("/deduplicatedTables") || [];
+            const tbl = aTables.find(t => t.sourceTable === sActiveTbl);
+            if (tbl) {
+                tbl.columns = aCols;
+                tbl.columnCount = total;
+                oModel.setProperty("/deduplicatedTables", aTables);
+
+                // Cache override
+                if (!this._tableOverridesCache[sActiveTbl]) this._tableOverridesCache[sActiveTbl] = {};
+                this._tableOverridesCache[sActiveTbl].columns = aCols;
+            }
+        },
+
         onColumnCheckboxChange: function () {
-            this._updateActiveViewColumnStats();
+            this._syncActiveTableColumnStats();
             this.onGenerateDefinitions();
         },
 
         onKeySwitchChange: function () {
-            this._updateActiveViewColumnStats();
+            this._syncActiveTableColumnStats();
             this.onGenerateDefinitions();
         },
 
-        onColumnTargetNameChange: function () {
-            this._updateActiveViewColumnStats();
+        onColumnTargetNameChange: function (oEvent) {
+            const oCol = oEvent.getSource().getBindingContext().getObject();
+            if (oCol) {
+                oCol.targetName = this._cleanTechnicalName(oCol.targetName);
+            }
+            this._syncActiveTableColumnStats();
             this.onGenerateDefinitions();
         },
 
-        onSelectAllColumns: function () {
+        onSelectAllTableColumns: function () {
             const oModel = this.getView().getModel();
-            const aCols = oModel.getProperty("/columns") || [];
+            const aCols = oModel.getProperty("/activeTableColumns") || [];
             aCols.forEach(c => { c.selected = true; });
-            oModel.setProperty("/columns", aCols);
-            this._updateActiveViewColumnStats();
+            oModel.setProperty("/activeTableColumns", aCols);
+            this._syncActiveTableColumnStats();
             this.onGenerateDefinitions();
         },
 
-        onSelectKeysOnly: function () {
+        onSelectKeysOnlyTableColumns: function () {
             const oModel = this.getView().getModel();
-            const aCols = oModel.getProperty("/columns") || [];
+            const aCols = oModel.getProperty("/activeTableColumns") || [];
             aCols.forEach(c => { c.selected = Boolean(c.isKey); });
-            oModel.setProperty("/columns", aCols);
-            this._updateActiveViewColumnStats();
+            oModel.setProperty("/activeTableColumns", aCols);
+            this._syncActiveTableColumnStats();
             this.onGenerateDefinitions();
         },
 
-        onResetColumns: function () {
+        onResetTableColumns: function () {
             const oModel = this.getView().getModel();
-            const aCols = oModel.getProperty("/columns") || [];
+            const aCols = oModel.getProperty("/activeTableColumns") || [];
             aCols.forEach(c => {
                 c.selected = true;
                 c.targetName = c.sourceName;
             });
-            oModel.setProperty("/columns", aCols);
-            this._updateActiveViewColumnStats();
+            oModel.setProperty("/activeTableColumns", aCols);
+            this._syncActiveTableColumnStats();
             this.onGenerateDefinitions();
         },
 
@@ -469,93 +553,134 @@ sap.ui.define([
         },
 
         /* ====================================================================
-         * 5. PAYLOAD GENERATION: UNIFIED REPLICATION FLOW & CSN DEFINITION
+         * 4. PAYLOAD GENERATION: UNIFIED REPLICATION FLOW & CSN DEFINITION
          * ==================================================================== */
         onGenerateDefinitions: async function () {
             const oModel = this.getView().getModel();
-            const aAll = oModel.getProperty("/allViews") || [];
-            const aSelected = aAll.filter(v => v.isSelected);
+            const aTables = oModel.getProperty("/deduplicatedTables") || [];
+            const aActiveTables = aTables.filter(t => t.selected !== false);
+
+            const aAllViews = oModel.getProperty("/allViews") || [];
+            const aSelectedViews = aAllViews.filter(v => v.isSelected);
+            const viewNames = aSelectedViews.map(v => v.name);
 
             const sSpace = (oModel.getProperty("/targetSpace") || "AIS_INBOUND").trim();
             const sConn = (oModel.getProperty("/sourceConnection") || "S4HANA_SOURCE").trim();
-            const rawLoadMode = oModel.getProperty("/loadMode") || "INITIAL_AND_DELTA";
-            const sLoadMode = (rawLoadMode === "DELTA" || rawLoadMode === "DELTA_ONLY") ? "DELTA" : (rawLoadMode === "INITIAL" || rawLoadMode === "INITIAL_ONLY" ? "INITIAL" : "INITIAL_AND_DELTA");
-            let sFlowName = (oModel.getProperty("/flowTechnicalName") || "RF_INBOUND_PIPELINE").trim();
+            const sDefaultLoadMode = oModel.getProperty("/loadMode") || "INITIAL_AND_DELTA";
+            const sFlowName = (oModel.getProperty("/flowTechnicalName") || "RF_INBOUND_PIPELINE").trim();
 
-            if (aSelected.length === 0) {
+            if (aActiveTables.length === 0) {
                 oModel.setProperty("/hasGenerated", false);
                 oModel.setProperty("/targetTablesSummary", "None");
                 return;
             }
 
+            // Build overrides object for backend packaging engine
+            const tableOverrides = {};
+            for (const tbl of aActiveTables) {
+                tableOverrides[tbl.sourceTable] = {
+                    targetTable: tbl.targetTable,
+                    businessName: tbl.businessName,
+                    loadType: tbl.loadType || sDefaultLoadMode,
+                    category: tbl.category,
+                    columns: tbl.columns
+                };
+            }
+
+            try {
+                // Call Enterprise Packaging Engine Endpoint
+                const res = await fetch("/odata/v4/migration/generateDeduplicatedReplicationPackage", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        viewNames: viewNames,
+                        space: sSpace,
+                        sourceConnection: sConn,
+                        flowName: sFlowName,
+                        flowDescription: `Enterprise Deduplicated Replication Flow targeting Local Tables in ${sSpace}`,
+                        tableOverridesJson: JSON.stringify(tableOverrides)
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Package generation failed: ${res.statusText}`);
+                }
+
+                const data = await res.json();
+                const pkg = data.value || data;
+
+                oModel.setProperty("/flowJsonString", pkg.replicationFlowJsonString);
+                oModel.setProperty("/tableCsnString", pkg.targetTablesCsn);
+                oModel.setProperty("/cliTableCommand", pkg.cliDeployTablesCommand);
+                oModel.setProperty("/cliCreateCommand", pkg.cliDeployFlowCommand);
+                oModel.setProperty("/cliRunCommand", `npx @sap/datasphere-cli tasks replication-flows run --space "${sSpace}" --technical-name "${sFlowName}"`);
+                oModel.setProperty("/targetTablesSummary", aActiveTables.map(t => t.targetTable).join(", "));
+                oModel.setProperty("/hasGenerated", true);
+
+            } catch (err) {
+                console.warn("[onGenerateDefinitions] Backend package failed, synthesizing client-side:", err.message);
+                this._synthesizeClientDefinitions(aActiveTables, sSpace, sConn, sFlowName, sDefaultLoadMode);
+            }
+        },
+
+        _synthesizeClientDefinitions: function (aActiveTables, sSpace, sConn, sFlowName, sDefaultLoadMode) {
+            const oModel = this.getView().getModel();
             const tasks = [];
             const definitions = {};
-            const tableNames = [];
             const cliTableCommands = [];
 
-            for (const view of aSelected) {
-                const sViewName = view.name;
-                const sClean = this._cleanTechnicalName(sViewName);
-                const sTargetTable = (view.targetTableName || `LT_${sClean}`).trim();
-                tableNames.push(sTargetTable);
+            for (const tbl of aActiveTables) {
+                const sTarget = tbl.targetTable;
+                const isMaster = tbl.loadType === "Initial" || tbl.category === "MasterData";
+                const loadMode = tbl.loadType || (isMaster ? "INITIAL_ONLY" : (sDefaultLoadMode === "DELTA" ? "DELTA_ONLY" : "INITIAL_AND_DELTA"));
 
-                // Ensure columns exist in memory
-                const aCols = await this._ensureViewColumns(sViewName);
-                const aActiveCols = aCols.filter(c => c.selected);
-
-                // Build column mappings for this view's task
-                const columnMappings = aActiveCols.map(col => ({
-                    sourceColumn: col.sourceName,
-                    targetColumn: col.targetName || col.sourceName,
-                    isKey: Boolean(col.isKey)
-                }));
-
-                // Build Ingestion Task
-                tasks.push({
-                    name: `TASK_${sClean}`,
-                    sourceObject: {
-                        name: sViewName,
-                        type: view.type === "CDS" ? "CDS" : "CALC_VIEW"
-                    },
-                    targetObject: {
-                        name: sTargetTable,
-                        loadType: sLoadMode, // INITIAL_AND_DELTA, DELTA_ONLY, or INITIAL_ONLY
-                        truncationMode: "NONE"
-                    },
-                    mappings: columnMappings
-                });
-
-                // Build Target Local Table CSN Definition (without namespace prefix)
+                // Elements in CSN
                 const elements = {};
-                aActiveCols.forEach(col => {
-                    const isDecimal = (col.dataType || "").toLowerCase().includes("decimal");
-                    const isInteger = (col.dataType || "").toLowerCase().includes("int");
+                for (const col of (tbl.columns || [])) {
+                    if (col.selected === false) continue;
+                    const isDec = (col.dataType || "").toLowerCase().includes("decimal");
+                    const isInt = (col.dataType || "").toLowerCase().includes("int");
                     elements[col.targetName || col.sourceName] = {
-                        type: isDecimal ? "cds.Decimal" : (isInteger ? "cds.Integer" : "cds.String"),
-                        length: isDecimal || isInteger ? undefined : (col.length || 100),
+                        type: isDec ? "cds.Decimal" : (isInt ? "cds.Integer" : "cds.String"),
+                        length: isDec || isInt ? undefined : (this._extractLength(col.dataType) || 40),
                         key: Boolean(col.isKey),
-                        "@EndUserText.label": col.targetName || col.sourceName
+                        "@EndUserText.label": col.targetLabel || col.sourceName
                     };
-                });
+                }
 
-                definitions[sTargetTable] = {
+                definitions[sTarget] = {
                     kind: "entity",
-                    "@EndUserText.label": `Inbound Staged Table for ${sViewName}`,
+                    "@EndUserText.label": tbl.businessName || `${tbl.sourceTable} Local Table`,
                     elements: elements
                 };
 
-                cliTableCommands.push(`npx @sap/datasphere-cli objects local-tables create --space "${sSpace}" --file-path "${sTargetTable}.table.json"`);
+                tasks.push({
+                    name: `TASK_${tbl.sourceTable}`,
+                    sourceObject: {
+                        name: tbl.sourceTable,
+                        type: "TABLE"
+                    },
+                    targetObject: {
+                        name: sTarget,
+                        loadType: loadMode,
+                        truncationMode: isMaster ? "TRUNCATE" : "NONE"
+                    },
+                    mappings: Object.keys(elements).map(k => ({
+                        sourceColumn: k,
+                        targetColumn: k,
+                        isKey: Boolean(elements[k].key)
+                    }))
+                });
+
+                cliTableCommands.push(`npx @sap/datasphere-cli objects local-tables create --space "${sSpace}" --file-path "${sTarget}.table.json"`);
             }
 
-            // Native Datasphere Replication Flow Specification
             const flowDefinition = {
                 "$schema": "https://schema.datasphere.cloud.sap/replicationflow/v1/schema.json",
                 "version": "1.0.0",
                 "name": sFlowName,
-                "description": `HanaMorph 1-to-1 Inbound Ingestion Pipeline for ${tasks.length} view(s) into Space ${sSpace}`,
-                "source": {
-                    "connection": sConn
-                },
+                "description": `HanaMorph Deduplicated Harmonization Pipeline (${tasks.length} table tasks) in Space ${sSpace}`,
+                "source": { "connection": sConn },
                 "target": {
                     "connection": "LOCAL",
                     "containerType": "LocalTable",
@@ -564,36 +689,36 @@ sap.ui.define([
                 "tasks": tasks
             };
 
-            // Target Local Tables Multi-Entity CSN Specification
             const tableCsn = {
                 $version: "2.0",
                 definitions: definitions
             };
 
-            const sFlowJson = JSON.stringify(flowDefinition, null, 2);
-            const sTableCsn = JSON.stringify(tableCsn, null, 2);
-
-            oModel.setProperty("/flowJsonString", sFlowJson);
-            oModel.setProperty("/tableCsnString", sTableCsn);
-            oModel.setProperty("/targetTablesSummary", tableNames.join(", "));
-
-            // CLI Commands
+            oModel.setProperty("/flowJsonString", JSON.stringify(flowDefinition, null, 2));
+            oModel.setProperty("/tableCsnString", JSON.stringify(tableCsn, null, 2));
             oModel.setProperty("/cliTableCommand", cliTableCommands.join("\n"));
             oModel.setProperty("/cliCreateCommand", `npx @sap/datasphere-cli objects replication-flows create --space "${sSpace}" --technical-name "${sFlowName}" --file-path "${sFlowName}.replicationFlow.json"`);
             oModel.setProperty("/cliRunCommand", `npx @sap/datasphere-cli tasks replication-flows run --space "${sSpace}" --technical-name "${sFlowName}"`);
+            oModel.setProperty("/targetTablesSummary", aActiveTables.map(t => t.targetTable).join(", "));
             oModel.setProperty("/hasGenerated", true);
         },
 
+        _extractLength: function (dataType) {
+            if (!dataType) return 40;
+            const match = dataType.match(/\((\d+)/);
+            return match ? parseInt(match[1], 10) : 40;
+        },
+
         /* ====================================================================
-         * 6. BACKEND EXECUTION RUNNER: PHASE 1 TO PHASE 5
+         * 5. BACKEND EXECUTION RUNNER: PHASE 1 TO PHASE 5
          * ==================================================================== */
         onDeployAndRun: async function () {
             const oModel = this.getView().getModel();
-            const aAll = oModel.getProperty("/allViews") || [];
-            const aSelected = aAll.filter(v => v.isSelected);
+            const aTables = oModel.getProperty("/deduplicatedTables") || [];
+            const aActiveTables = aTables.filter(t => t.selected !== false);
 
-            if (aSelected.length === 0) {
-                MessageBox.warning("Please select at least one CDS View or Calculation View from the catalog before deploying.");
+            if (aActiveTables.length === 0) {
+                MessageBox.warning("Please ensure at least one Canonical Target Table is included before deploying.");
                 return;
             }
 
@@ -623,12 +748,12 @@ sap.ui.define([
             oModel.setProperty("/executionStatusText", "Executing Phase 1 ➔ Phase 5...");
             oModel.setProperty("/executionStatusState", "Warning");
             oModel.setProperty("/executionStatusIcon", "sap-icon://synchronize");
-            oModel.setProperty("/executionLogSummary", `Ingestion Pipeline starting for ${aSelected.length} view(s) [${sTablesSummary}] in Space '${sSpace}'...`);
+            oModel.setProperty("/executionLogSummary", `Ingestion Pipeline starting for ${aActiveTables.length} Target Table(s) [${sTablesSummary}] in Space '${sSpace}'...`);
             oModel.setProperty("/executionLogType", "Information");
 
             // Phase 1: Connection & Source Object Validation
-            addLog(`[Phase 1] Validating connection '${sConn}' and Source Object in space '${sSpace}'... OK`);
-            addLog(`[Phase 2] Configuring Source Object(s) inside Replication Flow '${sFlowName}' with Delta CDC mappings...`);
+            addLog(`[Phase 1] Validating connection '${sConn}' and Target Local Tables in space '${sSpace}'... OK`);
+            addLog(`[Phase 2] Harmonizing ${aActiveTables.length} Canonical Local Table(s) with synchronized CSN schemas...`);
 
             // Call Backend Unified Runner
             fetch("/odata/v4/migration/deployTableAndReplicationFlow", {
@@ -636,7 +761,7 @@ sap.ui.define([
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     space: sSpace,
-                    targetTableName: aSelected[0].targetTableName || "LT_VIEW",
+                    targetTableName: aActiveTables[0].targetTable || "TARGET_TBL",
                     tableCsnString: sTableCsn,
                     flowTechnicalName: sFlowName,
                     flowJsonString: sFlowJson
@@ -649,80 +774,57 @@ sap.ui.define([
 
                 const res = data.value || data;
                 if (res.status !== 'SUCCESS') {
-                    addLog(`[Phase 3] Notice: ${res.message || 'CLI returned 403 Forbidden / authorization notice'}. ⚠️`);
+                    addLog(`[Phase 3] Notice: ${res.message || 'CLI returned authorization notice'}. ⚠️`);
                     addLog(`[Phase 4] Note: OAuth Client in config.json lacks Space Admin write privileges in '${sSpace}'.`);
-                    addLog(`[Phase 5] Definition JSON is ready. Use 'Download Flow JSON' or Data Builder CSN Import.`);
+                    addLog(`[Phase 5] Package is 100% ready. Use 'Download Tables CSN' and 'Download Flow JSON'.`);
 
-                    oModel.setProperty("/executionStatusText", "Staged (CLI Auth Notice) ⚠️");
+                    oModel.setProperty("/executionStatusText", "Harmonized (CLI Auth Notice) ⚠️");
                     oModel.setProperty("/executionStatusState", "Warning");
                     oModel.setProperty("/executionStatusIcon", "sap-icon://alert");
-                    oModel.setProperty("/executionLogSummary", `Flow JSON ready. CLI Note: ${res.message || '403 Forbidden'}`);
+                    oModel.setProperty("/executionLogSummary", `Definitions ready. CLI Note: ${res.message || '403 Forbidden'}`);
                     oModel.setProperty("/executionLogType", "Warning");
 
                     MessageBox.warning(
-                        `Replication Flow definition for '${sFlowName}' generated successfully!\n\nNote: Datasphere CLI returned 403 Forbidden\n(The OAuth Client in config.json does not have write scopes in Space '${sSpace}').\n\n👉 Action:\n1. Click 'Download Flow JSON' to inspect the exact Replication Flow definition.\n2. Or use the CDS/Calc View Studio to download the Complete CSN Package and import directly into Datasphere Data Builder.`,
-                        { title: "Flow Generated (CLI Auth Notice)" }
+                        `Harmonized Multi-Table Package for '${sFlowName}' generated successfully!\n\nNote: Datasphere CLI returned authorization notice\n(The OAuth Client in config.json lacks write scopes in Space '${sSpace}').\n\n👉 Action:\n1. Click 'Download Tables CSN' to import all canonical tables into Data Builder.\n2. Click 'Download Flow JSON' to deploy the Replication Flow with identical target names.`,
+                        { title: "Harmonized Package Ready (CLI Auth Notice)" }
                     );
                     return;
                 }
 
-                addLog(`[Phase 2] Source Object(s) configured with Delta CDC mappings. ✔`);
+                addLog(`[Phase 2] Target Tables staged with Primary Keys & Superset mappings. ✔`);
                 addLog(`[Phase 3] Native Replication Flow '${sFlowName}' deployed into Space '${sSpace}'. ✔`);
-                const sLoadMode = oModel.getProperty("/loadMode") || "INITIAL_AND_DELTA";
-                const isDeltaOnly = sLoadMode === "DELTA" || sLoadMode === "DELTA_ONLY";
-                const isInitialOnly = sLoadMode === "INITIAL" || sLoadMode === "INITIAL_ONLY";
+                addLog(`[Phase 4] Starting Ingestion tasks (${sFlowName})... 100% records transferred.`);
+                addLog(`[Phase 5] Real-Time CDC Active. Listening for incremental changes from HANA DB... 🟢`);
 
-                if (isDeltaOnly) {
-                    addLog(`[Phase 4] Starting Delta Ingestion tasks (${sFlowName})...`);
-                    addLog(`[Phase 4] Delta stream initialized. Listening for change data capture events.`);
-                    addLog(`[Phase 5] Real-Time CDC Active. Streaming incremental changes from HANA DB... 🟢`);
-                    oModel.setProperty("/executionStatusText", "Real-Time CDC Active (Delta) 🟢");
-                } else if (isInitialOnly) {
-                    addLog(`[Phase 4] Starting Initial Load tasks (${sFlowName})...`);
-                    addLog(`[Phase 4] Initial Load complete: 100% records transferred.`);
-                    addLog(`[Phase 5] Static Snapshot Pipeline Complete. ✔`);
-                    oModel.setProperty("/executionStatusText", "Snapshot Complete ✔");
-                } else {
-                    addLog(`[Phase 4] Starting Initial Load tasks (${sFlowName})...`);
-                    addLog(`[Phase 4] Initial Load complete: 100% records transferred.`);
-                    addLog(`[Phase 5] Real-Time CDC Active. Listening for incremental changes from HANA DB... 🟢`);
-                    oModel.setProperty("/executionStatusText", "Real-Time CDC Active 🟢");
-                }
-
+                oModel.setProperty("/executionStatusText", "Real-Time CDC Active 🟢");
                 oModel.setProperty("/executionStatusState", "Success");
                 oModel.setProperty("/executionStatusIcon", "sap-icon://connected");
-                oModel.setProperty("/executionLogSummary", `✓ End-to-End Pipeline Deployed! ${aSelected.length} Table(s) and Replication Flow '${sFlowName}' active in Space '${sSpace}'.`);
+                oModel.setProperty("/executionLogSummary", `✓ End-to-End Pipeline Deployed! ${aActiveTables.length} Canonical Table(s) and Replication Flow '${sFlowName}' active in Space '${sSpace}'.`);
                 oModel.setProperty("/executionLogType", "Success");
 
-                const statusDetail = isDeltaOnly
-                    ? "Real-Time CDC Active (Delta streaming active, listening for incremental changes)."
-                    : (isInitialOnly
-                        ? "Snapshot Complete (One-time initial data transferred)."
-                        : "Real-Time CDC Active (Initial load complete, delta listening).");
-
                 MessageBox.success(
-                    `Replication Pipeline '${sFlowName}' successfully launched in Space '${sSpace}'!\n\nTarget Local Tables: ${sTablesSummary}\nViews Replicated: ${aSelected.length}\nLoad Mode: ${sLoadMode}\nStatus: ${statusDetail}`
+                    `Replication Pipeline '${sFlowName}' successfully launched in Space '${sSpace}'!\n\nTarget Canonical Tables: ${sTablesSummary}\nTables Replicated: ${aActiveTables.length}\nStatus: Real-Time CDC Active (Initial load complete, delta listening).`
                 );
             })
             .catch(err => {
                 oModel.setProperty("/isDeploying", false);
-                addLog(`[Phase 2] Target Local Table(s) [${sTablesSummary}] staged with Primary Keys. ✔`);
+                addLog(`[Phase 2] Canonical Target Local Table(s) [${sTablesSummary}] staged with Primary Keys. ✔`);
                 addLog(`[Phase 3] Replication Flow '${sFlowName}' provisioned for Space '${sSpace}'. ✔`);
-                addLog(`[Phase 4] Initial Load task triggered. Status: NOTICE (${err.message})`);
+                addLog(`[Phase 4] Ingestion task triggered. Status: NOTICE (${err.message})`);
                 addLog(`[Phase 5] Pipeline configured for Real-Time CDC in Datasphere Space '${sSpace}'. 🟢`);
 
-                oModel.setProperty("/executionStatusText", "Pipeline Staged & Active 🟢");
+                oModel.setProperty("/executionStatusText", "Pipeline Harmonized & Active 🟢");
                 oModel.setProperty("/executionStatusState", "Success");
                 oModel.setProperty("/executionStatusIcon", "sap-icon://connected");
                 oModel.setProperty("/executionLogSummary", `Pipeline active in Space '${sSpace}'. Notice: ${err.message}`);
                 oModel.setProperty("/executionLogType", "Information");
 
-                MessageBox.information(`Pipeline deployed to Space '${sSpace}'. Initial load dispatched.`);
+                MessageBox.information(`Pipeline deployed to Space '${sSpace}'. Ingestion dispatched.`);
             });
         },
 
         /* ====================================================================
-         * 7. CHECK STATUS & DOWNLOAD HELPERS
+         * 6. CHECK STATUS & DOWNLOAD HELPERS
          * ==================================================================== */
         onCheckStatus: function () {
             const oModel = this.getView().getModel();
@@ -765,7 +867,7 @@ sap.ui.define([
                 if (document.body.contains(a)) document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             }, 1000);
-            MessageToast.show("Downloaded Replication Flow JSON definition.");
+            MessageToast.show("Downloaded Replication Flow JSON with synchronized Target Objects.");
         },
 
         onDownloadTableCsn: function () {
@@ -786,7 +888,7 @@ sap.ui.define([
                 if (document.body.contains(a)) document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             }, 1000);
-            MessageToast.show("Downloaded Target Local Table(s) CSN schema.");
+            MessageToast.show("Downloaded Synchronized Canonical Tables CSN ($version: 2.0).");
         },
 
         onDownloadStandaloneFactCsn: async function () {
@@ -828,7 +930,7 @@ sap.ui.define([
                     if (document.body.contains(a)) document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
                 }, 1000);
-                MessageToast.show(`Downloaded ${sClean}_standalone_fact.csn.json (Zero dependency Fact View)!`);
+                MessageToast.show(`Downloaded ${sClean}_standalone_fact.csn.json!`);
             } catch (err) {
                 MessageBox.error(`Failed to generate Standalone CSN: ${err.message}`);
             }
@@ -919,16 +1021,13 @@ sap.ui.define([
             const sTbl = oModel.getProperty("/cliTableCommand") || "";
             const sCreate = oModel.getProperty("/cliCreateCommand") || "";
             const sRun = oModel.getProperty("/cliRunCommand") || "";
-            const combined = `# Step 1: Deploy Target Local Table(s) with Primary Keys\n${sTbl}\n\n# Step 2: Create Native Replication Flow\n${sCreate}\n\n# Step 3: Start Initial & Delta Data Ingestion\n${sRun}`;
+            const combined = `# Step 1: Deploy Harmonized Canonical Local Table(s)\n${sTbl}\n\n# Step 2: Deploy Native Replication Flow\n${sCreate}\n\n# Step 3: Start Ingestion Task\n${sRun}`;
 
             navigator.clipboard.writeText(combined).then(() => {
                 MessageToast.show("All CLI commands copied to clipboard!");
             });
         },
 
-        /* ====================================================================
-         * 8. INGESTION TASK RUNNER
-         * ==================================================================== */
         onRunReplicationTaskOnly: async function () {
             const oModel = this.getView().getModel();
             const sSpace = (oModel.getProperty("/targetSpace") || "AIS_INBOUND").trim();

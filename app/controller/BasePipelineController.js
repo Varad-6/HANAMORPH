@@ -225,12 +225,62 @@ sap.ui.define([
         },
 
         onTableSelectionChange: function (oEvent) {
+            const oTable = oEvent.getSource();
+            const aSelectedItems = oTable.getSelectedItems ? oTable.getSelectedItems() : [];
+            const oModel = this.getView().getModel();
+
+            const aSelectedViews = aSelectedItems.map(item => {
+                const ctx = item.getBindingContext();
+                return ctx ? ctx.getObject() : null;
+            }).filter(Boolean);
+
+            oModel.setProperty("/selectedViews", aSelectedViews);
+            oModel.setProperty("/selectedViewsCount", aSelectedViews.length);
+
             const oSelectedItem = oEvent.getParameter("listItem");
-            if (!oSelectedItem) return;
-            const oContext = oSelectedItem.getBindingContext();
-            if (!oContext) return;
-            const sViewName = oContext.getProperty("name");
-            this._selectView(sViewName);
+            if (oSelectedItem && oSelectedItem.getBindingContext()) {
+                const sViewName = oSelectedItem.getBindingContext().getProperty("name");
+                this._selectView(sViewName);
+            } else if (aSelectedViews.length > 0) {
+                this._selectView(aSelectedViews[aSelectedViews.length - 1].name);
+            } else {
+                oModel.setProperty("/hasViewSelected", false);
+                oModel.setProperty("/selectedViewName", "");
+            }
+        },
+
+        onSelectAllCdsViews: function () {
+            const oTable = this.byId("viewsResultTable");
+            if (!oTable) return;
+            oTable.selectAll();
+            const aItems = oTable.getItems() || [];
+            const aSelectedViews = aItems.map(item => {
+                const ctx = item.getBindingContext();
+                return ctx ? ctx.getObject() : null;
+            }).filter(Boolean);
+
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/selectedViews", aSelectedViews);
+            oModel.setProperty("/selectedViewsCount", aSelectedViews.length);
+            if (aSelectedViews.length > 0) {
+                this._selectView(aSelectedViews[0].name);
+            }
+        },
+
+        onDeselectAllCdsViews: function () {
+            const oTable = this.byId("viewsResultTable");
+            if (!oTable) return;
+            oTable.removeSelections(true);
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/selectedViews", []);
+            oModel.setProperty("/selectedViewsCount", 0);
+            oModel.setProperty("/hasViewSelected", false);
+            oModel.setProperty("/selectedViewName", "");
+        },
+
+        onOpenInReplicationStudio: function () {
+            const oRouter = this.getOwnerComponent().getRouter();
+            oRouter.navTo("replication");
         },
 
         onImportViews: function () {

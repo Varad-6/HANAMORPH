@@ -26,7 +26,18 @@ class ExtractService {
             sqlViewName = view?.sqlViewName || viewName;
             preloadedCols = view?.columns;
         } else {
-            ddl = await hanaConnector.getCdsViewDefinition(viewName);
+            try {
+                ddl = await hanaConnector.getCdsViewDefinition(viewName);
+            } catch (err) {
+                const view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+                if (view?.sqlDdl) {
+                    ddl = view.sqlDdl;
+                    sqlViewName = view.sqlViewName || viewName;
+                    preloadedCols = view.columns;
+                } else {
+                    throw err;
+                }
+            }
         }
 
         if (!ddl) {
@@ -37,17 +48,16 @@ class ExtractService {
         if (preloadedCols && preloadedCols.length > 0) {
             model.columns = preloadedCols;
         }
-        if (config.USE_MOCK) {
-            const view = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
-            if (view?.dependencies) {
-                model.dependencies = view.dependencies;
-                if ((!model.sources || model.sources.length === 0) && view.dependencies.length > 0) {
-                    model.sources = view.dependencies.map(d => ({
-                        tableName: d.BASE_OBJECT_NAME,
-                        alias: '',
-                        isBase: true
-                    }));
-                }
+        
+        const catalogView = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+        if (catalogView?.dependencies) {
+            model.dependencies = catalogView.dependencies;
+            if ((!model.sources || model.sources.length === 0) && catalogView.dependencies.length > 0) {
+                model.sources = catalogView.dependencies.map(d => ({
+                    tableName: d.BASE_OBJECT_NAME,
+                    alias: '',
+                    isBase: true
+                }));
             }
         }
         return model;
@@ -64,7 +74,13 @@ class ExtractService {
             const view = EXTENDED_CATALOG.find(v => v.name === viewName);
             xmlDef = view?.xmlDefinition;
         } else {
-            xmlDef = await hanaConnector.getCalcViewXml(viewName);
+            try {
+                xmlDef = await hanaConnector.getCalcViewXml(viewName);
+            } catch (err) {
+                console.warn(`[extractCalc] HANA query failed for ${viewName}: ${err.message}. Falling back to extended catalog mock if available.`);
+                const view = EXTENDED_CATALOG.find(v => v.name === viewName);
+                xmlDef = view?.xmlDefinition;
+            }
         }
 
         if (!xmlDef) {

@@ -7,7 +7,7 @@
     xmlns:form="sap.ui.layout.form">
     <Page
         id="replicationStudioPage"
-        title="Replication Flow Studio (Source Object ➔ SAP Datasphere Ingestion)"
+        title="Replication Flow Studio (Deduplication &amp; Multi-Object Target Harmonization)"
         showNavButton="true"
         navButtonPress=".onNavBack"
         enableScrolling="true">
@@ -23,33 +23,33 @@
                 <VBox width="96%" class="sapUiResponsiveMargin">
                     
                     <!-- Overview Banner & Visual Step Roadmap -->
-                    <Panel headerText="Source Object Ingestion Pipeline (Connection: S4HANA_SOURCE ➔ Space: AIS_INBOUND)" expandable="false" class="sapUiSmallMarginBottom">
+                    <Panel headerText="Automated Harmonization &amp; Data Pipeline (From S/4HANA ➔ To SAP Datasphere: {/targetSpace})" expandable="false" class="sapUiSmallMarginBottom">
                         <content>
                             <VBox class="sapUiSmallMargin">
                                 <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
-                                    <ObjectStatus text="Step 1: Source Object (HANA DB)" state="Information" icon="sap-icon://source-code" class="sapUiSmallMarginEnd sapUiBold" />
+                                    <ObjectStatus text="Step 1: Pick Source Objects" state="Information" icon="sap-icon://source-code" class="sapUiSmallMarginEnd sapUiBold" />
                                     <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiSmallMarginEnd text-muted" />
-                                    <ObjectStatus text="Step 2: Source Columns &amp; Delta Keys" state="Information" icon="sap-icon://table-view" class="sapUiSmallMarginEnd sapUiBold" />
+                                    <ObjectStatus text="Step 2: Remove Duplicates &amp; Name Target Tables" state="Information" icon="sap-icon://chain-link" class="sapUiSmallMarginEnd sapUiBold" />
                                     <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiSmallMarginEnd text-muted" />
-                                    <ObjectStatus text="Step 3: Replication Flow Pipeline" state="Information" icon="sap-icon://process" class="sapUiSmallMarginEnd sapUiBold" />
+                                    <ObjectStatus text="Step 3: Review Columns &amp; Delta Keys" state="Information" icon="sap-icon://table-view" class="sapUiSmallMarginEnd sapUiBold" />
                                     <core:Icon src="sap-icon://navigation-right-arrow" class="sapUiSmallMarginEnd text-muted" />
-                                    <ObjectStatus text="Step 4: Deploy &amp; Real-Time Ingestion" state="Success" icon="sap-icon://begin" class="sapUiBold" />
+                                    <ObjectStatus text="Step 4: Download Files or Deploy Live" state="Success" icon="sap-icon://begin" class="sapUiBold" />
                                 </HBox>
-                                <Text text="Targeted Source Object Replication: Select the Source Object from S/4HANA (Connection: S4HANA_SOURCE), inspect its source metadata and delta keys, configure the native Replication Flow (Mode: DELTA / INITIAL_AND_DELTA), and deploy the Replication Flow directly to SAP Datasphere Space 'AIS_INBOUND'." class="text-muted" />
+                                <Text text="💡 How It Works in Simple Terms: When you pick views from S/4HANA, they often share the exact same underlying database tables (e.g., ACDOCA or BNKA). Instead of creating wasteful duplicate copies in Datasphere, HanaMorph finds the underlying tables, combines their fields into a single canonical table, and keeps the name 100% identical across the Table Blueprint (CSN) and the Data Pipeline (Replication Flow)." class="text-muted" />
                             </VBox>
                         </content>
                     </Panel>
 
                     <!-- STEP 1: SOURCE OBJECT SELECTION & METADATA EXPLORER -->
-                    <Panel headerText="Step 1: Source Object Explorer &amp; Selection (Connection: S4HANA_SOURCE)" expandable="false" class="sapUiSmallMarginBottom">
+                    <Panel headerText="Step 1: Select Source Views or Tables from S/4HANA" expandable="false" class="sapUiSmallMarginBottom">
                         <content>
                             <VBox busy="{/isViewsBusy}">
                                 <!-- Source Connection Indicator -->
                                 <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMarginBottom">
-                                    <Label text="Source Connection:" class="sapUiSmallMarginEnd sapUiBold" />
+                                    <Label text="Source Connection (S/4HANA):" class="sapUiSmallMarginEnd sapUiBold" />
                                     <Input value="{/sourceConnection}" width="220px" placeholder="S4HANA_SOURCE" change=".onConfigChange" class="sapUiMediumMarginEnd" />
-                                    <ObjectStatus text="Live S/4HANA Connection (SAPHANADB)" state="Success" icon="sap-icon://connected" class="sapUiMediumMarginEnd" />
-                                    <Label text="Extraction Space:" class="sapUiSmallMarginEnd sapUiBold" />
+                                    <ObjectStatus text="Connected to SAP S/4HANA DB" state="Success" icon="sap-icon://connected" class="sapUiMediumMarginEnd" />
+                                    <Label text="Target Space in Datasphere:" class="sapUiSmallMarginEnd sapUiBold" />
                                     <Input value="{/targetSpace}" width="180px" placeholder="AIS_INBOUND" change=".onConfigChange" />
                                 </HBox>
 
@@ -164,71 +164,126 @@
                                         </ColumnListItem>
                                     </items>
                                 </Table>
-
-                                <!-- Active Source Object Detail Summary Card -->
-                                <Panel headerText="{= 'Active Source Object Metadata: ' + ${/activeViewName} }" expandable="true" expanded="true" class="sapUiTinyMarginTop">
-                                    <content>
-                                        <HBox alignItems="Center" wrap="Wrap" class="sapUiSmallMargin">
-                                            <VBox width="280px" class="sapUiMediumMarginEnd sapUiTinyMarginBottom">
-                                                <Label text="Source Object Technical Name:" class="sapUiBold" />
-                                                <Text text="{/activeViewName}" class="sapUiMediumMarginTop text-primary sapUiBold" />
-                                            </VBox>
-                                            <VBox width="220px" class="sapUiMediumMarginEnd sapUiTinyMarginBottom">
-                                                <Label text="Extraction Mechanism:" class="sapUiBold" />
-                                                <ObjectStatus
-                                                    text="{= ${/activeViewType} === 'CDS' ? 'ABAP CDS Extraction' : 'Calculation View Extraction' }"
-                                                    state="{= ${/activeViewType} === 'CDS' ? 'Success' : 'Information' }"
-                                                    class="sapUiTinyMarginTop" />
-                                            </VBox>
-                                            <VBox width="220px" class="sapUiMediumMarginEnd sapUiTinyMarginBottom">
-                                                <Label text="Source Connection ID:" class="sapUiBold" />
-                                                <Text text="{/sourceConnection}" class="sapUiTinyMarginTop" />
-                                            </VBox>
-                                            <VBox width="220px" class="sapUiTinyMarginBottom">
-                                                <Label text="Source Schema Container:" class="sapUiBold" />
-                                                <Text text="SAPHANADB" class="sapUiTinyMarginTop" />
-                                            </VBox>
-                                        </HBox>
-                                    </content>
-                                </Panel>
                             </VBox>
                         </content>
                     </Panel>
 
-                    <!-- STEP 2: SOURCE OBJECT COLUMNS & DELTA KEYS PROJECTIONS -->
+                    <!-- STEP 2: DEDUPLICATED PHYSICAL TABLES & TARGET OBJECT MAPPING MATRIX -->
+                    <Panel
+                        id="deduplicatedTablesPanel"
+                        headerText="{= 'Step 2: Harmonized Target Tables in Datasphere (' + ${/deduplicatedTablesCount} + ' Unique Tables from ' + ${/selectedViewsCount} + ' Source Objects)' }"
+                        expandable="true"
+                        expanded="true"
+                        class="sapUiSmallMarginBottom">
+                        <content>
+                            <VBox busy="{/isDeduplicationBusy}">
+                                <Text text="🔍 No More Duplicate Tables: Instead of copying the same table multiple times (for example, creating 15 copies of ACDOCA), HanaMorph merges them into one single canonical table. You can edit the Target Table Technical Name and Business Label below — whatever name you type here is automatically matched in the CSN Table Blueprint and the Replication Flow pipeline." class="text-muted sapUiSmallMarginBottom" />
+
+                                <OverflowToolbar class="sapUiTinyMarginBottom">
+                                    <core:Icon src="sap-icon://chain-link" color="#0070f2" class="sapUiSmallMarginEnd" />
+                                    <Title text="Target Tables List (What will be created in Datasphere)" level="H5" />
+                                    <ToolbarSpacer />
+                                    <ObjectStatus
+                                        text="{= ${/deduplicatedTablesCount} + ' Unique Table(s) to Create | ' + ${/deduplicatedOverlapsCount} + ' Duplicate(s) Saved' }"
+                                        state="{= ${/deduplicatedOverlapsCount} > 0 ? 'Success' : 'Information' }"
+                                        icon="sap-icon://accelerated"
+                                        class="sapUiSmallMarginEnd sapUiBold" />
+                                    <Button text="Re-analyze Tables" icon="sap-icon://synchronize" press=".onReanalyzeDeduplication" />
+                                </OverflowToolbar>
+
+                                <Table
+                                    id="deduplicatedTablesTable"
+                                    items="{/deduplicatedTables}"
+                                    growing="true"
+                                    growingThreshold="30"
+                                    noDataText="Select one or more source objects in Step 1 to detect physical base tables.">
+                                    <columns>
+                                        <Column width="50px" hAlign="Center"><Text text="Include" /></Column>
+                                        <Column width="160px"><Text text="Original Source Table" /></Column>
+                                        <Column width="250px"><Text text="Datasphere Table Technical Name" /></Column>
+                                        <Column width="250px"><Text text="Friendly Business Description" /></Column>
+                                        <Column width="220px"><Text text="Used by These Views" /></Column>
+                                        <Column width="100px"><Text text="Total Fields" /></Column>
+                                        <Column width="170px"><Text text="How to Load Data" /></Column>
+                                        <Column width="140px" hAlign="Center"><Text text="View Fields" /></Column>
+                                    </columns>
+                                    <items>
+                                        <ColumnListItem>
+                                            <cells>
+                                                <CheckBox selected="{selected}" select=".onDeduplicatedTableSelectChange" tooltip="Include this table in the package" />
+                                                <HBox alignItems="Center">
+                                                    <core:Icon src="sap-icon://database" class="sapUiTinyMarginEnd" color="#107e3e" />
+                                                    <VBox>
+                                                        <Text text="{sourceTable}" class="sapUiBold" />
+                                                        <ObjectStatus text="{= ${category} === 'MasterData' ? 'Master Data' : 'Transactional Data' }" state="{= ${category} === 'MasterData' ? 'Information' : 'Warning' }" class="sapUiTinyMarginTop" />
+                                                    </VBox>
+                                                </HBox>
+                                                <VBox>
+                                                    <Input value="{targetTable}" change=".onTargetTableNameChange" placeholder="e.g. ACDOCA_TBL" tooltip="Technical ID inside Datasphere. Synced 100% with CSN and Flow JSON." />
+                                                    <Text text="Same name used in CSN and Replication Flow" class="text-muted sapUiTinyMarginTop" />
+                                                </VBox>
+                                                <VBox>
+                                                    <Input value="{businessName}" change=".onTargetBusinessNameChange" placeholder="e.g. Accounting Ledger Records" />
+                                                </VBox>
+                                                <VBox>
+                                                    <ObjectStatus
+                                                        text="{= ${isDeduplicated} ? (${referencingViewCount} + ' Views (Harmonized ⚡)') : (${referencingViewCount} + ' View') }"
+                                                        state="{= ${isDeduplicated} ? 'Success' : 'None' }"
+                                                        icon="{= ${isDeduplicated} ? 'sap-icon://chain-link' : 'sap-icon://document' }"
+                                                        class="sapUiBold" />
+                                                    <Text text="{referencingViewsSummary}" class="text-muted sapUiTinyMarginTop" maxLines="2" />
+                                                </VBox>
+                                                <ObjectStatus text="{= ${columnCount} + ' fields' }" state="None" />
+                                                <Select selectedKey="{loadType}" change=".onTableLoadTypeChange">
+                                                    <core:Item key="InitialAndDelta" text="⚡ Initial Snapshot + Live Changes (CDC)" />
+                                                    <core:Item key="Initial" text="📦 One-Time Copy (Initial Only)" />
+                                                    <core:Item key="Delta" text="🔄 Changes Only (Delta)" />
+                                                </Select>
+                                                <Button
+                                                    text="{= ${sourceTable} === ${/activeDeduplicatedTable} ? 'Viewing 🔍' : 'View Fields 🔍' }"
+                                                    icon="sap-icon://search"
+                                                    type="{= ${sourceTable} === ${/activeDeduplicatedTable} ? 'Emphasized' : 'Default' }"
+                                                    press=".onInspectDeduplicatedTablePress" />
+                                            </cells>
+                                        </ColumnListItem>
+                                    </items>
+                                </Table>
+                            </VBox>
+                        </content>
+                    </Panel>
+
+                    <!-- STEP 3: SUPERSET COLUMN DRILLDOWN & DELTA KEY HARMONIZATION -->
                     <Panel
                         id="columnsPanel"
-                        headerText="{= 'Step 2: Source Object Fields &amp; Delta Keys: \'' + ${/activeViewName} + '\'' }"
-                        expandable="false"
+                        headerText="{= 'Step 3: Table Fields &amp; Change Tracking Keys: \'' + ${/activeDeduplicatedTable} + '\' ➔ \'' + ${/activeDeduplicatedTargetTable} + '\'' }"
+                        expandable="true"
+                        expanded="true"
                         class="sapUiSmallMarginBottom">
                         <content>
                             <VBox busy="{/isColumnsBusy}">
-                                <Text text="Select which fields to extract from Source Object '{/activeViewName}'. Ensure Primary Keys are set to identify records for real-time Delta CDC change data capture." class="text-muted sapUiSmallMarginBottom" />
+                                <Text text="Combined Fields (Superset): These are all the fields merged from every view that uses '{/activeDeduplicatedTable}'. The 'Delta Key' switch tells SAP Datasphere which columns uniquely identify each record so it can automatically track and replicate new or modified rows in real time." class="text-muted sapUiSmallMarginBottom" />
 
                                 <OverflowToolbar class="sapUiTinyMarginBottom">
-                                    <core:Icon
-                                        src="{= ${/activeViewType} === 'CDS' ? 'sap-icon://table-view' : 'sap-icon://dimension' }"
-                                        class="sapUiSmallMarginEnd"
-                                        color="{= ${/activeViewType} === 'CDS' ? '#107e3e' : '#0070f2' }" />
-                                    <Title text="{= 'Source Object: ' + ${/activeViewName} }" level="H5" />
+                                    <core:Icon src="sap-icon://table-view" class="sapUiSmallMarginEnd" color="#0070f2" />
+                                    <Title text="{= 'Table: ' + ${/activeDeduplicatedTable} + ' (Datasphere Name: ' + ${/activeDeduplicatedTargetTable} + ')' }" level="H5" />
                                     <ToolbarSpacer />
                                     <ObjectStatus
-                                        text="{= ${/activeViewSelectedColumnCount} + ' of ' + ${/activeViewTotalColumnCount} + ' Source Fields Extracted (' + ${/activeViewKeyColumnCount} + ' Delta Keys)' }"
-                                        state="{= ${/activeViewKeyColumnCount} > 0 ? 'Success' : 'Warning' }"
+                                        text="{= ${/activeTableSelectedColumnCount} + ' of ' + ${/activeTableTotalColumnCount} + ' Fields Extracted (' + ${/activeTableKeyColumnCount} + ' Change Tracking Keys)' }"
+                                        state="{= ${/activeTableKeyColumnCount} > 0 ? 'Success' : 'Warning' }"
                                         class="sapUiSmallMarginEnd sapUiBold" />
-                                    <Button text="Select All Fields" icon="sap-icon://multiselect-all" press=".onSelectAllColumns" />
-                                    <Button text="Keys &amp; Measures Only" icon="sap-icon://key" press=".onSelectKeysOnly" />
-                                    <Button text="Reset Fields" icon="sap-icon://reset" press=".onResetColumns" />
+                                    <Button text="Select All Fields" icon="sap-icon://multiselect-all" press=".onSelectAllTableColumns" />
+                                    <Button text="Keys &amp; Measures Only" icon="sap-icon://key" press=".onSelectKeysOnlyTableColumns" />
+                                    <Button text="Reset Fields" icon="sap-icon://reset" press=".onResetTableColumns" />
                                 </OverflowToolbar>
 
-                                <Table id="columnsTable" items="{/columns}" growing="true" growingThreshold="60" noDataText="Click 'Inspect 🔍' on any Source Object above to load its fields.">
+                                <Table id="columnsTable" items="{/activeTableColumns}" growing="true" growingThreshold="60" noDataText="Click 'View Fields 🔍' on any table in Step 2 to inspect its columns.">
                                     <columns>
-                                        <Column width="75px" hAlign="Center"><Text text="Extract" /></Column>
-                                        <Column width="260px"><Text text="Source Field (HANA)" /></Column>
-                                        <Column width="240px"><Text text="Target Local Column" /></Column>
-                                        <Column width="180px"><Text text="Source Data Type" /></Column>
+                                        <Column width="75px" hAlign="Center"><Text text="Include" /></Column>
+                                        <Column width="260px"><Text text="Original Field Name (HANA)" /></Column>
+                                        <Column width="240px"><Text text="Datasphere Column Name" /></Column>
+                                        <Column width="180px"><Text text="Data Type" /></Column>
                                         <Column width="150px" hAlign="Center"><Text text="Delta Key (isKey)" /></Column>
-                                        <Column><Text text="Delta CDC Ingestion Rule" /></Column>
+                                        <Column><Text text="Change Tracking Role" /></Column>
                                     </columns>
                                     <items>
                                         <ColumnListItem>
@@ -239,7 +294,7 @@
                                                 <ObjectStatus text="{dataType}" state="None" />
                                                 <Switch state="{isKey}" change=".onKeySwitchChange" customTextOn="KEY" customTextOff="-" />
                                                 <ObjectStatus
-                                                    text="{= ${isKey} ? 'Primary Key: Identifies changed records for Delta CDC' : 'Attribute field' }"
+                                                    text="{= ${isKey} ? 'Primary Key: Identifies row updates in real time' : 'Standard field' }"
                                                     state="{= ${isKey} ? 'Success' : 'None' }" />
                                             </cells>
                                         </ColumnListItem>
@@ -249,8 +304,8 @@
                         </content>
                     </Panel>
 
-                    <!-- STEP 3: CONFIGURE REPLICATION FLOW (BINDS SOURCE OBJECT ➔ DATASPHERE) -->
-                    <Panel headerText="Step 3: Native Replication Flow Configuration (Binds Source Object ➔ AIS_INBOUND)" expandable="false" class="sapUiSmallMarginBottom">
+                    <!-- STEP 4: CONFIGURE REPLICATION FLOW (BINDS SOURCE OBJECT ➔ DATASPHERE) -->
+                    <Panel headerText="Step 4: Package &amp; Download (Table Schemas &amp; Replication Pipeline)" expandable="false" class="sapUiSmallMarginBottom">
                         <content>
                             <VBox>
                                 <form:SimpleForm
@@ -258,14 +313,14 @@
                                     layout="ResponsiveGridLayout"
                                     labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12">
                                     <form:content>
-                                        <Label text="Replication Flow Technical Name" required="true" />
+                                        <Label text="Data Pipeline Name (Replication Flow)" required="true" />
                                         <Input value="{/flowTechnicalName}" placeholder="RF_INBOUND_PIPELINE" change=".onConfigChange" />
 
-                                        <Label text="Replication Load Mode" required="true" />
+                                        <Label text="Default Replication Mode" required="true" />
                                         <Select selectedKey="{/loadMode}" change=".onLoadModeChange">
-                                            <core:Item key="DELTA" text="🔄 DELTA (Delta Only - Incremental Changes Only)" />
-                                            <core:Item key="INITIAL_AND_DELTA" text="⚡ INITIAL_AND_DELTA (Initial Snapshot + Real-Time CDC)" />
-                                            <core:Item key="INITIAL" text="📦 INITIAL (Initial Only - Static Snapshot)" />
+                                            <core:Item key="INITIAL_AND_DELTA" text="⚡ INITIAL_AND_DELTA (Copy All Data + Stream Live Changes)" />
+                                            <core:Item key="INITIAL" text="📦 INITIAL (One-Time Static Snapshot)" />
+                                            <core:Item key="DELTA" text="🔄 DELTA (Stream Incremental Changes Only)" />
                                         </Select>
                                     </form:content>
                                 </form:SimpleForm>
@@ -273,11 +328,11 @@
                                 <!-- Action Toolbar -->
                                 <Toolbar class="sapUiSmallMarginTop">
                                     <Button
-                                        text="Generate Definitions"
+                                        text="⚡ Generate Package"
                                         icon="sap-icon://syntax"
                                         type="Emphasized"
                                         press=".onGenerateDefinitions"
-                                        class="sapUiSmallMarginEnd" />
+                                        class="sapUiSmallMarginEnd sapUiBold" />
                                     <Button
                                         text="📦 Download Tables CSN (.csn.json)"
                                         icon="sap-icon://download"
@@ -285,29 +340,30 @@
                                         press=".onDownloadTableCsn"
                                         class="sapUiSmallMarginEnd sapUiBold"
                                         enabled="{/hasGenerated}"
-                                        tooltip="Native CSN schema for Data Builder -> Import Objects from CSN/JSON File" />
+                                        tooltip="Downloads the Table Blueprint (CSN file). Import this into SAP Datasphere Data Builder to create the local tables." />
+                                    <Button
+                                        text="🌊 Download Flow JSON (.replicationFlow.json)"
+                                        icon="sap-icon://attachment"
+                                        press=".onDownloadFlowJson"
+                                        class="sapUiSmallMarginEnd sapUiBold"
+                                        enabled="{/hasGenerated}"
+                                        tooltip="Downloads the Replication Flow pipeline definition. Uses the exact same table names as the CSN file." />
                                     <Button
                                         text="🧊 Download Standalone Fact CSN (.json)"
                                         icon="sap-icon://cube"
-                                        type="Emphasized"
+                                        type="Default"
                                         press=".onDownloadStandaloneFactCsn"
-                                        class="sapUiSmallMarginEnd sapUiBold"
-                                        tooltip="Direct #CUBE Fact View with zero dependencies for Data Builder -> Import Objects from CSN/JSON File" />
-                                    <Button
-                                        text="Download Flow JSON"
-                                        icon="sap-icon://attachment"
-                                        press=".onDownloadFlowJson"
                                         class="sapUiSmallMarginEnd"
-                                        enabled="{/hasGenerated}" />
+                                        tooltip="Downloads ready-to-use Fact View without base table dependencies." />
                                     <Button
                                         text="📋 Copy View SQL"
                                         icon="sap-icon://syntax"
-                                        type="Emphasized"
+                                        type="Default"
                                         press=".onCopyActiveViewSql"
-                                        class="sapUiSmallMarginEnd sapUiBold"
-                                        tooltip="Copy Pure SELECT SQL statement for Datasphere New SQL View" />
+                                        class="sapUiSmallMarginEnd"
+                                        tooltip="Copy Pure SELECT SQL statement to paste directly into Datasphere New SQL View" />
                                     <Button
-                                        text="Copy CLI Command"
+                                        text="📋 Copy CLI Commands"
                                         icon="sap-icon://copy"
                                         press=".onCopyCliCommands"
                                         class="sapUiSmallMarginEnd"
@@ -317,8 +373,8 @@
                         </content>
                     </Panel>
 
-                    <!-- STEP 4: DEPLOY REPLICATION FLOW & LIVE INGESTION -->
-                    <Panel headerText="Step 4: Deploy Replication Flow &amp; Start Ingestion in Datasphere (Phase 1 ➔ Phase 5)" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                    <!-- STEP 5: DEPLOY REPLICATION FLOW & LIVE INGESTION -->
+                    <Panel headerText="Step 5: Deploy Replication Flow &amp; Start Ingestion in Datasphere (Phase 1 ➔ Phase 5)" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
                         <content>
                             <VBox class="sapUiSmallMargin">
                                 <!-- Trigger Buttons -->
@@ -361,8 +417,8 @@
                                     <Label text="Target Space:" class="sapUiSmallMarginEnd" />
                                     <ObjectStatus text="{/targetSpace}" state="Information" class="sapUiMediumMarginEnd" />
 
-                                    <Label text="Selected Source Objects:" class="sapUiSmallMarginEnd" />
-                                    <ObjectStatus text="{= ${/selectedViewsCount} + ' Objects' }" state="Success" class="sapUiMediumMarginEnd" />
+                                    <Label text="Canonical Target Tables:" class="sapUiSmallMarginEnd" />
+                                    <ObjectStatus text="{= ${/deduplicatedTablesCount} + ' Tables' }" state="Success" class="sapUiMediumMarginEnd" />
 
                                     <Label text="Flow:" class="sapUiSmallMarginEnd" />
                                     <ObjectStatus text="{/flowTechnicalName}" state="None" />
@@ -387,7 +443,7 @@
                         </content>
                     </Panel>
 
-                    <!-- SECTION 5: ARTIFACT PREVIEWS (TABS) -->
+                    <!-- SECTION 6: ARTIFACT PREVIEWS (TABS) -->
                     <Panel headerText="Generated Native Datasphere Payloads &amp; CLI Commands" expandable="true" expanded="false">
                         <content>
                             <IconTabBar headerMode="Inline" expandable="false">
@@ -398,13 +454,23 @@
                                             rows="15"
                                             width="100%"
                                             editable="false"
-                                            placeholder="Generated Replication Flow JSON with Source Object definitions..." />
+                                            placeholder="Generated Replication Flow JSON with Target Object definitions..." />
+                                    </IconTabFilter>
+                                    <IconTabFilter text="Target Tables CSN JSON" icon="sap-icon://table-view">
+                                        <TextArea
+                                            value="{/tableCsnString}"
+                                            rows="15"
+                                            width="100%"
+                                            editable="false"
+                                            placeholder="Generated Target Tables CSN JSON with synchronized table definitions..." />
                                     </IconTabFilter>
                                     <IconTabFilter text="Datasphere CLI Commands" icon="sap-icon://command-line-interfaces">
                                         <VBox class="sapUiSmallMargin">
-                                            <Label text="1. Create Native Replication Flow (With Source Object):" class="sapUiBold" />
+                                            <Label text="1. Create Target Local Tables via CLI:" class="sapUiBold" />
+                                            <TextArea value="{/cliTableCommand}" rows="4" width="100%" editable="false" class="sapUiSmallMarginBottom sapUiCode" />
+                                            <Label text="2. Create Native Replication Flow via CLI:" class="sapUiBold" />
                                             <Input value="{/cliCreateCommand}" editable="false" class="sapUiSmallMarginBottom" />
-                                            <Label text="2. Start Real-Time Data Ingestion Task:" class="sapUiBold" />
+                                            <Label text="3. Start Real-Time Data Ingestion Task:" class="sapUiBold" />
                                             <Input value="{/cliRunCommand}" editable="false" />
                                         </VBox>
                                     </IconTabFilter>

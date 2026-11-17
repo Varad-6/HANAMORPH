@@ -98,6 +98,41 @@ service MigrationService {
         cliCommand       : LargeString;
     }
 
+    type DeduplicatedTableColumn : {
+        sourceName  : String;
+        targetName  : String;
+        targetLabel : String;
+        dataType    : String;
+        isKey       : Boolean;
+        isMeasure   : Boolean;
+    }
+
+    type DeduplicatedTableSummary : {
+        sourceTable          : String;
+        targetTable          : String;
+        businessName         : String;
+        category             : String;
+        loadType             : String;
+        referencingViews     : array of String;
+        referencingViewCount : Integer;
+        columnCount          : Integer;
+        columns              : array of DeduplicatedTableColumn;
+        isDeduplicated       : Boolean;
+    }
+
+    type DeduplicatedReplicationPackageResult : {
+        flowName                  : String;
+        space                     : String;
+        sourceConnection          : String;
+        tableCount                : Integer;
+        taskCount                 : Integer;
+        targetTablesCsn           : LargeString;
+        replicationFlowJsonString : LargeString;
+        cliDeployFlowCommand      : LargeString;
+        cliDeployTablesCommand    : LargeString;
+        tables                    : array of DeduplicatedTableSummary;
+    }
+
     // Live Fast Search Query across 120k+ Views
     function searchViews(
         query     : String,
@@ -128,6 +163,19 @@ service MigrationService {
     action rationalizeSources(
         viewNames : array of String
     ) returns RationalizationReport;
+
+    action extractAndDeduplicateTables(
+        viewNames : array of String
+    ) returns array of DeduplicatedTableSummary;
+
+    action generateDeduplicatedReplicationPackage(
+        viewNames          : array of String,
+        space              : String,
+        sourceConnection   : String,
+        flowName           : String,
+        flowDescription    : String,
+        tableOverridesJson : LargeString
+    ) returns DeduplicatedReplicationPackageResult;
 
     action generateBulkArtifacts(
         viewNames              : array of String,

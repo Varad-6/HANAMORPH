@@ -94,22 +94,27 @@
                                                         </VBox>
                                                     </HBox>
 
-                                                    <!-- Live Results Table (Top 50-80 matches) -->
+                                                    <!-- Live Results Table (Multiple Selection Enabled) -->
                                                     <Table
                                                         id="viewsResultTable"
                                                         items="{/views}"
-                                                        mode="SingleSelectMaster"
+                                                        mode="MultiSelect"
                                                         selectionChange=".onTableSelectionChange"
                                                         noDataText="No views found. Enter a keyword above to search live in S/4HANA (HDD)."
                                                         growing="true"
                                                         growingThreshold="20"
                                                         class="sapUiSmallMarginBottom">
                                                         <headerToolbar>
-                                                            <Toolbar>
+                                                            <OverflowToolbar>
                                                                 <Title text="Matching CDS Entities ({= ${/views} ? ${/views}.length : 0 })" level="H5" />
                                                                 <ToolbarSpacer />
-                                                                <Text text="Select a row to inspect and prepare for migration" class="text-muted" />
-                                                            </Toolbar>
+                                                                <ObjectStatus
+                                                                    text="{= ${/selectedViewsCount} > 0 ? (${/selectedViewsCount} + ' CDS Views Selected') : 'Select one or more views' }"
+                                                                    state="{= ${/selectedViewsCount} > 0 ? 'Success' : 'None' }"
+                                                                    class="sapUiSmallMarginEnd sapUiBold" />
+                                                                <Button text="Select All" icon="sap-icon://multiselect-all" press=".onSelectAllCdsViews" />
+                                                                <Button text="Deselect All" icon="sap-icon://clear-all" press=".onDeselectAllCdsViews" />
+                                                            </OverflowToolbar>
                                                         </headerToolbar>
                                                         <columns>
                                                             <Column width="35%">
@@ -172,9 +177,15 @@
 
                                         <!-- Step 1 Navigation Footer -->
                                         <Toolbar class="sapUiSmallMarginTop">
+                                            <Button
+                                                text="Open in Replication Studio (Deduplication) ➔"
+                                                icon="sap-icon://chain-link"
+                                                type="Default"
+                                                visible="{= ${/selectedViewsCount} > 1 }"
+                                                press=".onOpenInReplicationStudio" />
                                             <ToolbarSpacer />
                                             <Button
-                                                text="Next: Select Artifacts"
+                                                text="{= ${/selectedViewsCount} > 1 ? ('Next: Configure Selected (' + ${/selectedViewsCount} + ' CDS Views)') : 'Next: Select Artifacts' }"
                                                 type="Emphasized"
                                                 icon="sap-icon://navigation-right-arrow"
                                                 iconFirst="false"
