@@ -265,14 +265,17 @@ class TransformService {
         };
 
         // 1. Table CSN (Ready for Data Builder -> Tables)
-        const tableDefinitions = {
-            [fromSource]: tableDefinition
-        };
-        if (tableTechName !== fromSource && !tableDefinitions[tableTechName]) {
+        const isFromSourceView = fromSource.endsWith('_V') || fromSource.endsWith('_DIM_V') || fromSource.endsWith('_FACT_V') || (namingConfig.fromIsView === true);
+        const tableDefinitions = {};
+        if (!isFromSourceView) {
+            tableDefinitions[fromSource] = tableDefinition;
+        }
+        if (tableTechName && !tableDefinitions[tableTechName] && !tableTechName.endsWith('_V')) {
             tableDefinitions[tableTechName] = tableDefinition;
         }
-        // Bundle all physical DataSources referenced by the model with their exact schema
+        // Bundle all physical DataSources referenced by the model with their exact schema (skipping nested calc views)
         for (const src of (model.sources || [])) {
+            if (src.isNestedCalcView) continue;
             const sName = sanitizeTech(src.tableName);
             if (sName && !tableDefinitions[sName]) {
                 const specificCols = (model.sourceColumns && model.sourceColumns[src.tableName]) || [];
@@ -574,7 +577,7 @@ class TransformService {
 
         const cleanNodeId = (id) => {
             if (!id) return '';
-            return id.replace(/.*?\$\$\$\$/g, '').replace(/\$\$/g, '').replace(/^.*[.\/]/, '').trim();
+            return id.replace(/.*?\$\$\$\$/g, '').replace(/\$\$/g, '').replace(/^.*::/, '').replace(/^.*[.\/]/, '').trim();
         };
 
         const getNodeTechName = (nodeId) => {
@@ -1757,6 +1760,345 @@ class TransformService {
             cliDeployFlowCommand,
             cliDeployTablesCommand,
             tables: processedTables
+        };
+    }
+
+    /**
+     * Generate Enterprise Star Schema CSN Package with Native CDS Associations (Tareeqa 2)
+     * Central Fact View (@Analytics.dataCategory: "#CUBE") linked to
+     * Dimension Views (@Analytics.dataCategory: "#DIMENSION") via native cds.Association.
+     * 
+     * @param {object} factModel Parsed internal model of Central Fact View
+     * @param {Array<object>} dimensionModels Array of parsed internal models of Dimension Views
+     * @param {object} options Options (space, customMappings, factNaming, dimNamings)
+     */
+    generateStarSchemaPackage(factModel, dimensionModels = [], options = {}) {
+        if (!factModel) {
+            throw new Error('factModel is required to generate a Star Schema package.');
+        }
+
+        const space = options.space || 'AIS_INBOUND';
+        const definitions = {};
+        const sqlStatements = [];
+        const associationsList = [];
+
+        const sanitizeTech = (name, fallback = '') => {
+            const raw = name || fallback || '';
+            const cleaned = String(raw)
+                .replace(/.*?\$\$\$\$/g, '')
+                .replace(/\$\$/g, '')
+                .replace(/^.*::/, '')
+                .replace(/^.*[.\/]/, '')
+                .replace(/^[\/\\]+/, '')
+                .replace(/[\/\\]+/g, '_')
+                .replace(/[^a-zA-Z0-9_]/g, '_')
+                .trim();
+            return /^[0-9]/.test(cleaned) ? `_${cleaned}` : cleaned;
+        };
+
+        const ensureKey = (elements) => {
+            if (!elements || Object.keys(elements).length === 0) return;
+            const hasKey = Object.values(elements).some(el => el.key);
+            if (!hasKey) {
+                const candidate = Object.keys(elements).find(k => !elements[k]['@Analytics.measure']) || Object.keys(elements)[0];
+                if (candidate) elements[candidate].key = true;
+            }
+        };
+
+        // Standard SAP Domain key synonyms for automatic association mapping
+        const domainSynonyms = [
+            ['MANDT', 'CLIENT'],
+            ['CUSTOMER', 'KUNNR', 'SOLD_TO_PARTY', 'SOLDTOPARTY', 'CUSTOMER_ID', 'KUNNR_ANA'],
+            ['MATERIAL', 'MATNR', 'PRODUCT', 'PRODUCT_ID'],
+            ['COMPANY_CODE', 'BUKRS', 'COMP_CODE'],
+            ['SUPPLIER', 'LIFNR', 'VENDOR'],
+            ['PLANT', 'WERKS'],
+            ['SALES_ORG', 'VKORG'],
+            ['PROFIT_CENTER', 'PRCTR'],
+            ['COST_CENTER', 'KOSTL'],
+            ['PROJECT_ID', 'PS_PSP_PNR', 'POSID', 'PROJECT']
+        ];
+
+        // 1. Process and Generate Dimension Entities
+        const dimViewTechNames = [];
+        const dimCatalog = [];
+
+        for (const dimModel of dimensionModels) {
+            const dimBase = sanitizeTech(dimModel.name || dimModel.viewName || 'DIM');
+            const dimViewTech = sanitizeTech(dimModel.viewTechName, `${dimBase}_DIM_V`);
+            const dimTableTech = sanitizeTech(dimModel.tableTechName, `${dimBase}_TBL`);
+            dimViewTechNames.push(dimViewTech);
+
+            // A. Dimension Base Table
+            const dimTableElements = {};
+            for (const col of (dimModel.columns || [])) {
+                dimTableElements[col.name] = {
+                    ...this._toCsnType(col.dataType),
+                    "@EndUserText.label": col.originalName || col.name,
+                    ...(col.isKey ? { key: true } : {})
+                };
+            }
+            ensureKey(dimTableElements);
+            definitions[dimTableTech] = {
+                kind: "entity",
+                "@EndUserText.label": `${dimBase} Base Table`,
+                elements: dimTableElements
+            };
+
+            // B. Dimension View (@Analytics.dataCategory: "#DIMENSION")
+            const dimViewElements = {};
+            const dimQueryCols = [];
+            const dimSqlCols = [];
+
+            for (const col of (dimModel.columns || [])) {
+                dimViewElements[col.name] = {
+                    ...this._toCsnType(col.dataType),
+                    "@EndUserText.label": col.originalName || col.name,
+                    ...(col.isKey ? { key: true } : {})
+                };
+                dimQueryCols.push({ ref: [col.name] });
+                dimSqlCols.push(`    "${col.name}"`);
+            }
+            ensureKey(dimViewElements);
+
+            definitions[dimViewTech] = {
+                kind: "entity",
+                "@EndUserText.label": `${dimBase} Dimension View`,
+                "@Analytics.dataCategory": "#DIMENSION",
+                elements: dimViewElements,
+                query: {
+                    SELECT: {
+                        from: { ref: [dimTableTech] },
+                        columns: dimQueryCols
+                    }
+                }
+            };
+
+            const dimSql = `-- ==========================================================\n-- Dimension View: ${dimViewTech} (@Analytics.dataCategory: #DIMENSION)\n-- Source Base Table: ${dimTableTech}\n-- ==========================================================\nCREATE VIEW "${dimViewTech}" AS\nSELECT\n${dimSqlCols.join(',\n')}\nFROM "${dimTableTech}";\n`;
+            sqlStatements.push(dimSql);
+
+            dimCatalog.push({
+                dimBase,
+                dimViewTech,
+                dimTableTech,
+                columns: dimModel.columns || []
+            });
+        }
+
+        // 2. Process Central Fact Model
+        const factBase = sanitizeTech(factModel.name || factModel.viewName || 'FACT');
+        const factViewTech = sanitizeTech(options.factViewTechName, `${factBase}_FACT_V`);
+        const factTableTech = sanitizeTech(options.factBaseTable, `${factBase}_TBL`);
+        const amTech = sanitizeTech(options.analyticModelTechName, `${factBase}_AM`);
+
+        const factTableElements = {};
+        const factViewElements = {};
+        const amElements = {};
+        const factQueryCols = [];
+        const factSqlCols = [];
+        let hasMeasures = false;
+
+        for (const col of (factModel.columns || [])) {
+            const isNumeric = col.dataType && (col.dataType.includes('Decimal') || col.dataType.includes('Integer'));
+            const isMeasure = col.isMeasure || this._isMeasure(col.name);
+            if (isMeasure) hasMeasures = true;
+
+            factTableElements[col.name] = {
+                ...this._toCsnType(col.dataType),
+                "@EndUserText.label": col.originalName || col.name,
+                ...(col.isKey ? { key: true } : {})
+            };
+
+            factViewElements[col.name] = {
+                ...this._toCsnType(col.dataType),
+                "@EndUserText.label": col.originalName || col.name,
+                ...(col.isKey ? { key: true } : {}),
+                ...(isMeasure ? {
+                    '@Analytics.measure': true,
+                    '@Aggregation.default': '#SUM'
+                } : {})
+            };
+
+            amElements[col.name] = {
+                ...this._toCsnType(col.dataType),
+                "@EndUserText.label": col.originalName || col.name,
+                ...(isMeasure ? {
+                    '@Analytics.measure': true,
+                    '@Aggregation.default': '#SUM'
+                } : {
+                    '@Analytics.dimension': true
+                })
+            };
+
+            factQueryCols.push({ ref: [col.name] });
+            if (isMeasure || (isNumeric && !col.isKey)) {
+                factSqlCols.push(`    COALESCE("${col.name}", 0) AS "${col.name}"`);
+            } else {
+                factSqlCols.push(`    "${col.name}"`);
+            }
+        }
+
+        // Guarantee at least 1 measure for Datasphere Fact View (#CUBE)
+        if (!hasMeasures) {
+            factViewElements["RECORD_COUNT"] = {
+                type: "cds.Integer",
+                "@EndUserText.label": "Record Count",
+                "@Analytics.measure": true,
+                "@Aggregation.default": "#SUM"
+            };
+            amElements["RECORD_COUNT"] = {
+                type: "cds.Integer",
+                "@EndUserText.label": "Record Count",
+                "@Analytics.measure": true,
+                "@Aggregation.default": "#SUM"
+            };
+            factQueryCols.push({ val: 1, as: "RECORD_COUNT" });
+            factSqlCols.push('    1 AS "RECORD_COUNT"');
+        }
+
+        ensureKey(factTableElements);
+        ensureKey(factViewElements);
+
+        definitions[factTableTech] = {
+            kind: "entity",
+            "@EndUserText.label": `${factBase} Base Table`,
+            elements: factTableElements
+        };
+
+        // 3. Build Native CDS Associations (cds.Association) between Fact and Dimensions
+        const customMappings = options.customMappings || {};
+
+        for (const dim of dimCatalog) {
+            let matchedPairs = [];
+
+            // Check custom join keys
+            const customKeys = customMappings[dim.dimBase]?.joinKeys || customMappings[dim.dimViewTech]?.joinKeys;
+            if (customKeys && Array.isArray(customKeys) && customKeys.length > 0) {
+                matchedPairs = customKeys.map(k => ({
+                    factCol: k.factCol || k.fact,
+                    dimCol: k.dimCol || k.dim
+                }));
+            } else {
+                // Auto-detect matching keys
+                const factCols = factModel.columns || [];
+                const dimCols = dim.columns;
+
+                // 1. Mandatory client join: MANDT / CLIENT if present in both
+                const factMandt = factCols.find(c => c.name.toUpperCase() === 'MANDT' || c.name.toUpperCase() === 'CLIENT');
+                const dimMandt = dimCols.find(c => c.name.toUpperCase() === 'MANDT' || c.name.toUpperCase() === 'CLIENT');
+                if (factMandt && dimMandt) {
+                    matchedPairs.push({ factCol: factMandt.name, dimCol: dimMandt.name });
+                }
+
+                // 2. Look for exact name match on business key (case-insensitive)
+                for (const dc of dimCols) {
+                    if (dc.name.toUpperCase() === 'MANDT' || dc.name.toUpperCase() === 'CLIENT') continue;
+                    const fc = factCols.find(f => f.name.toUpperCase() === dc.name.toUpperCase());
+                    if (fc) {
+                        matchedPairs.push({ factCol: fc.name, dimCol: dc.name });
+                        break;
+                    }
+                }
+
+                // 3. If still no non-mandt match, check synonym groups
+                if (matchedPairs.filter(p => p.dimCol.toUpperCase() !== 'MANDT').length === 0) {
+                    for (const group of domainSynonyms) {
+                        const dimMatch = dimCols.find(dc => group.includes(dc.name.toUpperCase()));
+                        const factMatch = factCols.find(fc => group.includes(fc.name.toUpperCase()));
+                        if (dimMatch && factMatch) {
+                            matchedPairs.push({ factCol: factMatch.name, dimCol: dimMatch.name });
+                            break;
+                        }
+                    }
+                }
+
+                // 4. Fallback: match primary key of dimension
+                if (matchedPairs.filter(p => p.dimCol.toUpperCase() !== 'MANDT').length === 0) {
+                    const dimKey = dimCols.find(c => c.isKey && c.name.toUpperCase() !== 'MANDT') || dimCols[0];
+                    if (dimKey) {
+                        const factMatch = factCols.find(fc => !fc.isMeasure && fc.dataType === dimKey.dataType) || factCols[0];
+                        if (factMatch) {
+                            matchedPairs.push({ factCol: factMatch.name, dimCol: dimKey.name });
+                        }
+                    }
+                }
+            }
+
+            // Generate clean association element name: e.g. CV_CUSTOMER -> to_Customer
+            let cleanAssocPart = dim.dimBase.replace(/^(CV_|CA_|I_|C_|Z_)/i, '');
+            cleanAssocPart = cleanAssocPart.charAt(0).toUpperCase() + cleanAssocPart.slice(1).toLowerCase();
+            const assocName = `to_${cleanAssocPart}`;
+
+            // Build CQN 'on' expression
+            const onClause = [];
+            matchedPairs.forEach((pair, idx) => {
+                if (idx > 0) onClause.push("and");
+                onClause.push({ ref: [pair.factCol] });
+                onClause.push("=");
+                onClause.push({ ref: [assocName, pair.dimCol] });
+            });
+
+            // Add Association to Fact View
+            factViewElements[assocName] = {
+                type: "cds.Association",
+                target: dim.dimViewTech,
+                cardinality: { max: "1" },
+                on: onClause
+            };
+
+            // Add Association reference to Analytic Model
+            amElements[assocName] = {
+                type: "cds.Association",
+                target: dim.dimViewTech
+            };
+
+            associationsList.push({
+                associationName: assocName,
+                targetDimension: dim.dimViewTech,
+                joinKeys: matchedPairs.map(p => `${p.factCol} = ${p.dimCol}`)
+            });
+        }
+
+        // 4. Central Fact View Entity Definition (@Analytics.dataCategory: "#CUBE")
+        definitions[factViewTech] = {
+            kind: "entity",
+            "@EndUserText.label": `${factBase} Central Fact View`,
+            "@Analytics.dataCategory": "#CUBE",
+            elements: factViewElements,
+            query: {
+                SELECT: {
+                    from: { ref: [factTableTech] },
+                    columns: factQueryCols
+                }
+            }
+        };
+
+        // 5. Unified Analytic Consumption Model
+        definitions[amTech] = {
+            kind: "analyticModel",
+            "@EndUserText.label": `${factBase} Star Schema Consumption Model`,
+            source: { ref: [factViewTech] },
+            elements: amElements
+        };
+
+        const factSql = `-- ==========================================================\n-- Central Fact View: ${factViewTech} (@Analytics.dataCategory: #CUBE)\n-- Source Base Table: ${factTableTech}\n-- Associated Dimensions: ${dimViewTechNames.join(', ') || 'None'}\n-- ==========================================================\nCREATE VIEW "${factViewTech}" AS\nSELECT\n${factSqlCols.join(',\n')}\nFROM "${factTableTech}";\n`;
+        sqlStatements.push(factSql);
+
+        const packageCsn = {
+            $version: "2.0",
+            definitions
+        };
+
+        return {
+            packageCsn,
+            csnJsonString: JSON.stringify(packageCsn, null, 2),
+            factViewName: factViewTech,
+            factBaseTable: factTableTech,
+            dimensionViewNames: dimViewTechNames,
+            associationCount: associationsList.length,
+            associations: associationsList,
+            completeSql: sqlStatements.join('\n'),
+            cliDeployCommand: `datasphere objects csn create -y ${space} -f ${factBase}_STAR_SCHEMA.csn.json`
         };
     }
 

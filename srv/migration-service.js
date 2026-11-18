@@ -452,6 +452,57 @@ module.exports = cds.service.impl(async function () {
     });
 
     /**
+     * Action: generateStarSchemaPackage
+     * Generates a complete Star Schema package linking a Central Fact View to
+     * Dimension Views via native cds.Association elements.
+     */
+    this.on('generateStarSchemaPackage', async req => {
+        const {
+            factViewName,
+            dimensionViewNames = [],
+            space = config.datasphere.defaultSpace || 'AIS_INBOUND',
+            customMappingsJson = null
+        } = req.data;
+
+        if (!factViewName) {
+            req.reject(400, 'factViewName is required for Star Schema package generation');
+        }
+
+        const factModels = await _extractModels([factViewName]);
+        if (!factModels || factModels.length === 0) {
+            req.reject(404, `Fact View '${factViewName}' could not be resolved or extracted.`);
+        }
+        const factModel = factModels[0];
+
+        const dimensionModels = await _extractModels(dimensionViewNames);
+
+        let customMappings = {};
+        if (customMappingsJson) {
+            try {
+                customMappings = JSON.parse(customMappingsJson);
+            } catch (e) {
+                console.warn('[generateStarSchemaPackage] Could not parse customMappingsJson:', e.message);
+            }
+        }
+
+        const result = transformService.generateStarSchemaPackage(factModel, dimensionModels, {
+            space,
+            customMappings
+        });
+
+        return {
+            csnJsonString: result.csnJsonString,
+            factViewName: result.factViewName,
+            factBaseTable: result.factBaseTable,
+            dimensionViewNames: result.dimensionViewNames,
+            associationCount: result.associationCount,
+            associations: result.associations,
+            completeSql: result.completeSql,
+            cliDeployCommand: result.cliDeployCommand
+        };
+    });
+
+    /**
      * Action: startJob(viewName, viewType, artifacts, targetSpace)
      * Direct user-specified CAP endpoint
      */

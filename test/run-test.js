@@ -157,8 +157,24 @@ async function main() {
     assert(!keepCsn.definitions['VBAK'], 'Keep duplicate should NOT create shared VBAK table');
     console.log(`✓ Deduplication Decisions verified: BLOCK correctly merged shared table, KEEP preserved separate instances.`);
 
+    console.log('[Test 13] Testing generateStarSchemaPackage (Native CDS Associations)...');
+    const starSchemaResult = await srv.send('generateStarSchemaPackage', {
+        factViewName: 'CA_SALES_ANALYTICS',
+        dimensionViewNames: ['I_ProductMaster'],
+        space: 'AIS_INBOUND'
+    });
+    assert(starSchemaResult.factViewName, 'Fact view name should be present');
+    assert(starSchemaResult.dimensionViewNames.length > 0, 'Should have at least 1 dimension view');
+    assert(starSchemaResult.associationCount >= 1, 'Should have generated association');
+    const starCsn = JSON.parse(starSchemaResult.csnJsonString);
+    assert(starCsn.definitions[starSchemaResult.factViewName], 'Fact view entity should exist in CSN');
+    const factElements = starCsn.definitions[starSchemaResult.factViewName].elements;
+    const hasAssoc = Object.values(factElements).some(el => el.type === 'cds.Association');
+    assert(hasAssoc, 'Fact view must contain cds.Association element');
+    console.log(`✓ generateStarSchemaPackage verified: Fact View linked to Dimension via native cds.Association!`);
+
     console.log('\n=============================================================');
-    console.log(' ALL 12 REFACTORED FRONTEND-BACKEND CONTRACT TESTS PASSED! ');
+    console.log(' ALL 13 REFACTORED FRONTEND-BACKEND CONTRACT TESTS PASSED! ');
     console.log('=============================================================\n');
     process.exit(0);
 }

@@ -133,6 +133,21 @@ service MigrationService {
         tables                    : array of DeduplicatedTableSummary;
     }
 
+    type StarSchemaPackageResult : {
+        csnJsonString            : LargeString;
+        factViewName             : String;
+        factBaseTable            : String;
+        dimensionViewNames       : array of String;
+        associationCount         : Integer;
+        associations             : array of {
+            associationName  : String;
+            targetDimension  : String;
+            joinKeys         : array of String;
+        };
+        completeSql              : LargeString;
+        cliDeployCommand         : LargeString;
+    }
+
     // Live Fast Search Query across 120k+ Views
     function searchViews(
         query     : String,
@@ -183,6 +198,13 @@ service MigrationService {
         namingPattern          : String,
         deduplicationDecisions : LargeString
     ) returns BulkArtifactsResult;
+
+    action generateStarSchemaPackage(
+        factViewName       : String,
+        dimensionViewNames : array of String,
+        space              : String,
+        customMappingsJson : LargeString
+    ) returns StarSchemaPackageResult;
 
     action generateModularArtifacts(
         viewName           : String,

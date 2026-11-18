@@ -1,0 +1,359 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "CV_CUSTOMER_TBL": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_CUSTOMER Base Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "CUSTOMER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "CUSTOMER",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 80,
+          "@EndUserText.label": "NAME"
+        },
+        "TEXT_SH": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "TEXT_SH"
+        },
+        "TEXT_MD": {
+          "type": "cds.String",
+          "length": 60,
+          "@EndUserText.label": "TEXT_MD"
+        },
+        "TEXT_LG": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "TEXT_LG"
+        }
+      }
+    },
+    "CV_CUSTOMER_DIM_V": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_CUSTOMER Dimension View",
+      "@Analytics.dataCategory": "#DIMENSION",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "CUSTOMER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "CUSTOMER",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 80,
+          "@EndUserText.label": "NAME"
+        },
+        "TEXT_SH": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "TEXT_SH"
+        },
+        "TEXT_MD": {
+          "type": "cds.String",
+          "length": 60,
+          "@EndUserText.label": "TEXT_MD"
+        },
+        "TEXT_LG": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "TEXT_LG"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "CV_CUSTOMER_TBL"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "CUSTOMER"
+              ]
+            },
+            {
+              "ref": [
+                "NAME"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT_SH"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT_MD"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT_LG"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_MSTRPROJECTCOST_TBL": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_MSTRPROJECTCOST Base Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PROJECT_ID": {
+          "type": "cds.String",
+          "length": 24,
+          "@EndUserText.label": "PROJECT_ID",
+          "key": true
+        },
+        "CUSTOMER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "CUSTOMER"
+        },
+        "COMPANY_CODE": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "COMPANY_CODE"
+        },
+        "PLAN_COST": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "PLAN_COST"
+        },
+        "ACTUAL_COST": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "ACTUAL_COST"
+        },
+        "CURRENCY": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "CURRENCY"
+        }
+      }
+    },
+    "CV_MSTRPROJECTCOST_FACT_V": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_MSTRPROJECTCOST Central Fact View",
+      "@Analytics.dataCategory": "#CUBE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PROJECT_ID": {
+          "type": "cds.String",
+          "length": 24,
+          "@EndUserText.label": "PROJECT_ID",
+          "key": true
+        },
+        "CUSTOMER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "CUSTOMER"
+        },
+        "COMPANY_CODE": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "COMPANY_CODE"
+        },
+        "PLAN_COST": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "PLAN_COST",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        },
+        "ACTUAL_COST": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "ACTUAL_COST",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        },
+        "CURRENCY": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "CURRENCY"
+        },
+        "to_Customer": {
+          "type": "cds.Association",
+          "target": "CV_CUSTOMER_DIM_V",
+          "cardinality": {
+            "max": "1"
+          },
+          "on": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            "=",
+            {
+              "ref": [
+                "to_Customer",
+                "MANDT"
+              ]
+            },
+            "and",
+            {
+              "ref": [
+                "CUSTOMER"
+              ]
+            },
+            "=",
+            {
+              "ref": [
+                "to_Customer",
+                "CUSTOMER"
+              ]
+            }
+          ]
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "CV_MSTRPROJECTCOST_TBL"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "PROJECT_ID"
+              ]
+            },
+            {
+              "ref": [
+                "CUSTOMER"
+              ]
+            },
+            {
+              "ref": [
+                "COMPANY_CODE"
+              ]
+            },
+            {
+              "ref": [
+                "PLAN_COST"
+              ]
+            },
+            {
+              "ref": [
+                "ACTUAL_COST"
+              ]
+            },
+            {
+              "ref": [
+                "CURRENCY"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_MSTRPROJECTCOST_AM": {
+      "kind": "analyticModel",
+      "@EndUserText.label": "CV_MSTRPROJECTCOST Star Schema Consumption Model",
+      "source": {
+        "ref": [
+          "CV_MSTRPROJECTCOST_FACT_V"
+        ]
+      },
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "MANDT",
+          "@Analytics.dimension": true
+        },
+        "PROJECT_ID": {
+          "type": "cds.String",
+          "length": 24,
+          "@EndUserText.label": "PROJECT_ID",
+          "@Analytics.dimension": true
+        },
+        "CUSTOMER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "CUSTOMER",
+          "@Analytics.dimension": true
+        },
+        "COMPANY_CODE": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "COMPANY_CODE",
+          "@Analytics.dimension": true
+        },
+        "PLAN_COST": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "PLAN_COST",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        },
+        "ACTUAL_COST": {
+          "type": "cds.Decimal",
+          "precision": 15,
+          "scale": 2,
+          "@EndUserText.label": "ACTUAL_COST",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        },
+        "CURRENCY": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "CURRENCY",
+          "@Analytics.dimension": true
+        },
+        "to_Customer": {
+          "type": "cds.Association",
+          "target": "CV_CUSTOMER_DIM_V"
+        }
+      }
+    }
+  }
+}

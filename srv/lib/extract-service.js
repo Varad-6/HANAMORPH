@@ -272,6 +272,7 @@ class ExtractService {
             return String(candidate)
                 .replace(/.*?\$\$\$\$/g, '')
                 .replace(/\$\$/g, '')
+                .replace(/^.*::/, '')
                 .replace(/^.*[.\/]/, '')
                 .trim();
         };
@@ -299,11 +300,14 @@ class ExtractService {
         const sources = dsArray.map(d => {
             const rawId = d['@_id'];
             const cleanTbl = dsIdMap[rawId] || cleanTableRef(rawId, d.resourceUri);
+            const rawType = (d['@_type'] || '').toUpperCase();
+            const isCalcView = rawType === 'CALCULATION_VIEW' || rawType === 'OLAP' || cleanTbl.startsWith('CV_') || cleanTbl.startsWith('CA_');
             return {
                 tableName: cleanTbl,
                 rawId: rawId,
-                type: d['@_type'] || 'DATA_BASE_TABLE',
-                isBase: true
+                type: d['@_type'] || (isCalcView ? 'CALCULATION_VIEW' : 'DATA_BASE_TABLE'),
+                isBase: !isCalcView,
+                isNestedCalcView: isCalcView
             };
         }).filter(s => s.tableName);
 
