@@ -378,18 +378,24 @@ class ExtractService {
             const rawInps = Array.isArray(n.input) ? n.input : (n.input ? [n.input] : []);
             for (const inp of rawInps) {
                 const srcId = normalizeNodeId(inp['@_node']);
-                if (srcId) {
-                    if (!sourceColumns[srcId]) sourceColumns[srcId] = [];
-                    const rawMaps = Array.isArray(inp.mapping) ? inp.mapping : (inp.mapping ? [inp.mapping] : []);
-                    for (const m of rawMaps) {
-                        const colName = m['@_source'];
-                        if (colName && !sourceColumns[srcId].find(c => c.name === colName)) {
-                            sourceColumns[srcId].push({
-                                name: colName,
-                                originalName: colName,
-                                dataType: this._inferDataType(colName),
-                                isKey: this._isKeyColumn(colName)
-                            });
+                const cleanTbl = cleanTableRef(inp['@_node']);
+                const targetKeys = [srcId, cleanTbl, srcId ? srcId.toUpperCase() : null, cleanTbl ? cleanTbl.toUpperCase() : null].filter(Boolean);
+                for (const tKey of targetKeys) {
+                    if (!sourceColumns[tKey]) sourceColumns[tKey] = [];
+                }
+                const rawMaps = Array.isArray(inp.mapping) ? inp.mapping : (inp.mapping ? [inp.mapping] : []);
+                for (const m of rawMaps) {
+                    const colName = m['@_source'];
+                    if (colName) {
+                        for (const tKey of targetKeys) {
+                            if (!sourceColumns[tKey].find(c => c.name === colName)) {
+                                sourceColumns[tKey].push({
+                                    name: colName,
+                                    originalName: colName,
+                                    dataType: this._inferDataType(colName),
+                                    isKey: this._isKeyColumn(colName)
+                                });
+                            }
                         }
                     }
                 }

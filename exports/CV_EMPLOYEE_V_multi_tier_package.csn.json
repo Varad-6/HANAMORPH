@@ -1,0 +1,1423 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "CV_EMPLOYEE_TBL": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_EMPLOYEE Base Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE"
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1"
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        }
+      }
+    },
+    "_CPD_PFP_EMP": {
+      "kind": "entity",
+      "@EndUserText.label": "_CPD_PFP_EMP Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "EMPLOYEEINTERNALID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "EMPLOYEEINTERNALID",
+          "key": true
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE"
+        },
+        "VALIDITYSTARTDATE": {
+          "type": "cds.Date",
+          "@EndUserText.label": "VALIDITYSTARTDATE"
+        },
+        "VALIDITYENDDATE": {
+          "type": "cds.Date",
+          "@EndUserText.label": "VALIDITYENDDATE"
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "FULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "FULLNAME"
+        },
+        "BUSINESSPARTNERUUID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BUSINESSPARTNERUUID",
+          "key": true
+        }
+      }
+    },
+    "PA0000": {
+      "kind": "entity",
+      "@EndUserText.label": "PA0000 Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PERNR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PERNR"
+        },
+        "SUBTY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SUBTY"
+        },
+        "BEGDA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BEGDA"
+        },
+        "ENDDA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ENDDA"
+        },
+        "SPRPS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SPRPS"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "BeginDate": {
+          "type": "cds.Date",
+          "@EndUserText.label": "BeginDate"
+        },
+        "EndDate": {
+          "type": "cds.Date",
+          "@EndUserText.label": "EndDate"
+        }
+      }
+    },
+    "PA0006": {
+      "kind": "entity",
+      "@EndUserText.label": "PA0006 Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PERNR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PERNR"
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1"
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "SUBTY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SUBTY"
+        },
+        "BEGDA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BEGDA"
+        },
+        "ENDDA": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ENDDA"
+        }
+      }
+    },
+    "_CPD_PFP_BW_INIT": {
+      "kind": "entity",
+      "@EndUserText.label": "_CPD_PFP_BW_INIT Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "TEXT"
+        }
+      }
+    },
+    "CV_EMPLOYEE_EMPLOYEEDETAILS_V": {
+      "kind": "entity",
+      "@EndUserText.label": "EmployeeDetails Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "EMPLOYEEINTERNALID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "EMPLOYEEINTERNALID"
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE"
+        },
+        "VALIDITYSTARTDATE": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALIDITYSTARTDATE"
+        },
+        "VALIDITYENDDATE": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALIDITYENDDATE"
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "FULLNAME": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "FULLNAME"
+        },
+        "BUSINESSPARTNERUUID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BUSINESSPARTNERUUID"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "_CPD_PFP_EMP"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "EMPLOYEEINTERNALID"
+              ]
+            },
+            {
+              "ref": [
+                "EMPLOYEE"
+              ]
+            },
+            {
+              "ref": [
+                "VALIDITYSTARTDATE"
+              ]
+            },
+            {
+              "ref": [
+                "VALIDITYENDDATE"
+              ]
+            },
+            {
+              "ref": [
+                "ISBUSINESSPURPOSECOMPLETED"
+              ]
+            },
+            {
+              "ref": [
+                "EMPLOYEEFULLNAME"
+              ]
+            },
+            {
+              "ref": [
+                "FULLNAME"
+              ]
+            },
+            {
+              "ref": [
+                "BUSINESSPARTNERUUID"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_EMPLOYEESTATUS_V": {
+      "kind": "entity",
+      "@EndUserText.label": "EmployeeStatus Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PERNR": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "PERNR"
+        },
+        "SUBTY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "SUBTY"
+        },
+        "BEGDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BEGDA"
+        },
+        "ENDDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ENDDA"
+        },
+        "SPRPS": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "SPRPS"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "BeginDate": {
+          "type": "cds.Date",
+          "@EndUserText.label": "BeginDate"
+        },
+        "EndDate": {
+          "type": "cds.Date",
+          "@EndUserText.label": "EndDate"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "PA0000"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "PERNR"
+              ]
+            },
+            {
+              "ref": [
+                "SUBTY"
+              ]
+            },
+            {
+              "ref": [
+                "BEGDA"
+              ]
+            },
+            {
+              "ref": [
+                "ENDDA"
+              ]
+            },
+            {
+              "ref": [
+                "SPRPS"
+              ]
+            },
+            {
+              "ref": [
+                "STAT2"
+              ]
+            },
+            {
+              "ref": [
+                "BeginDate"
+              ]
+            },
+            {
+              "ref": [
+                "EndDate"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_EMPLOYEEBPANDSTATUS_V": {
+      "kind": "entity",
+      "@EndUserText.label": "EmployeeBPAndStatus Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "EMPLOYEEINTERNALID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "EMPLOYEEINTERNALID"
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE",
+          "key": true
+        },
+        "VALIDITYSTARTDATE": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALIDITYSTARTDATE"
+        },
+        "VALIDITYENDDATE": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALIDITYENDDATE"
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "FULLNAME": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "FULLNAME"
+        },
+        "BUSINESSPARTNERUUID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BUSINESSPARTNERUUID"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "BEGDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BEGDA"
+        },
+        "ENDDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ENDDA"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "inner",
+            "args": [
+              {
+                "ref": [
+                  "CV_EMPLOYEE_EMPLOYEEDETAILS_V"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "CV_EMPLOYEE_EMPLOYEESTATUS_V"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "EMPLOYEE"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "PERNR"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEEINTERNALID"
+              ],
+              "as": "EMPLOYEEINTERNALID"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEE"
+              ],
+              "as": "EMPLOYEE"
+            },
+            {
+              "ref": [
+                "A",
+                "VALIDITYSTARTDATE"
+              ],
+              "as": "VALIDITYSTARTDATE"
+            },
+            {
+              "ref": [
+                "A",
+                "VALIDITYENDDATE"
+              ],
+              "as": "VALIDITYENDDATE"
+            },
+            {
+              "ref": [
+                "A",
+                "ISBUSINESSPURPOSECOMPLETED"
+              ],
+              "as": "ISBUSINESSPURPOSECOMPLETED"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEEFULLNAME"
+              ],
+              "as": "EMPLOYEEFULLNAME"
+            },
+            {
+              "ref": [
+                "A",
+                "FULLNAME"
+              ],
+              "as": "FULLNAME"
+            },
+            {
+              "ref": [
+                "A",
+                "BUSINESSPARTNERUUID"
+              ],
+              "as": "BUSINESSPARTNERUUID"
+            },
+            {
+              "ref": [
+                "B",
+                "STAT2"
+              ],
+              "as": "STAT2"
+            },
+            {
+              "ref": [
+                "B",
+                "BEGDA"
+              ],
+              "as": "BEGDA"
+            },
+            {
+              "ref": [
+                "B",
+                "ENDDA"
+              ],
+              "as": "ENDDA"
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_EMPLOYEEADDRESSDETAILS_V": {
+      "kind": "entity",
+      "@EndUserText.label": "EmployeeAddressDetails Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "PERNR": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "PERNR"
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1"
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "SUBTY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "SUBTY"
+        },
+        "BEGDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BEGDA"
+        },
+        "ENDDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ENDDA"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "PA0006"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "PERNR"
+              ]
+            },
+            {
+              "ref": [
+                "LAND1"
+              ]
+            },
+            {
+              "ref": [
+                "STATE"
+              ]
+            },
+            {
+              "ref": [
+                "ORT01"
+              ]
+            },
+            {
+              "ref": [
+                "SUBTY"
+              ]
+            },
+            {
+              "ref": [
+                "BEGDA"
+              ]
+            },
+            {
+              "ref": [
+                "ENDDA"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_EMPLOYEEFINALDETAILS_V": {
+      "kind": "entity",
+      "@EndUserText.label": "EmployeeFinalDetails Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE",
+          "key": true
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "JOIN$BEGDA$BEGDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "JOIN$BEGDA$BEGDA",
+          "key": true
+        },
+        "JOIN$ENDDA$ENDDA": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "JOIN$ENDDA$ENDDA",
+          "key": true
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1"
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "CV_EMPLOYEE_EMPLOYEEBPANDSTATUS_V"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "CV_EMPLOYEE_EMPLOYEEADDRESSDETAILS_V"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "BEGDA"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "BEGDA"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "ENDDA"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "ENDDA"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "EMPLOYEE"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "PERNR"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEE"
+              ],
+              "as": "EMPLOYEE"
+            },
+            {
+              "ref": [
+                "A",
+                "ISBUSINESSPURPOSECOMPLETED"
+              ],
+              "as": "ISBUSINESSPURPOSECOMPLETED"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEEFULLNAME"
+              ],
+              "as": "EMPLOYEEFULLNAME"
+            },
+            {
+              "ref": [
+                "A",
+                "STAT2"
+              ],
+              "as": "STAT2"
+            },
+            {
+              "ref": [
+                "A",
+                "BEGDA"
+              ],
+              "as": "JOIN$BEGDA$BEGDA"
+            },
+            {
+              "ref": [
+                "A",
+                "ENDDA"
+              ],
+              "as": "JOIN$ENDDA$ENDDA"
+            },
+            {
+              "ref": [
+                "B",
+                "LAND1"
+              ],
+              "as": "LAND1"
+            },
+            {
+              "ref": [
+                "B",
+                "STATE"
+              ],
+              "as": "STATE"
+            },
+            {
+              "ref": [
+                "B",
+                "ORT01"
+              ],
+              "as": "ORT01"
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_INITIALTABLE_V": {
+      "kind": "entity",
+      "@EndUserText.label": "InitialTable Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "LANGU"
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "TEXT"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "_CPD_PFP_BW_INIT"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "LANGU"
+              ]
+            },
+            {
+              "ref": [
+                "NAME"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_EMPLOYEE_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Employee Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE"
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1"
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      },
+      "query": {
+        "SET": {
+          "op": "union",
+          "all": true,
+          "args": [
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_EMPLOYEE_EMPLOYEEFINALDETAILS_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "val": null,
+                    "as": "NAME"
+                  },
+                  {
+                    "ref": [
+                      "EMPLOYEE"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ISBUSINESSPURPOSECOMPLETED"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "EMPLOYEEFULLNAME"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "STAT2"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "LAND1"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "STATE"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ORT01"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_EMPLOYEE_INITIALTABLE_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "val": null,
+                    "as": "NAME"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "EMPLOYEE"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "ISBUSINESSPURPOSECOMPLETED"
+                  },
+                  {
+                    "ref": [
+                      "TEXT"
+                    ],
+                    "as": "EMPLOYEEFULLNAME"
+                  },
+                  {
+                    "ref": [
+                      null
+                    ],
+                    "as": "STAT2"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "LAND1"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "STATE"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "ORT01"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_V": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_EMPLOYEE Fact View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE"
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED"
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME"
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2"
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1"
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01"
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "inner",
+            "args": [
+              {
+                "ref": [
+                  "CV_EMPLOYEE_EMPLOYEE_V"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "CV_EMPLOYEE_INITIALTABLE_V"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEE"
+              ],
+              "as": "EMPLOYEE"
+            },
+            {
+              "ref": [
+                "A",
+                "ISBUSINESSPURPOSECOMPLETED"
+              ],
+              "as": "ISBUSINESSPURPOSECOMPLETED"
+            },
+            {
+              "ref": [
+                "A",
+                "EMPLOYEEFULLNAME"
+              ],
+              "as": "EMPLOYEEFULLNAME"
+            },
+            {
+              "ref": [
+                "A",
+                "STAT2"
+              ],
+              "as": "STAT2"
+            },
+            {
+              "ref": [
+                "A",
+                "LAND1"
+              ],
+              "as": "LAND1"
+            },
+            {
+              "ref": [
+                "A",
+                "STATE"
+              ],
+              "as": "STATE"
+            },
+            {
+              "ref": [
+                "A",
+                "ORT01"
+              ],
+              "as": "ORT01"
+            },
+            {
+              "ref": [
+                "B",
+                "NAME"
+              ],
+              "as": "NAME"
+            }
+          ]
+        }
+      }
+    },
+    "CV_EMPLOYEE_AM": {
+      "kind": "analyticModel",
+      "@EndUserText.label": "CV_EMPLOYEE Consumption Model",
+      "source": {
+        "ref": [
+          "CV_EMPLOYEE_V"
+        ]
+      },
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "@Analytics.dimension": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME",
+          "@Analytics.dimension": true
+        },
+        "EMPLOYEE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEE",
+          "@Analytics.dimension": true
+        },
+        "ISBUSINESSPURPOSECOMPLETED": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ISBUSINESSPURPOSECOMPLETED",
+          "@Analytics.dimension": true
+        },
+        "EMPLOYEEFULLNAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EMPLOYEEFULLNAME",
+          "@Analytics.dimension": true
+        },
+        "STAT2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STAT2",
+          "@Analytics.dimension": true
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LAND1",
+          "@Analytics.dimension": true
+        },
+        "STATE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATE",
+          "@Analytics.dimension": true
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ORT01",
+          "@Analytics.dimension": true
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      }
+    }
+  }
+}

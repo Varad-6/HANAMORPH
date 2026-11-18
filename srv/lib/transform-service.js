@@ -502,6 +502,17 @@ class TransformService {
         return { type: 'cds.String', length: 40 };
     }
 
+    _inferColumnDataType(colName) {
+        if (!colName) return 'cds.String(40)';
+        const upper = String(colName).toUpperCase();
+        if (upper.includes('DATE') || upper.endsWith('_AT') || upper.endsWith('BEGDA') || upper.endsWith('ENDDA') || upper.endsWith('AEDAT') || upper.endsWith('ERDAT') || upper.endsWith('DAT') || upper.startsWith('DATE')) return 'cds.Date';
+        if (upper.includes('TIME') || upper.endsWith('TIMESTAMP')) return 'cds.Timestamp';
+        if (upper.includes('AMOUNT') || upper.includes('PRICE') || upper.includes('COST') || upper.includes('NETWR') || upper.includes('NETPR') || upper.includes('MENGE')) return 'cds.Decimal(15, 2)';
+        if (upper.includes('QTY') || upper.includes('COUNT') || upper.includes('QUANTITY')) return 'cds.Integer';
+        if (upper.includes('ID') || upper.includes('NUM') || upper.includes('KEY') || upper.includes('PERNR') || upper.includes('MANDT')) return 'cds.String(40)';
+        return 'cds.String(100)';
+    }
+
     _isMeasure(colName) {
         if (!colName) return false;
         const u = colName.toUpperCase();
@@ -615,44 +626,64 @@ class TransformService {
 
         const operationalNodes = nodeHierarchy.filter(n => !collapsedNodes[n.id]);
 
-        // Guarantee that ALL physical base tables referenced across all operational nodes are defined in CSN definitions!
+        // Guarantee that ALL physical base tables referenced across all operational nodes are defined in CSN definitions,
+        // and populate/merge ALL columns used by any node from that table!
         for (const node of operationalNodes) {
             for (const rawInp of (node.inputs || [])) {
                 const cleanInp = cleanNodeId(rawInp);
                 const isAnotherNode = nodeHierarchy.some(n => n.id === rawInp || cleanNodeId(n.id) === cleanInp);
-                const isDefined = definitions[cleanInp] || definitions[rawInp];
-                if (!isAnotherNode && !isDefined && cleanInp) {
+                if (!isAnotherNode && cleanInp) {
+                    if (!definitions[cleanInp]) {
+                        definitions[cleanInp] = {
+                            kind: "entity",
+                            "@EndUserText.label": `${cleanInp} Physical Table`,
+                            elements: {}
+                        };
+                    }
+                    const tblDef = definitions[cleanInp];
+                    if (!tblDef.elements) tblDef.elements = {};
+
+                    // Merge known source columns
                     const specificCols = (model.sourceColumns && (model.sourceColumns[cleanInp] || model.sourceColumns[rawInp])) || [];
-                    const srcElements = {};
-                    if (specificCols.length > 0) {
-                        for (const sc of specificCols) {
-                            srcElements[sc.name] = {
+                    for (const sc of specificCols) {
+                        if (!tblDef.elements[sc.name]) {
+                            tblDef.elements[sc.name] = {
                                 ...this._toCsnType(sc.dataType),
                                 "@EndUserText.label": sc.originalName || sc.name,
                                 ...(sc.isKey ? { key: true } : {})
                             };
                         }
-                    } else {
-                        // Gather columns from node mappings
-                        const nodeMaps = (node.mappings || []).filter(m => m.inputNode === rawInp || cleanNodeId(m.inputNode) === cleanInp);
-                        if (nodeMaps.length > 0) {
-                            for (const m of nodeMaps) {
-                                srcElements[m.source] = {
-                                    type: 'cds.String',
-                                    length: 100,
-                                    "@EndUserText.label": m.source
-                                };
-                            }
-                        } else {
-                            Object.assign(srcElements, tableElements);
+                    }
+
+                    // Merge columns from this node's mappings
+                    const nodeMaps = (node.mappings || []).filter(m => m.inputNode === rawInp || cleanNodeId(m.inputNode) === cleanInp || cleanNodeId(m.inputNode) === cleanNodeId(rawInp));
+                    for (const m of nodeMaps) {
+                        if (m.source && !tblDef.elements[m.source]) {
+                            const inferredDt = this._inferColumnDataType(m.source);
+                            tblDef.elements[m.source] = {
+                                ...this._toCsnType(inferredDt),
+                                "@EndUserText.label": m.source
+                            };
                         }
                     }
-                    ensureKey(srcElements);
-                    definitions[cleanInp] = {
-                        kind: "entity",
-                        "@EndUserText.label": `${cleanInp} Physical Table`,
-                        elements: srcElements
-                    };
+
+                    // Merge columns from join conditions
+                    for (const jc of (node.joinConditions || [])) {
+                        if (jc.leftSource && !tblDef.elements[jc.leftSource]) {
+                            tblDef.elements[jc.leftSource] = {
+                                ...this._toCsnType(this._inferColumnDataType(jc.leftSource)),
+                                "@EndUserText.label": jc.leftSource
+                            };
+                        }
+                        if (jc.rightSource && !tblDef.elements[jc.rightSource]) {
+                            tblDef.elements[jc.rightSource] = {
+                                ...this._toCsnType(this._inferColumnDataType(jc.rightSource)),
+                                "@EndUserText.label": jc.rightSource
+                            };
+                        }
+                    }
+
+                    ensureKey(tblDef.elements);
                 }
             }
         }
@@ -783,7 +814,12 @@ class TransformService {
                         cqnCols.push({ val: strVal, as: colId });
                     } else {
                         selectCols.push(`    ${formula} AS "${colId}"`);
-                        cqnCols.push({ ref: [colId] });
+                        const colRefMatch = formula.match(/"([^"]+)"/);
+                        if (colRefMatch && colRefMatch[1] && colRefMatch[1] !== colId) {
+                            cqnCols.push({ ref: [colRefMatch[1]], as: colId });
+                        } else {
+                            cqnCols.push({ ref: [colId] });
+                        }
                     }
 
                     const dt = this._mapHanaTypeToCds(ca.dataType, ca.length, ca.precision, ca.scale);
@@ -881,7 +917,12 @@ class TransformService {
                         cqnCols.push({ val: strVal, as: colId });
                     } else {
                         selectCols.push(`    ${formula} AS "${colId}"`);
-                        cqnCols.push({ ref: [colId] });
+                        const colRefMatch = formula.match(/"([^"]+)"/);
+                        if (colRefMatch && colRefMatch[1] && colRefMatch[1] !== colId) {
+                            cqnCols.push({ ref: [colRefMatch[1]], as: colId });
+                        } else {
+                            cqnCols.push({ ref: [colId] });
+                        }
                     }
 
                     const dt = this._mapHanaTypeToCds(ca.dataType, ca.length, ca.precision, ca.scale);
@@ -1061,6 +1102,76 @@ class TransformService {
                 }
             }
             inlinedPureSql = inlinedBranches.join('\n\nUNION ALL\n\n');
+        }
+
+        // Auto-Healing Pass: Guarantee every base table defines all columns queried by any intermediate view
+        for (const [vName, vDef] of Object.entries(definitions)) {
+            if (vDef.kind !== 'entity' || !vDef.query?.SELECT) continue;
+
+            const qSelect = vDef.query.SELECT;
+            const fromRef = qSelect.from?.ref?.[0];
+            const joinArgs = qSelect.from?.args;
+
+            const ensureTableCol = (targetTable, colName) => {
+                if (!targetTable || !colName) return;
+                const tbl = definitions[targetTable];
+                // Only modify physical base tables (entities without query)
+                if (tbl && tbl.kind === 'entity' && !tbl.query) {
+                    if (!tbl.elements) tbl.elements = {};
+                    if (!tbl.elements[colName]) {
+                        const inferredDt = this._inferColumnDataType(colName);
+                        tbl.elements[colName] = {
+                            ...this._toCsnType(inferredDt),
+                            "@EndUserText.label": colName
+                        };
+                        ensureKey(tbl.elements);
+                    }
+                }
+            };
+
+            // Single source view: e.g. FROM "PA0000"
+            if (fromRef) {
+                for (const col of (qSelect.columns || [])) {
+                    const colName = Array.isArray(col.ref) ? col.ref[col.ref.length - 1] : (typeof col === 'string' ? col : null);
+                    if (colName) ensureTableCol(fromRef, colName);
+                }
+            }
+
+            // Join view: e.g. FROM "A" JOIN "B"
+            if (joinArgs && Array.isArray(joinArgs)) {
+                const aliasMap = {};
+                for (const arg of joinArgs) {
+                    if (arg.as && arg.ref?.[0]) {
+                        aliasMap[arg.as] = arg.ref[0];
+                    }
+                }
+                for (const col of (qSelect.columns || [])) {
+                    if (Array.isArray(col.ref)) {
+                        if (col.ref.length >= 2) {
+                            const alias = col.ref[0];
+                            const colName = col.ref[1];
+                            const realTable = aliasMap[alias];
+                            if (realTable) ensureTableCol(realTable, colName);
+                        } else if (col.ref.length === 1) {
+                            const colName = col.ref[0];
+                            for (const realTable of Object.values(aliasMap)) {
+                                ensureTableCol(realTable, colName);
+                            }
+                        }
+                    }
+                }
+                // Check join ON conditions
+                const checkOnList = (list) => {
+                    if (!list || !Array.isArray(list)) return;
+                    for (const item of list) {
+                        if (item && Array.isArray(item.ref) && item.ref.length >= 2) {
+                            const realTable = aliasMap[item.ref[0]];
+                            if (realTable) ensureTableCol(realTable, item.ref[1]);
+                        }
+                    }
+                };
+                checkOnList(qSelect.from.on);
+            }
         }
 
         return {
