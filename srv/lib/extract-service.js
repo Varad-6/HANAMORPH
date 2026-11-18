@@ -259,14 +259,53 @@ class ExtractService {
         const scen = xmlObj['Calculation:scenario'] || xmlObj;
         const dataCategory = scen['@_dataCategory'] || 'CUBE';
 
-        // 1. Extract Real DataSources
+        // 1. Extract Real DataSources and map internal IDs (e.g. Join_2$$$$VBKD$$ -> VBKD)
         const rawDs = scen.dataSources?.DataSource || [];
         const dsArray = Array.isArray(rawDs) ? rawDs : (rawDs ? [rawDs] : []);
-        const sources = dsArray.map(d => ({
-            tableName: d['@_id'],
-            type: d['@_type'] || 'DATA_BASE_TABLE',
-            isBase: true
-        })).filter(s => s.tableName);
+
+        const cleanTableRef = (rawId, resourceUri) => {
+            let res = resourceUri;
+            if (typeof res === 'object' && res !== null) {
+                res = res['#text'] || res.resourceUri || '';
+            }
+            const candidate = res || rawId || '';
+            return String(candidate)
+                .replace(/.*?\$\$\$\$/g, '')
+                .replace(/\$\$/g, '')
+                .replace(/^.*[.\/]/, '')
+                .trim();
+        };
+
+        const dsIdMap = {};
+        for (const d of dsArray) {
+            const rawId = d['@_id'];
+            const cleanTbl = cleanTableRef(rawId, d.resourceUri);
+            if (rawId) {
+                dsIdMap[rawId] = cleanTbl;
+                dsIdMap[rawId.replace(/^#/, '')] = cleanTbl;
+            }
+        }
+
+        const normalizeNodeId = (id) => {
+            if (!id) return '';
+            const stripped = id.replace(/^#/, '');
+            if (dsIdMap[stripped]) return dsIdMap[stripped];
+            if (stripped.includes('$$$$') || stripped.includes('$$')) {
+                return cleanTableRef(stripped);
+            }
+            return stripped;
+        };
+
+        const sources = dsArray.map(d => {
+            const rawId = d['@_id'];
+            const cleanTbl = dsIdMap[rawId] || cleanTableRef(rawId, d.resourceUri);
+            return {
+                tableName: cleanTbl,
+                rawId: rawId,
+                type: d['@_type'] || 'DATA_BASE_TABLE',
+                isBase: true
+            };
+        }).filter(s => s.tableName);
 
         // 2. Extract Calculation Nodes with exact types and inputs
         const calcNodes = scen.calculationViews?.calculationView || [];
@@ -334,7 +373,7 @@ class ExtractService {
         for (const n of nodeArray) {
             const rawInps = Array.isArray(n.input) ? n.input : (n.input ? [n.input] : []);
             for (const inp of rawInps) {
-                const srcId = (inp['@_node'] || '').replace(/^#/, '');
+                const srcId = normalizeNodeId(inp['@_node']);
                 if (srcId) {
                     if (!sourceColumns[srcId]) sourceColumns[srcId] = [];
                     const rawMaps = Array.isArray(inp.mapping) ? inp.mapping : (inp.mapping ? [inp.mapping] : []);
@@ -357,7 +396,7 @@ class ExtractService {
         for (const n of nodeArray) {
             const id = n['@_id'];
             const inps = Array.isArray(n.input) ? n.input : (n.input ? [n.input] : []);
-            nodeInputMap[id] = inps.map(i => (i['@_node'] || '').replace(/^#/, ''));
+            nodeInputMap[id] = inps.map(i => normalizeNodeId(i['@_node']));
         }
 
         const resolveToPhysical = (nodeId) => {
@@ -370,8 +409,8 @@ class ExtractService {
         if (joinNodes.length > 0) {
             const jn = joinNodes[0];
             const rawInputs = Array.isArray(jn.input) ? jn.input : (jn.input ? [jn.input] : []);
-            const leftInput = (rawInputs[0]?.['@_node'] || '').replace(/^#/, '');
-            const rightInput = (rawInputs[1]?.['@_node'] || '').replace(/^#/, '');
+            const leftInput = normalizeNodeId(rawInputs[0]?.['@_node']);
+            const rightInput = normalizeNodeId(rawInputs[1]?.['@_node']);
             const leftTable = resolveToPhysical(leftInput);
             const rightTable = resolveToPhysical(rightInput);
             const joinType = (jn['@_joinType'] || 'leftOuter').toUpperCase().includes('INNER') ? 'inner' : 'left';
@@ -395,10 +434,10 @@ class ExtractService {
             const rawType = n['@_xsi:type'] || n['@_type'] || '';
             const nodeType = rawType.replace(/^Calculation:/, '').replace(/View$/, '').toUpperCase() || 'PROJECTION';
             const rawInps = Array.isArray(n.input) ? n.input : (n.input ? [n.input] : []);
-            const inputNodes = rawInps.map(i => (i['@_node'] || '').replace(/^#/, ''));
+            const inputNodes = rawInps.map(i => normalizeNodeId(i['@_node']));
             const mappings = [];
             for (const inp of rawInps) {
-                const srcNode = (inp['@_node'] || '').replace(/^#/, '');
+                const srcNode = normalizeNodeId(inp['@_node']);
                 const rawMaps = Array.isArray(inp.mapping) ? inp.mapping : (inp.mapping ? [inp.mapping] : []);
                 for (const m of rawMaps) {
                     mappings.push({

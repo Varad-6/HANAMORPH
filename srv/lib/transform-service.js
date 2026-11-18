@@ -572,19 +572,38 @@ class TransformService {
             }
         }
 
+        const cleanNodeId = (id) => {
+            if (!id) return '';
+            return id.replace(/.*?\$\$\$\$/g, '').replace(/\$\$/g, '').replace(/^.*[.\/]/, '').trim();
+        };
+
         const getNodeTechName = (nodeId) => {
+            if (!nodeId) return '';
+            const cNodeId = cleanNodeId(nodeId);
             if (collapsedNodes[nodeId]) {
                 return collapsedNodes[nodeId].targetTable;
             }
-            if (tableDefinitions[nodeId] || (model.sources && model.sources.some(s => s.tableName === nodeId))) {
+            if (collapsedNodes[cNodeId]) {
+                return collapsedNodes[cNodeId].targetTable;
+            }
+            if (tableDefinitions[nodeId]) {
                 return nodeId;
             }
-            const found = nodeHierarchy.find(n => n.id === nodeId);
+            if (tableDefinitions[cNodeId]) {
+                return cNodeId;
+            }
+            if (model.sources && model.sources.some(s => s.tableName === nodeId || s.tableName === cNodeId)) {
+                return cNodeId;
+            }
+            const found = nodeHierarchy.find(n => n.id === nodeId || n.id === cNodeId);
             if (found && (found.isRoot || found.id === rootNode?.id)) {
                 return viewTechName;
             }
-            const clean = (nodeId || '').replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase();
-            return `${sTechBase}_${clean}_V`;
+            if (found) {
+                const clean = (found.id || '').replace(/^[\/\\]+/, '').replace(/[\/\\]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase();
+                return `${sTechBase}_${clean}_V`;
+            }
+            return cNodeId;
         };
 
         const definitions = { ...tableDefinitions };
@@ -592,6 +611,48 @@ class TransformService {
         let tierIndex = 1;
 
         const operationalNodes = nodeHierarchy.filter(n => !collapsedNodes[n.id]);
+
+        // Guarantee that ALL physical base tables referenced across all operational nodes are defined in CSN definitions!
+        for (const node of operationalNodes) {
+            for (const rawInp of (node.inputs || [])) {
+                const cleanInp = cleanNodeId(rawInp);
+                const isAnotherNode = nodeHierarchy.some(n => n.id === rawInp || cleanNodeId(n.id) === cleanInp);
+                const isDefined = definitions[cleanInp] || definitions[rawInp];
+                if (!isAnotherNode && !isDefined && cleanInp) {
+                    const specificCols = (model.sourceColumns && (model.sourceColumns[cleanInp] || model.sourceColumns[rawInp])) || [];
+                    const srcElements = {};
+                    if (specificCols.length > 0) {
+                        for (const sc of specificCols) {
+                            srcElements[sc.name] = {
+                                ...this._toCsnType(sc.dataType),
+                                "@EndUserText.label": sc.originalName || sc.name,
+                                ...(sc.isKey ? { key: true } : {})
+                            };
+                        }
+                    } else {
+                        // Gather columns from node mappings
+                        const nodeMaps = (node.mappings || []).filter(m => m.inputNode === rawInp || cleanNodeId(m.inputNode) === cleanInp);
+                        if (nodeMaps.length > 0) {
+                            for (const m of nodeMaps) {
+                                srcElements[m.source] = {
+                                    type: 'cds.String',
+                                    length: 100,
+                                    "@EndUserText.label": m.source
+                                };
+                            }
+                        } else {
+                            Object.assign(srcElements, tableElements);
+                        }
+                    }
+                    ensureKey(srcElements);
+                    definitions[cleanInp] = {
+                        kind: "entity",
+                        "@EndUserText.label": `${cleanInp} Physical Table`,
+                        elements: srcElements
+                    };
+                }
+            }
+        }
 
         for (const node of operationalNodes) {
             const isRoot = (node.id === rootNode?.id) || node.isRoot;
@@ -612,8 +673,8 @@ class TransformService {
                 const conditions = (node.joinConditions && node.joinConditions.length > 0)
                     ? node.joinConditions
                     : (node.joinAttributes || ['MANDT']).map(attr => {
-                        const lm = (node.mappings || []).find(m => m.inputNode === rawLeft && m.target === attr);
-                        const rm = (node.mappings || []).find(m => m.inputNode === rawRight && m.target === attr);
+                        const lm = (node.mappings || []).find(m => (m.inputNode === rawLeft || cleanNodeId(m.inputNode) === cleanNodeId(rawLeft)) && m.target === attr);
+                        const rm = (node.mappings || []).find(m => (m.inputNode === rawRight || cleanNodeId(m.inputNode) === cleanNodeId(rawRight)) && m.target === attr);
                         return {
                             targetAttr: attr,
                             leftSource: lm ? lm.source : attr,
@@ -648,7 +709,7 @@ class TransformService {
                 const seenTargets = new Set();
 
                 for (const m of (node.mappings || [])) {
-                    const isLeft = (m.inputNode === rawLeft) || (collapsedNodes[rawLeft] && m.inputNode === collapsedNodes[rawLeft].targetTable);
+                    const isLeft = (m.inputNode === rawLeft) || (cleanNodeId(m.inputNode) === cleanNodeId(rawLeft)) || (collapsedNodes[rawLeft] && (m.inputNode === collapsedNodes[rawLeft].targetTable || cleanNodeId(m.inputNode) === cleanNodeId(collapsedNodes[rawLeft].targetTable)));
                     const alias = isLeft ? "A" : "B";
                     const src = m.source;
                     const tgt = m.target;
