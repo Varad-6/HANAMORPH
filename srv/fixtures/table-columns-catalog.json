@@ -409,25 +409,25 @@
       "isKey": false
     },
     "ACTUALSTART": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "ACTUALFINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "PLANSTART": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "PLANFINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -451,7 +451,7 @@
       "isKey": false
     },
     "CONSTRAINT_TIME": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -505,13 +505,13 @@
       "isKey": false
     },
     "LATEST_START": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "LATEST_FINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -547,7 +547,7 @@
       "isKey": false
     },
     "CONSTR_TIME_FIN": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -559,13 +559,13 @@
       "isKey": false
     },
     "FORECAST_START": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "FORECAST_FINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -609,25 +609,25 @@
       "isKey": false
     },
     "ACTUALSTART": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "ACTUALFINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "PLANSTART": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "PLANFINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -651,7 +651,7 @@
       "isKey": false
     },
     "CONSTRAINT_TIME": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -705,13 +705,13 @@
       "isKey": false
     },
     "LATEST_START": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "LATEST_FINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -747,7 +747,7 @@
       "isKey": false
     },
     "CONSTR_TIME_FIN": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -759,13 +759,13 @@
       "isKey": false
     },
     "FORECAST_START": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
     },
     "FORECAST_FINISH": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -921,7 +921,7 @@
       "isKey": false
     },
     "RELEASED_ON": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1043,7 +1043,7 @@
       "isKey": false
     },
     "RELEASED_ON": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1109,7 +1109,7 @@
       "isKey": false
     },
     "LAST_CHANGED_ON": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1651,7 +1651,7 @@
       "isKey": false
     },
     "CREATED_AT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1663,7 +1663,7 @@
       "isKey": false
     },
     "OPENED_AT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1675,7 +1675,7 @@
       "isKey": false
     },
     "CHANGED_AT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1687,7 +1687,7 @@
       "isKey": false
     },
     "REVIEWED_AT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -1699,7 +1699,7 @@
       "isKey": false
     },
     "CLOSED_AT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -2471,13 +2471,13 @@
       "isKey": false
     },
     "DAYS_DUE": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
     },
     "CASH_DISCOUNT_DAYS1": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -2489,7 +2489,7 @@
       "isKey": false
     },
     "CASH_DISCOUNT_DAYS2": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -2585,7 +2585,7 @@
       "isKey": false
     },
     "FI_CLEARING_ITEM": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -2687,7 +2687,7 @@
       "isKey": false
     },
     "FI_PAYMENT_TERM": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -6183,7 +6183,7 @@
       "isKey": false
     },
     "STAGING_TIME": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -8197,7 +8197,7 @@
       "isKey": true
     },
     "ENTKM": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -8269,7 +8269,7 @@
       "isKey": false
     },
     "ENTK2": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -9443,19 +9443,19 @@
       "isKey": false
     },
     "STUFE": {
-      "dataType": "cds.Decimal(2, 2)",
+      "dataType": "cds.Decimal(2, 0)",
       "length": 2,
       "scale": 0,
       "isKey": false
     },
     "WEGXX": {
-      "dataType": "cds.Decimal(4, 2)",
+      "dataType": "cds.Decimal(4, 0)",
       "length": 4,
       "scale": 0,
       "isKey": false
     },
     "VWEGX": {
-      "dataType": "cds.Decimal(4, 2)",
+      "dataType": "cds.Decimal(4, 0)",
       "length": 4,
       "scale": 0,
       "isKey": false
@@ -9845,7 +9845,7 @@
       "isKey": false
     },
     "CFB_MAXLZ": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -9857,7 +9857,7 @@
       "isKey": false
     },
     "CFB_ADTDAYS": {
-      "dataType": "cds.Decimal(4, 2)",
+      "dataType": "cds.Decimal(4, 0)",
       "length": 4,
       "scale": 0,
       "isKey": false
@@ -9967,7 +9967,7 @@
       "isKey": false
     },
     "VINTV": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -10129,7 +10129,7 @@
       "isKey": true
     },
     "LOANZ": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -10213,7 +10213,7 @@
       "isKey": false
     },
     "SPLIM": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -10255,7 +10255,7 @@
       "isKey": false
     },
     "PEINH": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -10411,7 +10411,7 @@
       "isKey": true
     },
     "SPANZ": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -10729,7 +10729,7 @@
       "isKey": false
     },
     "EVGEW": {
-      "dataType": "cds.Decimal(8, 2)",
+      "dataType": "cds.Decimal(8, 0)",
       "length": 8,
       "scale": 0,
       "isKey": false
@@ -11131,7 +11131,7 @@
       "isKey": false
     },
     "CPD_UPDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -11205,13 +11205,13 @@
       "isKey": false
     },
     "UMREN": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "UMREZ": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -11409,7 +11409,7 @@
       "isKey": false
     },
     "PLIFZ": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -11775,13 +11775,13 @@
       "isKey": false
     },
     "PUFFR": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
     },
     "PUFGS": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -12003,13 +12003,13 @@
       "isKey": false
     },
     "OFFSTB": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "OFFSTE": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -12081,13 +12081,13 @@
       "isKey": false
     },
     "PUFGP": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
     },
     "PUFFP": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -12177,7 +12177,7 @@
       "isKey": false
     },
     "AUFKT": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -12887,7 +12887,7 @@
       "isKey": false
     },
     "CPD_UPDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -13627,7 +13627,7 @@
       "isKey": false
     },
     "FUELG": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -13753,19 +13753,19 @@
       "isKey": false
     },
     "MHDRZ": {
-      "dataType": "cds.Decimal(4, 2)",
+      "dataType": "cds.Decimal(4, 0)",
       "length": 4,
       "scale": 0,
       "isKey": false
     },
     "MHDHB": {
-      "dataType": "cds.Decimal(4, 2)",
+      "dataType": "cds.Decimal(4, 0)",
       "length": 4,
       "scale": 0,
       "isKey": false
     },
     "MHDLP": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -13783,7 +13783,7 @@
       "isKey": false
     },
     "VPREH": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -14101,7 +14101,7 @@
       "isKey": false
     },
     "QQTIME": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -14335,19 +14335,19 @@
       "isKey": false
     },
     "SCM_MATURITY_DUR": {
-      "dataType": "cds.Decimal(11, 2)",
+      "dataType": "cds.Decimal(11, 0)",
       "length": 11,
       "scale": 0,
       "isKey": false
     },
     "SCM_SHLF_LFE_REQ_MIN": {
-      "dataType": "cds.Decimal(11, 2)",
+      "dataType": "cds.Decimal(11, 0)",
       "length": 11,
       "scale": 0,
       "isKey": false
     },
     "SCM_SHLF_LFE_REQ_MAX": {
-      "dataType": "cds.Decimal(11, 2)",
+      "dataType": "cds.Decimal(11, 0)",
       "length": 11,
       "scale": 0,
       "isKey": false
@@ -14557,7 +14557,7 @@
       "isKey": false
     },
     "/SAPMP/BRAD": {
-      "dataType": "cds.Decimal(4, 2)",
+      "dataType": "cds.Decimal(4, 0)",
       "length": 4,
       "scale": 0,
       "isKey": false
@@ -14635,7 +14635,7 @@
       "isKey": false
     },
     "/STTPEC/SYNCTIME": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -15927,7 +15927,7 @@
       "isKey": false
     },
     "CPD_UPDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -16403,7 +16403,7 @@
       "isKey": false
     },
     "EVGEW": {
-      "dataType": "cds.Decimal(8, 2)",
+      "dataType": "cds.Decimal(8, 0)",
       "length": 8,
       "scale": 0,
       "isKey": false
@@ -16703,7 +16703,7 @@
       "isKey": false
     },
     "CPD_UPDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -18945,7 +18945,7 @@
       "isKey": false
     },
     "MAHZA": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -20219,13 +20219,13 @@
       "isKey": false
     },
     "UMZIZ": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "UMZIN": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -20285,13 +20285,13 @@
       "isKey": false
     },
     "KBVER": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
     },
     "KEVER": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -20381,7 +20381,7 @@
       "isKey": false
     },
     "ANTLF": {
-      "dataType": "cds.Decimal(1, 2)",
+      "dataType": "cds.Decimal(1, 0)",
       "length": 1,
       "scale": 0,
       "isKey": false
@@ -20435,13 +20435,13 @@
       "isKey": false
     },
     "UMVKZ": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "UMVKN": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -20567,7 +20567,7 @@
       "isKey": true
     },
     "STPOS": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -20675,7 +20675,7 @@
       "isKey": false
     },
     "KPEIN": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -22127,7 +22127,7 @@
       "isKey": false
     },
     "CPD_UPDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -24937,7 +24937,7 @@
       "isKey": false
     },
     "TIMESTAMP": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -25447,25 +25447,25 @@
       "isKey": false
     },
     "HPEINH": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "KPEINH": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "OPEINH": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
     },
     "VPEINH": {
-      "dataType": "cds.Decimal(5, 2)",
+      "dataType": "cds.Decimal(5, 0)",
       "length": 5,
       "scale": 0,
       "isKey": false
@@ -26803,7 +26803,7 @@
       "isKey": true
     },
     "LAST_CHANGE_DATETIME": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -29571,7 +29571,7 @@
       "isKey": false
     },
     "LAST_CHANGED_TS": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -29633,7 +29633,7 @@
       "isKey": false
     },
     "LAST_CHANGED_TS": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -29857,19 +29857,19 @@
       "isKey": false
     },
     "LET01": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
     },
     "LET02": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
     },
     "LET03": {
-      "dataType": "cds.Decimal(3, 2)",
+      "dataType": "cds.Decimal(3, 0)",
       "length": 3,
       "scale": 0,
       "isKey": false
@@ -31497,7 +31497,7 @@
       "isKey": false
     },
     "RTIME": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -31527,7 +31527,7 @@
       "isKey": false
     },
     "CREATEDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -31539,7 +31539,7 @@
       "isKey": false
     },
     "CHANGEDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -31673,7 +31673,7 @@
       "isKey": false
     },
     "CREATEDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -31685,7 +31685,7 @@
       "isKey": false
     },
     "CHANGEDAT": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -31915,7 +31915,7 @@
       "isKey": false
     },
     "DATE_C": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false
@@ -31927,7 +31927,7 @@
       "isKey": false
     },
     "DATE_M": {
-      "dataType": "cds.Decimal(15, 2)",
+      "dataType": "cds.Decimal(15, 0)",
       "length": 15,
       "scale": 0,
       "isKey": false

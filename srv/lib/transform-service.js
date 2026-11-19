@@ -529,7 +529,12 @@ class TransformService {
         const mStr = s.match(/String\((\d+)\)/i);
         if (mStr) return { type: 'cds.String', length: parseInt(mStr[1], 10) };
         const mDec = s.match(/Decimal\((\d+),\s*(\d+)\)/i);
-        if (mDec) return { type: 'cds.Decimal', precision: parseInt(mDec[1], 10), scale: parseInt(mDec[2], 10) };
+        if (mDec) {
+            let precision = parseInt(mDec[1], 10);
+            let scale = parseInt(mDec[2], 10);
+            if (scale > precision) precision = scale;
+            return { type: 'cds.Decimal', precision, scale };
+        }
         if (s.toLowerCase().includes('integer')) return { type: 'cds.Integer' };
         if (s.toLowerCase().includes('date')) return { type: 'cds.Date' };
         if (s.toLowerCase().includes('timestamp')) return { type: 'cds.Timestamp' };
@@ -780,9 +785,42 @@ class TransformService {
                 const viewElements = {};
                 const seenTargets = new Set();
 
+                // Schema lookup for left and right to disambiguate unmapped or shared columns
+                const leftDef = definitions[leftTech];
+                const rightDef = definitions[rightTech];
+                const leftKnown = TABLE_CATALOG[leftTech] || TABLE_CATALOG[leftTech.toUpperCase()] || (leftDef && leftDef.elements);
+                const rightKnown = TABLE_CATALOG[rightTech] || TABLE_CATALOG[rightTech.toUpperCase()] || (rightDef && rightDef.elements);
+
+                const isColOnLeft = (colName) => {
+                    if (!colName) return false;
+                    const cUpper = colName.toUpperCase();
+                    if (leftKnown && (leftKnown[colName] || leftKnown[cUpper])) return true;
+                    if (leftDef && leftDef.elements && (leftDef.elements[colName] || leftDef.elements[cUpper])) return true;
+                    return false;
+                };
+                const isColOnRight = (colName) => {
+                    if (!colName) return false;
+                    const cUpper = colName.toUpperCase();
+                    if (rightKnown && (rightKnown[colName] || rightKnown[cUpper])) return true;
+                    if (rightDef && rightDef.elements && (rightDef.elements[colName] || rightDef.elements[cUpper])) return true;
+                    return false;
+                };
+
+                const getAliasForCol = (colName, inputHint) => {
+                    if (inputHint === rawRight || cleanNodeId(inputHint) === cleanNodeId(rawRight) || (collapsedNodes[rawRight] && (inputHint === collapsedNodes[rawRight].targetTable || cleanNodeId(inputHint) === cleanNodeId(collapsedNodes[rawRight].targetTable)))) {
+                        return "B";
+                    }
+                    if (inputHint === rawLeft || cleanNodeId(inputHint) === cleanNodeId(rawLeft) || (collapsedNodes[rawLeft] && (inputHint === collapsedNodes[rawLeft].targetTable || cleanNodeId(inputHint) === cleanNodeId(collapsedNodes[rawLeft].targetTable)))) {
+                        return "A";
+                    }
+                    if (isColOnRight(colName) && !isColOnLeft(colName)) {
+                        return "B";
+                    }
+                    return "A";
+                };
+
                 for (const m of (node.mappings || [])) {
-                    const isLeft = (m.inputNode === rawLeft) || (cleanNodeId(m.inputNode) === cleanNodeId(rawLeft)) || (collapsedNodes[rawLeft] && (m.inputNode === collapsedNodes[rawLeft].targetTable || cleanNodeId(m.inputNode) === cleanNodeId(collapsedNodes[rawLeft].targetTable)));
-                    const alias = isLeft ? "A" : "B";
+                    const alias = getAliasForCol(m.source, m.inputNode);
                     const src = m.source;
                     const tgt = m.target;
                     if (seenTargets.has(tgt)) continue;
@@ -818,30 +856,17 @@ class TransformService {
                         const fallbackSql = (fallbackRaw === "''" || fallbackRaw === '""') ? "''" : fallbackRaw;
 
                         const mapEntry = (node.mappings || []).find(m => m.target === targetCol);
-                        if (mapEntry) {
-                            const isLeft = (mapEntry.inputNode === rawLeft) || (collapsedNodes[rawLeft] && mapEntry.inputNode === collapsedNodes[rawLeft].targetTable);
-                            const alias = isLeft ? "A" : "B";
-                            const srcCol = mapEntry.source;
-                            selectCols.push(`    COALESCE(${alias}."${srcCol}", ${fallbackSql}) AS "${colId}"`);
-                            cqnCols.push({
-                                func: "coalesce",
-                                args: [
-                                    { ref: [alias, srcCol] },
-                                    { val: fallbackVal }
-                                ],
-                                as: colId
-                            });
-                        } else {
-                            selectCols.push(`    COALESCE("${targetCol}", ${fallbackSql}) AS "${colId}"`);
-                            cqnCols.push({
-                                func: "coalesce",
-                                args: [
-                                    { ref: [targetCol] },
-                                    { val: fallbackVal }
-                                ],
-                                as: colId
-                            });
-                        }
+                        const alias = getAliasForCol(targetCol, mapEntry ? mapEntry.inputNode : null);
+                        const srcCol = mapEntry ? mapEntry.source : targetCol;
+                        selectCols.push(`    COALESCE(${alias}."${srcCol}", ${fallbackSql}) AS "${colId}"`);
+                        cqnCols.push({
+                            func: "coalesce",
+                            args: [
+                                { ref: [alias, srcCol] },
+                                { val: fallbackVal }
+                            ],
+                            as: colId
+                        });
                     } else if (/^\d+$/.test(formula.trim())) {
                         const numVal = parseInt(formula.trim(), 10);
                         selectCols.push(`    ${numVal} AS "${colId}"`);
@@ -851,12 +876,16 @@ class TransformService {
                         selectCols.push(`    '${strVal}' AS "${colId}"`);
                         cqnCols.push({ val: strVal, as: colId });
                     } else {
-                        selectCols.push(`    ${formula} AS "${colId}"`);
                         const colRefMatch = formula.match(/"([^"]+)"/);
                         if (colRefMatch && colRefMatch[1] && colRefMatch[1] !== colId) {
-                            cqnCols.push({ ref: [colRefMatch[1]], as: colId });
+                            const refCol = colRefMatch[1];
+                            const alias = getAliasForCol(refCol);
+                            selectCols.push(`    ${alias}."${refCol}" AS "${colId}"`);
+                            cqnCols.push({ ref: [alias, refCol], as: colId });
                         } else {
-                            cqnCols.push({ ref: [colId] });
+                            const alias = getAliasForCol(colId);
+                            selectCols.push(`    ${alias}."${colId}" AS "${colId}"`);
+                            cqnCols.push({ ref: [alias, colId], as: colId });
                         }
                     }
 
@@ -880,8 +909,9 @@ class TransformService {
                             ...(c.isKey ? { key: true } : {}),
                             ...(c.isMeasure ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
                         };
-                        selectCols.push(`    "${c.name}"`);
-                        cqnCols.push({ ref: [c.name] });
+                        const alias = getAliasForCol(c.name);
+                        selectCols.push(`    ${alias}."${c.name}" AS "${c.name}"`);
+                        cqnCols.push({ ref: [alias, c.name], as: c.name });
                     }
                 }
 
@@ -899,15 +929,12 @@ class TransformService {
                     }
                 }
 
-                ensureKey(viewElements);
-
                 nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${leftTech}" AS A\n${node.joinType || 'LEFT OUTER JOIN'} "${rightTech}" AS B\n  ON ${onConditions}`;
 
                 nodeViewDef = {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
-                    elements: viewElements,
                     query: {
                         SELECT: {
                             from: {
@@ -1031,15 +1058,12 @@ class TransformService {
                     }
                 }
 
-                ensureKey(viewElements);
-
                 nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${srcTech}"`;
 
                 nodeViewDef = {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
-                    elements: viewElements,
                     query: {
                         SELECT: {
                             from: { ref: [srcTech] },
@@ -1130,7 +1154,6 @@ class TransformService {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
-                    elements: unionElements,
                     query: {
                         SET: {
                             op: "union",

@@ -110,21 +110,36 @@ module.exports = cds.service.impl(async function () {
      */
     this.on('listCDSViews', async () => {
         const views = await hanaConnector.listCDSViews();
-        // Sync into DB for catalog reference
-        for (const v of views) {
-            await UPSERT.into(SourceCatalog).entries({
-                name: v.name,
-                type: 'CDS',
-                sqlViewName: v.sqlViewName,
-                description: v.description,
-                packageOrSchema: v.packageOrSchema,
-                columnCount: v.columnCount || 0,
-                hasAggregations: false,
-                supportedStatus: v.supportedStatus || 'SUPPORTED',
-                unsupportedReasons: v.unsupportedReasons || null
-            });
+        if (cds.db && SourceCatalog) {
+            try {
+                for (const v of views) {
+                    await UPSERT.into(SourceCatalog).entries({
+                        name: v.name,
+                        type: 'CDS',
+                        sqlViewName: v.sqlViewName,
+                        description: v.description,
+                        packageOrSchema: v.packageOrSchema,
+                        columnCount: v.columnCount || 0,
+                        hasAggregations: false,
+                        supportedStatus: v.supportedStatus || 'SUPPORTED',
+                        unsupportedReasons: v.unsupportedReasons || null
+                    });
+                }
+            } catch (e) {
+                console.warn('[MigrationService] SourceCatalog sync skipped for CDS views:', e.message);
+            }
         }
-        return views;
+        return views.map(v => ({
+            name: v.name,
+            type: v.type || 'CDS',
+            sqlViewName: v.sqlViewName,
+            description: v.description,
+            packageOrSchema: v.packageOrSchema,
+            columnCount: v.columnCount || 0,
+            hasAggregations: false,
+            supportedStatus: v.supportedStatus || 'SUPPORTED',
+            unsupportedReasons: v.unsupportedReasons || null
+        }));
     });
 
     /**
@@ -133,21 +148,36 @@ module.exports = cds.service.impl(async function () {
      */
     this.on('listCalcViews', async () => {
         const views = await hanaConnector.listCalcViews();
-        // Sync into DB for catalog reference
-        for (const v of views) {
-            await UPSERT.into(SourceCatalog).entries({
-                name: v.name,
-                type: 'CALC_VIEW',
-                sqlViewName: v.sqlViewName,
-                description: v.description,
-                packageOrSchema: v.packageOrSchema,
-                columnCount: v.columnCount || 0,
-                hasAggregations: true,
-                supportedStatus: v.supportedStatus || 'SUPPORTED',
-                unsupportedReasons: v.unsupportedReasons || null
-            });
+        if (cds.db && SourceCatalog) {
+            try {
+                for (const v of views) {
+                    await UPSERT.into(SourceCatalog).entries({
+                        name: v.name,
+                        type: 'CALC_VIEW',
+                        sqlViewName: v.sqlViewName,
+                        description: v.description,
+                        packageOrSchema: v.packageOrSchema,
+                        columnCount: v.columnCount || 0,
+                        hasAggregations: true,
+                        supportedStatus: v.supportedStatus || 'SUPPORTED',
+                        unsupportedReasons: v.unsupportedReasons || null
+                    });
+                }
+            } catch (e) {
+                console.warn('[MigrationService] SourceCatalog sync skipped for Calc views:', e.message);
+            }
         }
-        return views;
+        return views.map(v => ({
+            name: v.name,
+            type: v.type || 'CALC_VIEW',
+            sqlViewName: v.sqlViewName,
+            description: v.description,
+            packageOrSchema: v.packageOrSchema,
+            columnCount: v.columnCount || 0,
+            hasAggregations: true,
+            supportedStatus: v.supportedStatus || 'SUPPORTED',
+            unsupportedReasons: v.unsupportedReasons || null
+        }));
     });
 
     /**

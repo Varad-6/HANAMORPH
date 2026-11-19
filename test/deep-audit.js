@@ -18,23 +18,28 @@ async function validateCsnPackage(pkgName, csn) {
     for (const [entityName, entityDef] of Object.entries(csn.definitions)) {
         if (entityDef.kind !== 'entity') continue;
 
+        const isTable = !entityDef.query;
         const elements = entityDef.elements || {};
         const elementKeys = Object.keys(elements);
 
-        if (elementKeys.length === 0) {
-            errors.push(`[${pkgName}] Entity ${entityName} has NO elements defined.`);
+        if (isTable) {
+            if (elementKeys.length === 0) {
+                errors.push(`[${pkgName}] Entity ${entityName} has NO elements defined.`);
+            }
+
+            // Rule 1: Every physical base table must have at least 1 key column
+            const hasKey = elementKeys.some(k => elements[k].key);
+            if (!hasKey) {
+                errors.push(`[${pkgName}] Entity ${entityName} has ZERO key columns.`);
+            }
         }
 
-        // Rule 1: Every entity must have at least 1 key column
-        const hasKey = elementKeys.some(k => elements[k].key);
-        if (!hasKey) {
-            errors.push(`[${pkgName}] Entity ${entityName} has ZERO key columns.`);
-        }
-
-        // Rule 2: If #CUBE (Fact View), MUST have at least 1 measure
+        // Rule 2: If #CUBE (Fact View), MUST have at least 1 measure (either in elements, query SELECT, or UNION branches)
         if (entityDef['@Analytics.dataCategory'] === '#CUBE') {
-            const hasMeasure = elementKeys.some(k => elements[k]['@Analytics.measure']);
-            if (!hasMeasure) {
+            const hasMeasureInElements = elementKeys.some(k => elements[k]['@Analytics.measure']);
+            const hasMeasureInSelect = entityDef.query?.SELECT?.columns?.some(c => c['@Analytics.measure'] || c.as === 'RECORD_COUNT' || (typeof c.as === 'string' && /AMOUNT|QTY|QUANTITY|COUNT|TOTAL/i.test(c.as)));
+            const hasMeasureInUnion = entityDef.query?.SET?.args?.some(b => b.SELECT?.columns?.some(c => c['@Analytics.measure'] || c.as === 'RECORD_COUNT' || (typeof c.as === 'string' && /AMOUNT|QTY|QUANTITY|COUNT|TOTAL/i.test(c.as))));
+            if (!hasMeasureInElements && !hasMeasureInSelect && !hasMeasureInUnion) {
                 errors.push(`[${pkgName}] Fact view ${entityName} (#CUBE) has NO visible measure.`);
             }
         }

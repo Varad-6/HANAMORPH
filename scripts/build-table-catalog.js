@@ -114,7 +114,11 @@ async function buildTableCatalog() {
 function mapDataType(hanaType, length, scale) {
     const t = (hanaType || '').toUpperCase();
     if (t.includes('INT') || t === 'INTEGER' || t === 'BIGINT' || t === 'SMALLINT') return 'cds.Integer';
-    if (t.includes('DECIMAL') || t === 'NUMERIC') return `cds.Decimal(${length || 15}, ${scale || 2})`;
+    if (t.includes('DECIMAL') || t === 'NUMERIC') {
+        const s = (scale !== undefined && scale !== null) ? Number(scale) : 0;
+        const p = Math.max(Number(length || 15), s, 1);
+        return `cds.Decimal(${p}, ${s})`;
+    }
     if (t.includes('DATE')) return 'cds.Date';
     if (t.includes('TIME') || t.includes('TIMESTAMP')) return 'cds.Timestamp';
     return `cds.String(${length || 40})`;

@@ -474,6 +474,22 @@ class ExtractService {
                 }
             }
 
+            // If mappings are empty, extract attributes from viewAttributes (e.g. in JoinView or AggregationView)
+            if (mappings.length === 0) {
+                const rawViewAttrs = n.viewAttributes?.viewAttribute || [];
+                const viewAttrList = Array.isArray(rawViewAttrs) ? rawViewAttrs : (rawViewAttrs ? [rawViewAttrs] : []);
+                for (const va of viewAttrList) {
+                    const attrId = va['@_id'];
+                    if (attrId) {
+                        mappings.push({
+                            inputNode: '',
+                            source: attrId,
+                            target: attrId
+                        });
+                    }
+                }
+            }
+
             const rawJoinAttrs = Array.isArray(n.joinAttribute) ? n.joinAttribute : (n.joinAttribute ? [n.joinAttribute] : []);
             const joinAttrs = rawJoinAttrs.map(a => a['@_name']);
 
