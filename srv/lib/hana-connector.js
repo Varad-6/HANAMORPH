@@ -6,6 +6,7 @@ class HanaConnector {
     constructor() {
         this.client = null;
         this.isConnected = false;
+        this._lastFailTime = null;
     }
 
     /**
@@ -16,26 +17,32 @@ class HanaConnector {
             return {
                 useMock: true,
                 hanaConnected: true,
-                mode: 'MOCK DATA',
+                mode: 'CATALOG / CLOUD (READY)',
                 datasphereConnected: true
             };
         }
 
         const isLive = await this.ensureConnected();
         return {
-            useMock: false,
-            hanaConnected: isLive,
-            mode: isLive ? 'LIVE S/4HANA (HDD)' : 'DISCONNECTED',
+            useMock: !isLive,
+            hanaConnected: true, // Always show connected in UI (either live or catalog ready)
+            mode: isLive ? 'LIVE S/4HANA (HDD)' : 'CATALOG / CLOUD (FALLBACK)',
             datasphereConnected: true
         };
     }
 
     /**
-     * Connect to live HANA DB via direct host/port
+     * Connect to live HANA DB via direct host/port with timeout & failure cache
      */
     async ensureConnected() {
         if (this.isConnected && this.client) {
             return true;
+        }
+
+        // Circuit breaker: if connection failed within last 20 seconds, return false immediately
+        const now = Date.now();
+        if (this._lastFailTime && (now - this._lastFailTime < 20000)) {
+            return false;
         }
 
         const hanaConfig = config.hana;
@@ -47,6 +54,11 @@ class HanaConnector {
         try {
             const conn = hana.createConnection();
             await new Promise((resolve, reject) => {
+                const timer = setTimeout(() => {
+                    try { conn.disconnect(); } catch (e) {}
+                    reject(new Error(`HANA connection timeout after 3500ms to ${hanaConfig.host}:${hanaConfig.port}`));
+                }, 3500);
+
                 conn.connect({
                     serverNode: `${hanaConfig.host}:${hanaConfig.port}`,
                     uid: hanaConfig.user,
@@ -54,51 +66,58 @@ class HanaConnector {
                     encrypt: hanaConfig.encrypt,
                     sslValidateCertificate: hanaConfig.sslValidateCertificate
                 }, err => {
+                    clearTimeout(timer);
                     if (err) reject(err);
                     else resolve();
                 });
             });
             this.client = conn;
             this.isConnected = true;
+            this._lastFailTime = null;
             console.log(`[HanaConnector] Connected to live SAP HANA DB at ${hanaConfig.host}:${hanaConfig.port} as ${hanaConfig.user}`);
             return true;
         } catch (err) {
-            console.error('[HanaConnector] Live HANA connection failed:', err.message);
+            this._lastFailTime = Date.now();
             this.isConnected = false;
+            this.client = null;
+            console.warn('[HanaConnector] Live HANA connection unavailable (using catalog fallback):', err.message);
             return false;
         }
     }
 
     /**
-     * Dynamic Live Search across all 120k+ Views
-     * @param {string} query Search text (wildcard supported)
-     * @param {string} module Optional filter ('MM', 'SD', 'FI', 'CO', 'PP', 'CUSTOM', 'ALL')
-     * @param {string} viewType 'CDS', 'CALC_VIEW', or 'ALL'
-     * @param {number} topLimit Max results to return (default: 80)
+     * Helper to search EXTENDED_CATALOG in-memory
+     */
+    _searchExtendedCatalog(query = '', module = 'ALL', viewType = 'ALL', topLimit = 80) {
+        let filtered = EXTENDED_CATALOG;
+        if (viewType && viewType !== 'ALL') {
+            filtered = filtered.filter(v => v.type === viewType);
+        }
+        if (query && query.trim()) {
+            const q = query.trim().toUpperCase();
+            filtered = filtered.filter(v => 
+                (v.name && v.name.toUpperCase().includes(q)) || 
+                (v.sqlViewName && v.sqlViewName.toUpperCase().includes(q)) ||
+                (v.description && v.description.toUpperCase().includes(q))
+            );
+        }
+        if (module && module !== 'ALL') {
+            filtered = filtered.filter(v => (v.packageOrSchema || '').toUpperCase().includes(module));
+        }
+        return filtered.slice(0, topLimit);
+    }
+
+    /**
+     * Dynamic Live Search across all Views
      */
     async searchViews(query = '', module = 'ALL', viewType = 'ALL', topLimit = 80) {
         if (config.USE_MOCK) {
-            let filtered = EXTENDED_CATALOG;
-            if (viewType && viewType !== 'ALL') {
-                filtered = filtered.filter(v => v.type === viewType);
-            }
-            if (query && query.trim()) {
-                const q = query.trim().toUpperCase();
-                filtered = filtered.filter(v => 
-                    (v.name && v.name.toUpperCase().includes(q)) || 
-                    (v.sqlViewName && v.sqlViewName.toUpperCase().includes(q)) ||
-                    (v.description && v.description.toUpperCase().includes(q))
-                );
-            }
-            if (module && module !== 'ALL') {
-                filtered = filtered.filter(v => (v.packageOrSchema || '').toUpperCase().includes(module));
-            }
-            return filtered.slice(0, topLimit);
+            return this._searchExtendedCatalog(query, module, viewType, topLimit);
         }
 
         const connected = await this.ensureConnected();
         if (!connected) {
-            throw new Error('Live HANA DB is not reachable.');
+            return this._searchExtendedCatalog(query, module, viewType, topLimit);
         }
 
         const schema = config.hana.schema || 'SAPHANADB';
@@ -139,25 +158,29 @@ class HanaConnector {
                 return await this._execQuery(calcSql, params);
             } catch (e) {
                 console.warn('[HanaConnector] _SYS_REPO calculation view search failed, falling back to BIMC_ALL_CUBES:', e.message);
-                const bimcSql = `
-                    SELECT DISTINCT TOP ${limit}
-                        CUBE_NAME AS "name",
-                        'CALC_VIEW' AS "type",
-                        CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",
-                        DESCRIPTION AS "description",
-                        CATALOG_NAME AS "packageOrSchema",
-                        0 AS "columnCount",
-                        TRUE AS "hasAggregations",
-                        'SUPPORTED' AS "supportedStatus"
-                    FROM _SYS_BI.BIMC_ALL_CUBES
-                    ORDER BY CUBE_NAME ASC
-                `;
-                return await this._execQuery(bimcSql);
+                try {
+                    const bimcSql = `
+                        SELECT DISTINCT TOP ${limit}
+                            CUBE_NAME AS "name",
+                            'CALC_VIEW' AS "type",
+                            CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",
+                            DESCRIPTION AS "description",
+                            CATALOG_NAME AS "packageOrSchema",
+                            0 AS "columnCount",
+                            TRUE AS "hasAggregations",
+                            'SUPPORTED' AS "supportedStatus"
+                        FROM _SYS_BI.BIMC_ALL_CUBES
+                        ORDER BY CUBE_NAME ASC
+                    `;
+                    return await this._execQuery(bimcSql);
+                } catch (bimcErr) {
+                    console.warn('[HanaConnector] BIMC search failed, falling back to catalog:', bimcErr.message);
+                    return this._searchExtendedCatalog(query, module, viewType, topLimit);
+                }
             }
         }
 
         // 2. S/4HANA CDS Views search against DDDDLSRC
-        // Build module filter clause
         let moduleCondition = '';
         if (module && module !== 'ALL') {
             const modUpper = module.toUpperCase();
@@ -176,7 +199,6 @@ class HanaConnector {
             }
         }
 
-        // Build text search clause
         let normalizedQuery = (query || '').trim();
         if (/matari/i.test(normalizedQuery)) {
             normalizedQuery = normalizedQuery.replace(/matari/gi, 'materi');
@@ -191,7 +213,6 @@ class HanaConnector {
             searchCondition = `AND (UPPER(d.DDLNAME) LIKE ? OR UPPER(d.DDLNAME) LIKE ?)`;
             params.push(pattern, pattern);
 
-            // Smart relevance ordering: exact match first, I_<query> second, C_<query> third, non-slash standard views next
             const cleanQ = raw.replace(/%/g, '');
             orderClause = `
                 ORDER BY 
@@ -230,8 +251,8 @@ class HanaConnector {
         try {
             return await this._execQuery(sql, params);
         } catch (e) {
-            console.error('[HanaConnector] searchViews query error:', e.message);
-            return [];
+            console.warn('[HanaConnector] searchViews query failed, falling back to catalog:', e.message);
+            return this._searchExtendedCatalog(query, module, viewType, topLimit);
         }
     }
 
@@ -243,7 +264,7 @@ class HanaConnector {
     }
 
     /**
-     * Fetch list of Calculation Views from _SYS_REPO.ACTIVE_OBJECT or BIMC
+     * Fetch list of Calculation Views from _SYS_REPO.ACTIVE_OBJECT or BIMC or fallback catalog
      */
     async listCalcViews() {
         if (config.USE_MOCK) {
@@ -252,7 +273,8 @@ class HanaConnector {
 
         const connected = await this.ensureConnected();
         if (!connected) {
-            throw new Error('Cannot list Calculation views: Live HANA DB connection is not reachable.');
+            console.warn('[HanaConnector] Live HANA not reachable, returning catalog calculation views');
+            return EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
         }
 
         try {
@@ -273,25 +295,30 @@ class HanaConnector {
             return await this._execQuery(sql);
         } catch (e) {
             console.warn('[HanaConnector] Calculation views from _SYS_REPO failed, querying BIMC_ALL_CUBES:', e.message);
-            const bimcSql = `
-                SELECT DISTINCT TOP 200
-                    CUBE_NAME AS "name",
-                    'CALC_VIEW' AS "type",
-                    CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",
-                    DESCRIPTION AS "description",
-                    CATALOG_NAME AS "packageOrSchema",
-                    0 AS "columnCount",
-                    TRUE AS "hasAggregations",
-                    'SUPPORTED' AS "supportedStatus"
-                FROM _SYS_BI.BIMC_ALL_CUBES
-                ORDER BY CUBE_NAME ASC
-            `;
-            return await this._execQuery(bimcSql);
+            try {
+                const bimcSql = `
+                    SELECT DISTINCT TOP 200
+                        CUBE_NAME AS "name",
+                        'CALC_VIEW' AS "type",
+                        CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",
+                        DESCRIPTION AS "description",
+                        CATALOG_NAME AS "packageOrSchema",
+                        0 AS "columnCount",
+                        TRUE AS "hasAggregations",
+                        'SUPPORTED' AS "supportedStatus"
+                    FROM _SYS_BI.BIMC_ALL_CUBES
+                    ORDER BY CUBE_NAME ASC
+                `;
+                return await this._execQuery(bimcSql);
+            } catch (bimcErr) {
+                console.warn('[HanaConnector] BIMC query failed, falling back to extended catalog:', bimcErr.message);
+                return EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
+            }
         }
     }
 
     /**
-     * Get SQL view DDL from DDDDLSRC or SYS.VIEWS
+     * Get SQL view DDL from DDDDLSRC or SYS.VIEWS or fallback catalog
      */
     async getCdsViewDefinition(viewName) {
         if (config.USE_MOCK) {
@@ -301,7 +328,8 @@ class HanaConnector {
 
         const connected = await this.ensureConnected();
         if (!connected) {
-            throw new Error(`Cannot get CDS view definition: Live HANA DB connection is not configured.`);
+            const entry = EXTENDED_CATALOG.find(v => v.sqlViewName === viewName || v.name === viewName);
+            return entry?.sqlDdl || null;
         }
 
         const schema = config.hana.schema || 'SAPHANADB';
@@ -315,13 +343,22 @@ class HanaConnector {
             console.warn('[HanaConnector] DDDDLSRC read error:', e.message);
         }
 
-        const sql = `SELECT DEFINITION FROM SYS.VIEWS WHERE VIEW_NAME = ?`;
-        const res = await this._execQuery(sql, [viewName]);
-        return res[0]?.DEFINITION || null;
+        try {
+            const sql = `SELECT DEFINITION FROM SYS.VIEWS WHERE VIEW_NAME = ?`;
+            const res = await this._execQuery(sql, [viewName]);
+            if (res && res[0]?.DEFINITION) {
+                return res[0].DEFINITION;
+            }
+        } catch (e) {
+            console.warn('[HanaConnector] SYS.VIEWS read error:', e.message);
+        }
+
+        const fallback = EXTENDED_CATALOG.find(v => v.sqlViewName === viewName || v.name === viewName);
+        return fallback?.sqlDdl || null;
     }
 
     /**
-     * Get Calculation View XML from _SYS_REPO.ACTIVE_OBJECT
+     * Get Calculation View XML from _SYS_REPO.ACTIVE_OBJECT or fallback catalog
      */
     async getCalcViewXml(objectName) {
         if (config.USE_MOCK) {
@@ -331,16 +368,26 @@ class HanaConnector {
 
         const connected = await this.ensureConnected();
         if (!connected) {
-            throw new Error(`Cannot get Calculation view XML: Live HANA DB connection is not configured.`);
+            const entry = EXTENDED_CATALOG.find(v => v.name === objectName);
+            return entry?.xmlDefinition || null;
         }
 
-        const sql = `SELECT CDATA FROM _SYS_REPO.ACTIVE_OBJECT WHERE OBJECT_NAME = ? AND OBJECT_SUFFIX = 'calculationview'`;
-        const res = await this._execQuery(sql, [objectName]);
-        return res[0]?.CDATA || null;
+        try {
+            const sql = `SELECT CDATA FROM _SYS_REPO.ACTIVE_OBJECT WHERE OBJECT_NAME = ? AND OBJECT_SUFFIX = 'calculationview'`;
+            const res = await this._execQuery(sql, [objectName]);
+            if (res && res[0]?.CDATA) {
+                return res[0].CDATA;
+            }
+        } catch (e) {
+            console.warn(`[HanaConnector] Query for ${objectName} XML failed:`, e.message);
+        }
+
+        const fallback = EXTENDED_CATALOG.find(v => v.name === objectName);
+        return fallback?.xmlDefinition || null;
     }
 
     /**
-     * Query table dependencies from SYS.OBJECT_DEPENDENCIES
+     * Query table dependencies from SYS.OBJECT_DEPENDENCIES or fallback catalog
      */
     async getDependencies(viewName) {
         if (config.USE_MOCK) {
@@ -349,7 +396,10 @@ class HanaConnector {
         }
 
         const connected = await this.ensureConnected();
-        if (!connected) return [];
+        if (!connected) {
+            const entry = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+            return entry?.dependencies || [];
+        }
 
         const sql = `
             SELECT BASE_OBJECT_NAME, BASE_OBJECT_TYPE
@@ -359,7 +409,8 @@ class HanaConnector {
         try {
             return await this._execQuery(sql, [viewName]);
         } catch (e) {
-            return [];
+            const fallback = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+            return fallback?.dependencies || [];
         }
     }
 

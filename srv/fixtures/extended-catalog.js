@@ -613,7 +613,24 @@ const BASE_CATALOG = [
     }
 ];
 
-const EXTENDED_CATALOG = [...EXCEL_SEEDED_VIEWS, ...BASE_CATALOG];
+const fs = require('fs');
+const path = require('path');
+
+let LIVE_CALC_VIEWS = [];
+try {
+    const liveCalcPath = path.join(__dirname, 'live-calc-views.json');
+    if (fs.existsSync(liveCalcPath)) {
+        LIVE_CALC_VIEWS = JSON.parse(fs.readFileSync(liveCalcPath, 'utf8'));
+    }
+} catch (e) {
+    console.warn('[ExtendedCatalog] Failed to load live-calc-views.json:', e.message);
+}
+
+// Deduplicate: live calc views take priority over base mock views with the same name
+const liveNames = new Set(LIVE_CALC_VIEWS.map(v => v.name));
+const filteredBase = BASE_CATALOG.filter(v => !(v.type === 'CALC_VIEW' && liveNames.has(v.name)));
+
+const EXTENDED_CATALOG = [...EXCEL_SEEDED_VIEWS, ...filteredBase, ...LIVE_CALC_VIEWS];
 
 module.exports = {
     EXTENDED_CATALOG
