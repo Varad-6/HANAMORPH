@@ -966,6 +966,27 @@ class TransformService {
                 const unionCqnBranches = [];
                 const inputsList = [];
 
+                const unionElements = {};
+                for (const col of normalizedCols) {
+                    if (col.targetName === 'RECORD_COUNT') continue;
+                    const inferred = (model.columns || []).find(c => c.name === col.targetName) || {};
+                    const dt = col.dataType || inferred.dataType || 'cds.String(100)';
+                    unionElements[col.targetName] = {
+                        ...this._toCsnType(dt),
+                        "@EndUserText.label": col.targetName,
+                        ...(col.isKey ? { key: true } : {})
+                    };
+                }
+                if (isRoot && semanticCategory === '#CUBE') {
+                    unionElements["RECORD_COUNT"] = {
+                        type: "cds.Integer",
+                        "@EndUserText.label": "Record Count",
+                        "@Analytics.measure": true,
+                        "@Aggregation.default": "#SUM"
+                    };
+                }
+                ensureKey(unionElements);
+
                 for (const rawInput of (node.inputs || [])) {
                     const branchTech = getNodeTechName(rawInput);
                     inputsList.push(branchTech);
@@ -975,8 +996,9 @@ class TransformService {
                     const branchCqnCols = [];
 
                     for (const col of normalizedCols) {
+                        if (col.targetName === 'RECORD_COUNT') continue;
                         const mapEntry = branchMappings.find(m => m.target === col.targetName);
-                        if (mapEntry) {
+                        if (mapEntry && mapEntry.source) {
                             const src = mapEntry.source;
                             const tgt = mapEntry.target;
                             if (src === tgt) {
@@ -1012,7 +1034,7 @@ class TransformService {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
-                    elements: isRoot ? finalViewElements : finalViewElements,
+                    elements: unionElements,
                     query: {
                         SET: {
                             op: "union",
@@ -1049,8 +1071,9 @@ class TransformService {
 
                 const branchSelectCols = [];
                 for (const col of normalizedCols) {
+                    if (col.targetName === 'RECORD_COUNT') continue;
                     const mapEntry = branchMappings.find(m => m.target === col.targetName);
-                    if (mapEntry) {
+                    if (mapEntry && mapEntry.source) {
                         const src = mapEntry.source;
                         const tgt = mapEntry.target;
                         branchSelectCols.push(src === tgt ? `        "${src}"` : `        "${src}" AS "${tgt}"`);

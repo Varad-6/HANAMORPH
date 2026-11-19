@@ -143,14 +143,6 @@
           "type": "cds.String",
           "length": 100,
           "@EndUserText.label": "STAT2"
-        },
-        "BeginDate": {
-          "type": "cds.Date",
-          "@EndUserText.label": "BeginDate"
-        },
-        "EndDate": {
-          "type": "cds.Date",
-          "@EndUserText.label": "EndDate"
         }
       }
     },
@@ -430,13 +422,15 @@
             },
             {
               "ref": [
-                "BeginDate"
-              ]
+                "BEGDA"
+              ],
+              "as": "BeginDate"
             },
             {
               "ref": [
-                "EndDate"
-              ]
+                "ENDDA"
+              ],
+              "as": "EndDate"
             }
           ]
         }
@@ -1061,12 +1055,6 @@
           "type": "cds.String",
           "length": 100,
           "@EndUserText.label": "ORT01"
-        },
-        "RECORD_COUNT": {
-          "type": "cds.Integer",
-          "@EndUserText.label": "Record Count",
-          "@Analytics.measure": true,
-          "@Aggregation.default": "#SUM"
         }
       },
       "query": {
@@ -1165,9 +1153,7 @@
                     "as": "EMPLOYEEFULLNAME"
                   },
                   {
-                    "ref": [
-                      null
-                    ],
+                    "val": null,
                     "as": "STAT2"
                   },
                   {
@@ -1197,7 +1183,7 @@
     },
     "CV_EMPLOYEE_V": {
       "kind": "entity",
-      "@EndUserText.label": "CV_EMPLOYEE Fact View",
+      "@EndUserText.label": "CV_EMPLOYEE Analytical View",
       "elements": {
         "MANDT": {
           "type": "cds.String",
