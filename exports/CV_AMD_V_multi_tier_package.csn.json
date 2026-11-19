@@ -1,0 +1,2809 @@
+{
+  "$version": "2.0",
+  "definitions": {
+    "CV_AMD_TBL": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_AMD Base Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "key": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO"
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS"
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT"
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL"
+        },
+        "KOKRS_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "KOKRS_NULLABLE"
+        },
+        "BUTXT_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUTXT_NULLABLE"
+        },
+        "ACC_CURRENT_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT_NULLABLE"
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "key": true
+        }
+      }
+    },
+    "T001": {
+      "kind": "entity",
+      "@EndUserText.label": "T001 Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS"
+        },
+        "BUTXT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUTXT"
+        },
+        "ORT01": {
+          "type": "cds.String",
+          "length": 25,
+          "@EndUserText.label": "ORT01"
+        },
+        "LAND1": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "LAND1"
+        },
+        "WAERS": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "WAERS"
+        },
+        "SPRAS": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "SPRAS"
+        },
+        "KTOPL": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "KTOPL"
+        },
+        "WAABW": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "WAABW"
+        },
+        "PERIV": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "PERIV"
+        },
+        "KOKFI": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "KOKFI"
+        },
+        "RCOMP": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "RCOMP"
+        },
+        "ADRNR": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "ADRNR",
+          "key": true
+        },
+        "STCEG": {
+          "type": "cds.String",
+          "length": 20,
+          "@EndUserText.label": "STCEG"
+        },
+        "FIKRS": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "FIKRS"
+        },
+        "XFMCO": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XFMCO"
+        },
+        "XFMCB": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XFMCB"
+        },
+        "XFMCA": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XFMCA"
+        },
+        "TXJCD": {
+          "type": "cds.String",
+          "length": 15,
+          "@EndUserText.label": "TXJCD"
+        },
+        "FMHRDATE": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "FMHRDATE"
+        },
+        "XTEMPLT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XTEMPLT"
+        },
+        "BUVAR": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "BUVAR"
+        },
+        "FDBUK": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "FDBUK"
+        },
+        "XFDIS": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XFDIS"
+        },
+        "XVALV": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XVALV"
+        },
+        "XSKFN": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XSKFN"
+        },
+        "KKBER": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "KKBER"
+        },
+        "XMWSN": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XMWSN"
+        },
+        "MREGL": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "MREGL"
+        },
+        "XGSBE": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XGSBE"
+        },
+        "XGJRV": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XGJRV"
+        },
+        "XKDFT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XKDFT"
+        },
+        "XPROD": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XPROD"
+        },
+        "XEINK": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XEINK"
+        },
+        "XJVAA": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XJVAA"
+        },
+        "XVVWA": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XVVWA"
+        },
+        "XSLTA": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XSLTA"
+        },
+        "XFDMM": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XFDMM"
+        },
+        "XFDSD": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XFDSD"
+        },
+        "XEXTB": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XEXTB"
+        },
+        "EBUKR": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "EBUKR"
+        },
+        "KTOP2": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "KTOP2"
+        },
+        "UMKRS": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "UMKRS"
+        },
+        "BUKRS_GLOB": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "BUKRS_GLOB"
+        },
+        "FSTVA": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "FSTVA"
+        },
+        "OPVAR": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "OPVAR"
+        },
+        "XCOVR": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XCOVR"
+        },
+        "TXKRS": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "TXKRS"
+        },
+        "WFVAR": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "WFVAR"
+        },
+        "XBBBF": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XBBBF"
+        },
+        "XBBBE": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XBBBE"
+        },
+        "XBBBA": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XBBBA"
+        },
+        "XBBKO": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XBBKO"
+        },
+        "XSTDT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XSTDT"
+        },
+        "MWSKV": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "MWSKV"
+        },
+        "MWSKA": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "MWSKA"
+        },
+        "IMPDA": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "IMPDA"
+        },
+        "XNEGP": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XNEGP"
+        },
+        "XKKBI": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XKKBI"
+        },
+        "WT_NEWWT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "WT_NEWWT"
+        },
+        "PP_PDATE": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "PP_PDATE"
+        },
+        "INFMT": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "INFMT"
+        },
+        "FSTVARE": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "FSTVARE"
+        },
+        "KOPIM": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "KOPIM"
+        },
+        "DKWEG": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "DKWEG"
+        },
+        "OFFSACCT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "OFFSACCT"
+        },
+        "BAPOVAR": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "BAPOVAR"
+        },
+        "XCOS": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XCOS"
+        },
+        "XCESSION": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XCESSION"
+        },
+        "XSPLT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XSPLT"
+        },
+        "SURCCM": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "SURCCM"
+        },
+        "DTPROV": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "DTPROV"
+        },
+        "DTAMTC": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "DTAMTC"
+        },
+        "DTTAXC": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "DTTAXC"
+        },
+        "DTTDSP": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "DTTDSP"
+        },
+        "DTAXR": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "DTAXR"
+        },
+        "XVATDATE": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XVATDATE"
+        },
+        "PST_PER_VAR": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "PST_PER_VAR"
+        },
+        "XBBSC": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "XBBSC"
+        },
+        "F_OBSOLETE": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "F_OBSOLETE"
+        },
+        "FM_DERIVE_ACC": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "FM_DERIVE_ACC"
+        },
+        "TRANSIT_PLANT": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "TRANSIT_PLANT"
+        }
+      }
+    },
+    "FCLM_BAM_AC_TYPE": {
+      "kind": "entity",
+      "@EndUserText.label": "FCLM_BAM_AC_TYPE Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT"
+        },
+        "ACC_TYPE_DIRE": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "ACC_TYPE_DIRE"
+        },
+        "CONTRACT_TYPE": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "CONTRACT_TYPE"
+        }
+      }
+    },
+    "FCLM_BAM_AMD": {
+      "kind": "entity",
+      "@EndUserText.label": "FCLM_BAM_AMD Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "key": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO"
+        },
+        "IBAN": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "IBAN"
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS"
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL"
+        },
+        "CREATED_AT": {
+          "type": "cds.Date",
+          "@EndUserText.label": "CREATED_AT"
+        },
+        "CREATED_BY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CREATED_BY"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS"
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT"
+        },
+        "BENEFICIAL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BENEFICIAL"
+        },
+        "OPENED_BY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "OPENED_BY"
+        },
+        "REVIEWED_BY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "REVIEWED_BY"
+        },
+        "CHANGED_AT": {
+          "type": "cds.Date",
+          "@EndUserText.label": "CHANGED_AT"
+        },
+        "CHANGED_BY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CHANGED_BY"
+        },
+        "REVIEWED_AT": {
+          "type": "cds.Date",
+          "@EndUserText.label": "REVIEWED_AT"
+        },
+        "OPENED_AT": {
+          "type": "cds.Date",
+          "@EndUserText.label": "OPENED_AT"
+        },
+        "BANK_CONTACT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANK_CONTACT"
+        },
+        "REL_MANAGER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "REL_MANAGER"
+        },
+        "COMPANY_CONTACT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "COMPANY_CONTACT"
+        },
+        "ACCOUNT_SUPERVISOR": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "ACCOUNT_SUPERVISOR"
+        },
+        "CLOSED_AT": {
+          "type": "cds.Date",
+          "@EndUserText.label": "CLOSED_AT"
+        },
+        "CLOSED_BY": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CLOSED_BY"
+        },
+        "EDBSUM": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "EDBSUM"
+        },
+        "IDBSUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "IDBSUM"
+        },
+        "BS_UPLOAD_TIME": {
+          "type": "cds.Timestamp",
+          "@EndUserText.label": "BS_UPLOAD_TIME"
+        },
+        "DELETED_FLAG": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "DELETED_FLAG"
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "key": true
+        },
+        "REVISION": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "REVISION"
+        },
+        "IMPORTING_CHANNEL": {
+          "type": "cds.String",
+          "length": 16,
+          "@EndUserText.label": "IMPORTING_CHANNEL"
+        },
+        "CUTOFF_TIME_D": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "CUTOFF_TIME_D"
+        },
+        "CUTOFF_TIME_C": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "CUTOFF_TIME_C"
+        },
+        "PLANNED_CLOSING_DATE": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "PLANNED_CLOSING_DATE"
+        },
+        "UPLOAD_BS_FLAG": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "UPLOAD_BS_FLAG"
+        },
+        "CREATED_AT_DAT": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "CREATED_AT_DAT"
+        },
+        "CREATED_AT_TIM": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "CREATED_AT_TIM"
+        },
+        "OPENED_AT_DAT": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "OPENED_AT_DAT"
+        },
+        "OPENED_AT_TIM": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "OPENED_AT_TIM"
+        },
+        "CHANGED_AT_DAT": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "CHANGED_AT_DAT"
+        },
+        "CHANGED_AT_TIM": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "CHANGED_AT_TIM"
+        },
+        "CLOSED_AT_DAT": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "CLOSED_AT_DAT"
+        },
+        "CLOSED_AT_TIM": {
+          "type": "cds.String",
+          "length": 6,
+          "@EndUserText.label": "CLOSED_AT_TIM"
+        },
+        "CONTROL_KEY": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "CONTROL_KEY"
+        },
+        "IBAN_VALID_FROM": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "IBAN_VALID_FROM"
+        },
+        "OBJNR": {
+          "type": "cds.String",
+          "length": 22,
+          "@EndUserText.label": "OBJNR",
+          "key": true
+        },
+        "VGTYP": {
+          "type": "cds.String",
+          "length": 8,
+          "@EndUserText.label": "VGTYP"
+        },
+        "PROCSTAT_ACT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "PROCSTAT_ACT"
+        },
+        "BALSTAT_ACT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "BALSTAT_ACT"
+        },
+        "SERSTAT_ACT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "SERSTAT_ACT"
+        },
+        "RECONSTAT_ACT": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "RECONSTAT_ACT"
+        },
+        "EXP_NUMBER": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "EXP_NUMBER"
+        },
+        "EXP_RHYTH": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "EXP_RHYTH"
+        },
+        "CALENDAR": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "CALENDAR"
+        },
+        "SORT_IDX": {
+          "type": "cds.String",
+          "length": 3,
+          "@EndUserText.label": "SORT_IDX"
+        },
+        "AMT_DIFF": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@EndUserText.label": "AMT_DIFF"
+        },
+        "WAERS": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "WAERS"
+        },
+        "CASH_POOL_ID_PARTICIPANT": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "CASH_POOL_ID_PARTICIPANT"
+        },
+        "CASH_POOL_TARGET_AMT_MAX": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@EndUserText.label": "CASH_POOL_TARGET_AMT_MAX"
+        },
+        "CASH_POOL_TARGET_AMT_MIN": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@EndUserText.label": "CASH_POOL_TARGET_AMT_MIN"
+        },
+        "CASH_POOL_TRANSFER_AMT_MIN": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@EndUserText.label": "CASH_POOL_TRANSFER_AMT_MIN"
+        },
+        "PAYMENT_METHOD_L": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "PAYMENT_METHOD_L"
+        },
+        "PAYMENT_METHOD_P": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "PAYMENT_METHOD_P"
+        },
+        "PAYMENT_SERVICE_PROVIDER": {
+          "type": "cds.String",
+          "length": 4,
+          "@EndUserText.label": "PAYMENT_SERVICE_PROVIDER"
+        },
+        "TOLERANCE_GROUP": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "TOLERANCE_GROUP"
+        },
+        "RECONCILE_INTRADAY": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "RECONCILE_INTRADAY"
+        },
+        "EXT_RULE_ID": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "EXT_RULE_ID",
+          "key": true
+        },
+        "PLANNING_LEVEL": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "PLANNING_LEVEL"
+        },
+        "BSR_GROUP": {
+          "type": "cds.String",
+          "length": 5,
+          "@EndUserText.label": "BSR_GROUP"
+        },
+        "RECONCILE_ENDOFDAY": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "RECONCILE_ENDOFDAY"
+        },
+        "SGTXT": {
+          "type": "cds.String",
+          "length": 50,
+          "@EndUserText.label": "SGTXT"
+        },
+        "CASH_POOL_TRANSFER_AMT_MAX": {
+          "type": "cds.Decimal",
+          "precision": 23,
+          "scale": 2,
+          "@EndUserText.label": "CASH_POOL_TRANSFER_AMT_MAX"
+        },
+        "CONTRACT_TYPE": {
+          "type": "cds.String",
+          "length": 2,
+          "@EndUserText.label": "CONTRACT_TYPE"
+        },
+        "OPEN_REQUEST_ID": {
+          "type": "cds.String",
+          "length": 12,
+          "@EndUserText.label": "OPEN_REQUEST_ID",
+          "key": true
+        },
+        "DUMMY_FCLM_BAM_AMD_INCL_EEW_PS": {
+          "type": "cds.String",
+          "length": 1,
+          "@EndUserText.label": "DUMMY_FCLM_BAM_AMD_INCL_EEW_PS"
+        },
+        "IHB_SERVICER": {
+          "type": "cds.String",
+          "length": 10,
+          "@EndUserText.label": "IHB_SERVICER"
+        }
+      }
+    },
+    "TKA02": {
+      "kind": "entity",
+      "@EndUserText.label": "TKA02 Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "KOKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "KOKRS"
+        }
+      }
+    },
+    "CashLinefnt": {
+      "kind": "entity",
+      "@EndUserText.label": "CashLinefnt Physical Table",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NAME"
+        },
+        "LANGU": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "LANGU"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "TEXT"
+        },
+        "NotAssignedPlaceholder": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder"
+        },
+        "NotAssignedPlaceholder1": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder1"
+        },
+        "NotAssignedPlaceholder2": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder2"
+        },
+        "NotAssignedPlaceholder3": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder3"
+        },
+        "NotAssignedPlaceholder4": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder4"
+        },
+        "NotAssignedPlaceholder5": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder5"
+        },
+        "NotAssignedPlaceholder6": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder6"
+        },
+        "NotAssignedPlaceholder7": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder7"
+        },
+        "NotAssignedPlaceholder8": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder8"
+        },
+        "NotAssignedPlaceholder9": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder9"
+        },
+        "NotAssignedPlaceholder10": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder10"
+        },
+        "NotAssignedPlaceholder11": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder11"
+        },
+        "NotAssignedPlaceholder12": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder12"
+        },
+        "NotAssignedPlaceholder13": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder13"
+        },
+        "NotAssignedPlaceholder14": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder14"
+        },
+        "NotAssignedPlaceholder15": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "NotAssignedPlaceholder15"
+        }
+      }
+    },
+    "CV_AMD_JOIN_3_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Join_3 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "key": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO"
+        },
+        "IBAN": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "IBAN"
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS"
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL"
+        },
+        "CREATED_AT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CREATED_AT"
+        },
+        "CREATED_BY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CREATED_BY"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS",
+          "key": true
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT"
+        },
+        "BENEFICIAL": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BENEFICIAL"
+        },
+        "OPENED_BY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "OPENED_BY"
+        },
+        "REVIEWED_BY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "REVIEWED_BY"
+        },
+        "CHANGED_AT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CHANGED_AT"
+        },
+        "CHANGED_BY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CHANGED_BY"
+        },
+        "REVIEWED_AT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "REVIEWED_AT"
+        },
+        "OPENED_AT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "OPENED_AT"
+        },
+        "BANK_CONTACT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BANK_CONTACT"
+        },
+        "REL_MANAGER": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "REL_MANAGER"
+        },
+        "COMPANY_CONTACT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "COMPANY_CONTACT"
+        },
+        "ACCOUNT_SUPERVISOR": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACCOUNT_SUPERVISOR",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        },
+        "CLOSED_AT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CLOSED_AT"
+        },
+        "CLOSED_BY": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CLOSED_BY"
+        },
+        "EDBSUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "EDBSUM"
+        },
+        "IDBSUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "IDBSUM"
+        },
+        "BS_UPLOAD_TIME": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BS_UPLOAD_TIME"
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "key": true
+        },
+        "KOKRS": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "KOKRS"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "FCLM_BAM_AMD"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "TKA02"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "BUKRS"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "BUKRS"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_ID"
+              ],
+              "as": "ACC_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKS"
+              ],
+              "as": "BANKS"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKL"
+              ],
+              "as": "BANKL"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_NUM"
+              ],
+              "as": "ACC_NUM"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_FROM"
+              ],
+              "as": "VALID_FROM"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_TO"
+              ],
+              "as": "VALID_TO"
+            },
+            {
+              "ref": [
+                "A",
+                "IBAN"
+              ],
+              "as": "IBAN"
+            },
+            {
+              "ref": [
+                "A",
+                "STATUS"
+              ],
+              "as": "STATUS"
+            },
+            {
+              "ref": [
+                "A",
+                "CASH_POOL"
+              ],
+              "as": "CASH_POOL"
+            },
+            {
+              "ref": [
+                "A",
+                "CREATED_AT"
+              ],
+              "as": "CREATED_AT"
+            },
+            {
+              "ref": [
+                "A",
+                "CREATED_BY"
+              ],
+              "as": "CREATED_BY"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_TYPE_ID"
+              ],
+              "as": "ACC_TYPE_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "BUKRS"
+              ],
+              "as": "BUKRS"
+            },
+            {
+              "ref": [
+                "A",
+                "PRCTR"
+              ],
+              "as": "PRCTR"
+            },
+            {
+              "ref": [
+                "A",
+                "GSBER"
+              ],
+              "as": "GSBER"
+            },
+            {
+              "ref": [
+                "A",
+                "SEGMENT"
+              ],
+              "as": "SEGMENT"
+            },
+            {
+              "ref": [
+                "A",
+                "BENEFICIAL"
+              ],
+              "as": "BENEFICIAL"
+            },
+            {
+              "ref": [
+                "A",
+                "OPENED_BY"
+              ],
+              "as": "OPENED_BY"
+            },
+            {
+              "ref": [
+                "A",
+                "REVIEWED_BY"
+              ],
+              "as": "REVIEWED_BY"
+            },
+            {
+              "ref": [
+                "A",
+                "CHANGED_AT"
+              ],
+              "as": "CHANGED_AT"
+            },
+            {
+              "ref": [
+                "A",
+                "CHANGED_BY"
+              ],
+              "as": "CHANGED_BY"
+            },
+            {
+              "ref": [
+                "A",
+                "REVIEWED_AT"
+              ],
+              "as": "REVIEWED_AT"
+            },
+            {
+              "ref": [
+                "A",
+                "OPENED_AT"
+              ],
+              "as": "OPENED_AT"
+            },
+            {
+              "ref": [
+                "A",
+                "BANK_CONTACT"
+              ],
+              "as": "BANK_CONTACT"
+            },
+            {
+              "ref": [
+                "A",
+                "REL_MANAGER"
+              ],
+              "as": "REL_MANAGER"
+            },
+            {
+              "ref": [
+                "A",
+                "COMPANY_CONTACT"
+              ],
+              "as": "COMPANY_CONTACT"
+            },
+            {
+              "ref": [
+                "A",
+                "ACCOUNT_SUPERVISOR"
+              ],
+              "as": "ACCOUNT_SUPERVISOR"
+            },
+            {
+              "ref": [
+                "A",
+                "CLOSED_AT"
+              ],
+              "as": "CLOSED_AT"
+            },
+            {
+              "ref": [
+                "A",
+                "CLOSED_BY"
+              ],
+              "as": "CLOSED_BY"
+            },
+            {
+              "ref": [
+                "A",
+                "EDBSUM"
+              ],
+              "as": "EDBSUM"
+            },
+            {
+              "ref": [
+                "A",
+                "IDBSUM"
+              ],
+              "as": "IDBSUM"
+            },
+            {
+              "ref": [
+                "A",
+                "BS_UPLOAD_TIME"
+              ],
+              "as": "BS_UPLOAD_TIME"
+            },
+            {
+              "ref": [
+                "A",
+                "CASH_POOL_ID"
+              ],
+              "as": "CASH_POOL_ID"
+            },
+            {
+              "ref": [
+                "B",
+                "KOKRS"
+              ],
+              "as": "KOKRS"
+            }
+          ]
+        }
+      }
+    },
+    "CV_AMD_JOIN_1_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Join_1 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "key": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO"
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS",
+          "key": true
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT"
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL"
+        },
+        "KOKRS": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "KOKRS"
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "key": true
+        },
+        "BUTXT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BUTXT"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "CV_AMD_JOIN_3_V"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "T001"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "BUKRS"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "BUKRS"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_ID"
+              ],
+              "as": "ACC_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKS"
+              ],
+              "as": "BANKS"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKL"
+              ],
+              "as": "BANKL"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_NUM"
+              ],
+              "as": "ACC_NUM"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_FROM"
+              ],
+              "as": "VALID_FROM"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_TO"
+              ],
+              "as": "VALID_TO"
+            },
+            {
+              "ref": [
+                "A",
+                "STATUS"
+              ],
+              "as": "STATUS"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_TYPE_ID"
+              ],
+              "as": "ACC_TYPE_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "BUKRS"
+              ],
+              "as": "BUKRS"
+            },
+            {
+              "ref": [
+                "A",
+                "PRCTR"
+              ],
+              "as": "PRCTR"
+            },
+            {
+              "ref": [
+                "A",
+                "GSBER"
+              ],
+              "as": "GSBER"
+            },
+            {
+              "ref": [
+                "A",
+                "SEGMENT"
+              ],
+              "as": "SEGMENT"
+            },
+            {
+              "ref": [
+                "A",
+                "CASH_POOL"
+              ],
+              "as": "CASH_POOL"
+            },
+            {
+              "ref": [
+                "A",
+                "KOKRS"
+              ],
+              "as": "KOKRS"
+            },
+            {
+              "ref": [
+                "A",
+                "CASH_POOL_ID"
+              ],
+              "as": "CASH_POOL_ID"
+            },
+            {
+              "ref": [
+                "B",
+                "BUTXT"
+              ],
+              "as": "BUTXT"
+            }
+          ]
+        }
+      }
+    },
+    "CV_AMD_JOIN_2_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Join_2 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "key": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO"
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS"
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT"
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL"
+        },
+        "KOKRS": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "KOKRS"
+        },
+        "BUTXT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "BUTXT"
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "key": true
+        },
+        "ACC_CURRENT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_CURRENT"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "join": "left",
+            "args": [
+              {
+                "ref": [
+                  "CV_AMD_JOIN_1_V"
+                ],
+                "as": "A"
+              },
+              {
+                "ref": [
+                  "FCLM_BAM_AC_TYPE"
+                ],
+                "as": "B"
+              }
+            ],
+            "on": [
+              {
+                "ref": [
+                  "A",
+                  "MANDT"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "MANDT"
+                ]
+              },
+              "and",
+              {
+                "ref": [
+                  "A",
+                  "ACC_TYPE_ID"
+                ]
+              },
+              "=",
+              {
+                "ref": [
+                  "B",
+                  "ACC_TYPE_ID"
+                ]
+              }
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "A",
+                "MANDT"
+              ],
+              "as": "MANDT"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_ID"
+              ],
+              "as": "ACC_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKS"
+              ],
+              "as": "BANKS"
+            },
+            {
+              "ref": [
+                "A",
+                "BANKL"
+              ],
+              "as": "BANKL"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_NUM"
+              ],
+              "as": "ACC_NUM"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_FROM"
+              ],
+              "as": "VALID_FROM"
+            },
+            {
+              "ref": [
+                "A",
+                "VALID_TO"
+              ],
+              "as": "VALID_TO"
+            },
+            {
+              "ref": [
+                "A",
+                "STATUS"
+              ],
+              "as": "STATUS"
+            },
+            {
+              "ref": [
+                "A",
+                "ACC_TYPE_ID"
+              ],
+              "as": "ACC_TYPE_ID"
+            },
+            {
+              "ref": [
+                "A",
+                "BUKRS"
+              ],
+              "as": "BUKRS"
+            },
+            {
+              "ref": [
+                "A",
+                "PRCTR"
+              ],
+              "as": "PRCTR"
+            },
+            {
+              "ref": [
+                "A",
+                "GSBER"
+              ],
+              "as": "GSBER"
+            },
+            {
+              "ref": [
+                "A",
+                "SEGMENT"
+              ],
+              "as": "SEGMENT"
+            },
+            {
+              "ref": [
+                "A",
+                "CASH_POOL"
+              ],
+              "as": "CASH_POOL"
+            },
+            {
+              "ref": [
+                "A",
+                "KOKRS"
+              ],
+              "as": "KOKRS"
+            },
+            {
+              "ref": [
+                "A",
+                "BUTXT"
+              ],
+              "as": "BUTXT"
+            },
+            {
+              "ref": [
+                "A",
+                "CASH_POOL_ID"
+              ],
+              "as": "CASH_POOL_ID"
+            },
+            {
+              "ref": [
+                "B",
+                "ACC_CURRENT"
+              ],
+              "as": "ACC_CURRENT"
+            }
+          ]
+        }
+      }
+    },
+    "CV_AMD_PROJECTION_1_V": {
+      "kind": "entity",
+      "@EndUserText.label": "Projection_1 Intermediate View",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "key": true
+        },
+        "NAME": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NAME"
+        },
+        "TEXT": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "TEXT"
+        },
+        "NotAssignedPlaceholder": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder"
+        },
+        "NotAssignedPlaceholder1": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder1"
+        },
+        "NotAssignedPlaceholder2": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder2"
+        },
+        "NotAssignedPlaceholder3": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder3"
+        },
+        "NotAssignedPlaceholder4": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder4"
+        },
+        "NotAssignedPlaceholder5": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder5"
+        },
+        "NotAssignedPlaceholder6": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder6"
+        },
+        "NotAssignedPlaceholder7": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder7"
+        },
+        "NotAssignedPlaceholder8": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder8"
+        },
+        "NotAssignedPlaceholder9": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder9"
+        },
+        "NotAssignedPlaceholder10": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder10"
+        },
+        "NotAssignedPlaceholder11": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder11"
+        },
+        "NotAssignedPlaceholder12": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder12"
+        },
+        "NotAssignedPlaceholder13": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder13"
+        },
+        "NotAssignedPlaceholder14": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder14"
+        },
+        "NotAssignedPlaceholder15": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "NotAssignedPlaceholder15"
+        }
+      },
+      "query": {
+        "SELECT": {
+          "from": {
+            "ref": [
+              "CashLinefnt"
+            ]
+          },
+          "columns": [
+            {
+              "ref": [
+                "MANDT"
+              ]
+            },
+            {
+              "ref": [
+                "NAME"
+              ]
+            },
+            {
+              "ref": [
+                "TEXT"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder1"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder2"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder3"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder4"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder5"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder6"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder7"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder8"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder9"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder10"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder11"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder12"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder13"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder14"
+              ]
+            },
+            {
+              "ref": [
+                "NotAssignedPlaceholder15"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "CV_AMD_V": {
+      "kind": "entity",
+      "@EndUserText.label": "CV_AMD Analytical View",
+      "@Analytics.dataCategory": "#CUBE",
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT"
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "key": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS"
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL"
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "key": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM"
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO"
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS"
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "key": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS"
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR"
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER"
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT"
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL"
+        },
+        "KOKRS_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "KOKRS_NULLABLE"
+        },
+        "BUTXT_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUTXT_NULLABLE"
+        },
+        "ACC_CURRENT_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT_NULLABLE"
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "key": true
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      },
+      "query": {
+        "SET": {
+          "op": "union",
+          "all": true,
+          "args": [
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_AMD_JOIN_2_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_ID"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BANKS"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BANKL"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_NUM"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "VALID_FROM"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "VALID_TO"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "STATUS"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "ACC_TYPE_ID"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "BUKRS"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "PRCTR"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "GSBER"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "SEGMENT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "CASH_POOL"
+                    ]
+                  },
+                  {
+                    "val": null,
+                    "as": "KOKRS_NULLABLE"
+                  },
+                  {
+                    "val": null,
+                    "as": "BUTXT_NULLABLE"
+                  },
+                  {
+                    "val": null,
+                    "as": "ACC_CURRENT_NULLABLE"
+                  },
+                  {
+                    "ref": [
+                      "CASH_POOL_ID"
+                    ]
+                  },
+                  {
+                    "val": 1,
+                    "as": "RECORD_COUNT"
+                  }
+                ]
+              }
+            },
+            {
+              "SELECT": {
+                "from": {
+                  "ref": [
+                    "CV_AMD_PROJECTION_1_V"
+                  ]
+                },
+                "columns": [
+                  {
+                    "ref": [
+                      "MANDT"
+                    ]
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder"
+                    ],
+                    "as": "ACC_ID"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder1"
+                    ],
+                    "as": "BANKS"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder2"
+                    ],
+                    "as": "BANKL"
+                  },
+                  {
+                    "ref": [
+                      "NAME"
+                    ],
+                    "as": "ACC_NUM"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder3"
+                    ],
+                    "as": "VALID_FROM"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder4"
+                    ],
+                    "as": "VALID_TO"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder5"
+                    ],
+                    "as": "STATUS"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder6"
+                    ],
+                    "as": "ACC_TYPE_ID"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder7"
+                    ],
+                    "as": "BUKRS"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder8"
+                    ],
+                    "as": "PRCTR"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder9"
+                    ],
+                    "as": "GSBER"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder10"
+                    ],
+                    "as": "SEGMENT"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder11"
+                    ],
+                    "as": "CASH_POOL"
+                  },
+                  {
+                    "val": null,
+                    "as": "KOKRS_NULLABLE"
+                  },
+                  {
+                    "val": null,
+                    "as": "BUTXT_NULLABLE"
+                  },
+                  {
+                    "val": null,
+                    "as": "ACC_CURRENT_NULLABLE"
+                  },
+                  {
+                    "ref": [
+                      "NotAssignedPlaceholder12"
+                    ],
+                    "as": "CASH_POOL_ID"
+                  },
+                  {
+                    "val": 1,
+                    "as": "RECORD_COUNT"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CV_AMD_AM": {
+      "kind": "analyticModel",
+      "@EndUserText.label": "CV_AMD Consumption Model",
+      "source": {
+        "ref": [
+          "CV_AMD_V"
+        ]
+      },
+      "elements": {
+        "MANDT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "MANDT",
+          "@Analytics.dimension": true
+        },
+        "ACC_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_ID",
+          "@Analytics.dimension": true
+        },
+        "BANKS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKS",
+          "@Analytics.dimension": true
+        },
+        "BANKL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BANKL",
+          "@Analytics.dimension": true
+        },
+        "ACC_NUM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_NUM",
+          "@Analytics.dimension": true
+        },
+        "VALID_FROM": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_FROM",
+          "@Analytics.dimension": true
+        },
+        "VALID_TO": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "VALID_TO",
+          "@Analytics.dimension": true
+        },
+        "STATUS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "STATUS",
+          "@Analytics.dimension": true
+        },
+        "ACC_TYPE_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "ACC_TYPE_ID",
+          "@Analytics.dimension": true
+        },
+        "BUKRS": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUKRS",
+          "@Analytics.dimension": true
+        },
+        "PRCTR": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "PRCTR",
+          "@Analytics.dimension": true
+        },
+        "GSBER": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "GSBER",
+          "@Analytics.dimension": true
+        },
+        "SEGMENT": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "SEGMENT",
+          "@Analytics.dimension": true
+        },
+        "CASH_POOL": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "CASH_POOL",
+          "@Analytics.dimension": true
+        },
+        "KOKRS_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "KOKRS_NULLABLE",
+          "@Analytics.dimension": true
+        },
+        "BUTXT_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "BUTXT_NULLABLE",
+          "@Analytics.dimension": true
+        },
+        "ACC_CURRENT_NULLABLE": {
+          "type": "cds.String",
+          "length": 100,
+          "@EndUserText.label": "ACC_CURRENT_NULLABLE",
+          "@Analytics.dimension": true
+        },
+        "CASH_POOL_ID": {
+          "type": "cds.String",
+          "length": 40,
+          "@EndUserText.label": "CASH_POOL_ID",
+          "@Analytics.dimension": true
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
+        }
+      }
+    }
+  }
+}
