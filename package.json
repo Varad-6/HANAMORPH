@@ -6,14 +6,16 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@cap-js/sqlite": "^2.4.3",
     "@sap/cds": "^9.9.4",
     "@sap/datasphere-cli": "^2026.22.0",
     "@sap/hana-client": "^2.30.27",
+    "@sap/xssec": "^4.2.8",
     "express": "^4.21.0",
-    "fast-xml-parser": "^4.5.0"
+    "fast-xml-parser": "^4.5.0",
+    "passport": "^0.7.0"
   },
   "devDependencies": {
-    "@cap-js/sqlite": "^2.4.3",
     "@sap/cds-dk": "^9.9.3"
   },
   "scripts": {
@@ -31,6 +33,9 @@
         "credentials": {
           "url": "db.sqlite"
         }
+      },
+      "auth": {
+        "kind": "dummy"
       }
     }
   }
