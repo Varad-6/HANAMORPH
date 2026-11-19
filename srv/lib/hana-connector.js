@@ -29,21 +29,21 @@ const E2E_VERIFIED_CDS = [
     'C_PurchaseOrderFs',
     'I_SalesDocumentItem',
     'ZI_MYQ_ProdConfirmationFact',
-    'C_BillingDocItemBasicQ',
-    'C_SalesAnalyticsQuery',
-    'C_MaterialStockValQ',
-    'I_Customer',
-    'I_Supplier',
-    'I_Product',
-    'I_CompanyCode',
     'I_ProfitCenter',
     'I_CostCenter',
-    'I_GLAccount',
-    'I_Plant',
-    'I_JournalEntryItem',
-    'I_SalesOrder',
-    'I_BillingDocument',
-    'I_PurchaseOrder'
+    'ZC_MYQ_OrderSummary',
+    'ZI_MYQ_GoodsMovementFact',
+    'ZI_MYQ_InspectionLotFact',
+    'ZI_MYQ_InspectionResultFact',
+    'ZI_MYQ_QualityDefectFact',
+    'C_JournalEntryItem',
+    'C_SupplierInvoiceItem',
+    'I_BillingDocumentItem',
+    'I_CustomerPayment',
+    'I_DeliveryDocumentItem',
+    'I_MaterialStock',
+    'I_ProductionOrderItem',
+    'I_ProductMaster'
 ];
 
 class HanaConnector {
@@ -63,11 +63,14 @@ class HanaConnector {
                 v.isEndToEndReady = true;
                 v.badge = '⭐ E2E VERIFIED';
                 v.displayCategory = '⭐ Verified End-to-End Ready';
-            } else if (!v.priority) {
-                v.priority = 2;
+            } else {
+                const isCustom = v.name.startsWith('Z') || v.name.startsWith('Y') || (v.packageOrSchema && /ZAIS|ZABAP|ZMDR|ZFRT/i.test(v.packageOrSchema));
+                v.priority = isCustom ? 2 : (v.type === 'CDS' ? 3 : 2);
                 v.isEndToEndReady = false;
-                v.badge = null;
-                v.displayCategory = v.type === 'CDS' ? 'Standard CDS Views' : 'Standard Calculation Views';
+                v.badge = isCustom ? 'CUSTOM ECLIPSE' : null;
+                v.displayCategory = v.type === 'CDS' 
+                    ? (isCustom ? (v.displayCategory || 'Custom Eclipse CDS Views') : 'Standard S/4HANA CDS Views') 
+                    : 'Standard Calculation Views';
             }
         }
 
@@ -238,7 +241,7 @@ class HanaConnector {
                 console.warn('[HanaConnector] _SYS_REPO calculation view search failed, falling back to BIMC_ALL_CUBES:', e.message);
                 try {
                     const bimcSql = `
-                        SELECT DISTINCT TOP ${limit}
+                        SELECT TOP ${limit} DISTINCT
                             CUBE_NAME AS "name",
                             'CALC_VIEW' AS "type",
                             CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",
@@ -378,7 +381,7 @@ class HanaConnector {
             console.warn('[HanaConnector] Calculation views from _SYS_REPO failed, querying BIMC_ALL_CUBES:', e.message);
             try {
                 const bimcSql = `
-                    SELECT DISTINCT TOP 500
+                    SELECT TOP 500 DISTINCT
                         CUBE_NAME AS "name",
                         'CALC_VIEW' AS "type",
                         CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",

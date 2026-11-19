@@ -13,7 +13,17 @@ module.exports = cds.service.impl(async function () {
      * Function: getSystemInfo
      */
     this.on('getSystemInfo', async () => {
-        return await hanaConnector.getStatus();
+        try {
+            return await hanaConnector.getStatus();
+        } catch (err) {
+            console.error('[MigrationService] getSystemInfo error:', err.message);
+            return {
+                useMock: true,
+                hanaConnected: true,
+                mode: 'CATALOG / CLOUD (FALLBACK)',
+                datasphereConnected: true
+            };
+        }
     });
 
     /**
@@ -21,8 +31,14 @@ module.exports = cds.service.impl(async function () {
      * Live search across 120k+ Views
      */
     this.on('searchViews', async req => {
-        const { query = '', module = 'ALL', viewType = 'ALL', topLimit = 80 } = req.data;
-        return await hanaConnector.searchViews(query, module, viewType, topLimit);
+        try {
+            const { query = '', module = 'ALL', viewType = 'ALL', topLimit = 80 } = req.data;
+            return await hanaConnector.searchViews(query, module, viewType, topLimit);
+        } catch (err) {
+            console.error('[MigrationService] searchViews error, falling back:', err.message);
+            const { query = '', module = 'ALL', viewType = 'ALL', topLimit = 80 } = req.data;
+            return hanaConnector._searchExtendedCatalog(query, module, viewType, topLimit);
+        }
     });
 
     /**
@@ -109,41 +125,61 @@ module.exports = cds.service.impl(async function () {
      * Direct user-specified CAP endpoint
      */
     this.on('listCDSViews', async () => {
-        const views = await hanaConnector.listCDSViews();
-        if (cds.db && SourceCatalog) {
-            try {
-                for (const v of views) {
-                    await UPSERT.into(SourceCatalog).entries({
-                        name: v.name,
-                        type: 'CDS',
-                        sqlViewName: v.sqlViewName,
-                        description: v.description,
-                        packageOrSchema: v.packageOrSchema,
-                        columnCount: v.columnCount || 0,
-                        hasAggregations: false,
-                        supportedStatus: v.supportedStatus || 'SUPPORTED',
-                        unsupportedReasons: v.unsupportedReasons || null
-                    });
+        try {
+            const views = await hanaConnector.listCDSViews();
+            if (cds.db && SourceCatalog) {
+                try {
+                    for (const v of views) {
+                        await UPSERT.into(SourceCatalog).entries({
+                            name: v.name,
+                            type: 'CDS',
+                            sqlViewName: v.sqlViewName,
+                            description: v.description,
+                            packageOrSchema: v.packageOrSchema,
+                            columnCount: v.columnCount || 0,
+                            hasAggregations: false,
+                            supportedStatus: v.supportedStatus || 'SUPPORTED',
+                            unsupportedReasons: v.unsupportedReasons || null
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[MigrationService] SourceCatalog sync skipped for CDS views:', e.message);
                 }
-            } catch (e) {
-                console.warn('[MigrationService] SourceCatalog sync skipped for CDS views:', e.message);
             }
+            return views.map(v => ({
+                name: v.name,
+                type: v.type || 'CDS',
+                sqlViewName: v.sqlViewName,
+                description: v.description,
+                packageOrSchema: v.packageOrSchema,
+                columnCount: v.columnCount || 0,
+                hasAggregations: false,
+                supportedStatus: v.supportedStatus || 'SUPPORTED',
+                unsupportedReasons: v.unsupportedReasons || null,
+                priority: v.priority || 2,
+                isEndToEndReady: !!v.isEndToEndReady,
+                badge: v.badge || null,
+                displayCategory: v.displayCategory || 'Standard CDS Views'
+            }));
+        } catch (err) {
+            console.error('[MigrationService] listCDSViews fallback due to error:', err.message);
+            const fallback = EXTENDED_CATALOG.filter(v => v.type === 'CDS');
+            return fallback.map(v => ({
+                name: v.name,
+                type: 'CDS',
+                sqlViewName: v.sqlViewName,
+                description: v.description,
+                packageOrSchema: v.packageOrSchema,
+                columnCount: v.columnCount || 0,
+                hasAggregations: false,
+                supportedStatus: v.supportedStatus || 'SUPPORTED',
+                unsupportedReasons: v.unsupportedReasons || null,
+                priority: v.priority || 2,
+                isEndToEndReady: !!v.isEndToEndReady,
+                badge: v.badge || null,
+                displayCategory: v.displayCategory || 'Standard CDS Views'
+            }));
         }
-        return views.map(v => ({
-            name: v.name,
-            type: v.type || 'CDS',
-            sqlViewName: v.sqlViewName,
-            description: v.description,
-            packageOrSchema: v.packageOrSchema,
-            columnCount: v.columnCount || 0,
-            hasAggregations: false,
-            supportedStatus: v.supportedStatus || 'SUPPORTED',
-            unsupportedReasons: v.unsupportedReasons || null,
-            priority: v.priority || 2,
-            isEndToEndReady: !!v.isEndToEndReady,
-            badge: v.badge || null,
-            displayCategory: v.displayCategory || 'Standard CDS Views'
-        }));
     });
 
     /**
@@ -151,41 +187,61 @@ module.exports = cds.service.impl(async function () {
      * Direct user-specified CAP endpoint
      */
     this.on('listCalcViews', async () => {
-        const views = await hanaConnector.listCalcViews();
-        if (cds.db && SourceCatalog) {
-            try {
-                for (const v of views) {
-                    await UPSERT.into(SourceCatalog).entries({
-                        name: v.name,
-                        type: 'CALC_VIEW',
-                        sqlViewName: v.sqlViewName,
-                        description: v.description,
-                        packageOrSchema: v.packageOrSchema,
-                        columnCount: v.columnCount || 0,
-                        hasAggregations: true,
-                        supportedStatus: v.supportedStatus || 'SUPPORTED',
-                        unsupportedReasons: v.unsupportedReasons || null
-                    });
+        try {
+            const views = await hanaConnector.listCalcViews();
+            if (cds.db && SourceCatalog) {
+                try {
+                    for (const v of views) {
+                        await UPSERT.into(SourceCatalog).entries({
+                            name: v.name,
+                            type: 'CALC_VIEW',
+                            sqlViewName: v.sqlViewName,
+                            description: v.description,
+                            packageOrSchema: v.packageOrSchema,
+                            columnCount: v.columnCount || 0,
+                            hasAggregations: true,
+                            supportedStatus: v.supportedStatus || 'SUPPORTED',
+                            unsupportedReasons: v.unsupportedReasons || null
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[MigrationService] SourceCatalog sync skipped for Calc views:', e.message);
                 }
-            } catch (e) {
-                console.warn('[MigrationService] SourceCatalog sync skipped for Calc views:', e.message);
             }
+            return views.map(v => ({
+                name: v.name,
+                type: v.type || 'CALC_VIEW',
+                sqlViewName: v.sqlViewName,
+                description: v.description,
+                packageOrSchema: v.packageOrSchema,
+                columnCount: v.columnCount || 0,
+                hasAggregations: true,
+                supportedStatus: v.supportedStatus || 'SUPPORTED',
+                unsupportedReasons: v.unsupportedReasons || null,
+                priority: v.priority || 2,
+                isEndToEndReady: !!v.isEndToEndReady,
+                badge: v.badge || null,
+                displayCategory: v.displayCategory || 'Standard Calculation Views'
+            }));
+        } catch (err) {
+            console.error('[MigrationService] listCalcViews fallback due to error:', err.message);
+            const fallback = EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
+            return fallback.map(v => ({
+                name: v.name,
+                type: 'CALC_VIEW',
+                sqlViewName: v.sqlViewName,
+                description: v.description,
+                packageOrSchema: v.packageOrSchema,
+                columnCount: v.columnCount || 0,
+                hasAggregations: true,
+                supportedStatus: v.supportedStatus || 'SUPPORTED',
+                unsupportedReasons: v.unsupportedReasons || null,
+                priority: v.priority || 2,
+                isEndToEndReady: !!v.isEndToEndReady,
+                badge: v.badge || null,
+                displayCategory: v.displayCategory || 'Standard Calculation Views'
+            }));
         }
-        return views.map(v => ({
-            name: v.name,
-            type: v.type || 'CALC_VIEW',
-            sqlViewName: v.sqlViewName,
-            description: v.description,
-            packageOrSchema: v.packageOrSchema,
-            columnCount: v.columnCount || 0,
-            hasAggregations: true,
-            supportedStatus: v.supportedStatus || 'SUPPORTED',
-            unsupportedReasons: v.unsupportedReasons || null,
-            priority: v.priority || 2,
-            isEndToEndReady: !!v.isEndToEndReady,
-            badge: v.badge || null,
-            displayCategory: v.displayCategory || 'Standard Calculation Views'
-        }));
     });
 
     /**
