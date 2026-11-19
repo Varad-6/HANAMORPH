@@ -616,6 +616,50 @@ const BASE_CATALOG = [
 const fs = require('fs');
 const path = require('path');
 
+const E2E_VERIFIED_CALC = [
+    'CV_EMPLOYEE',
+    'CA_SALES_ANALYTICS',
+    'CV_AMD',
+    'CV_BANK',
+    'CV_AC_TYPE',
+    'CA_FINANCIAL_KPI',
+    'CA_INVENTORY_VALUATION',
+    'CV_MSTRPROJCOSTERP',
+    'CA_PURCHASE_SPEND',
+    'CA_MANUFACTURING_OUTPUT',
+    'CV_WBSElement_BasicView',
+    'CV_ProjectCostObjects',
+    'CV_CONTROLLING_AREA',
+    'CV_VBAK',
+    'CV_VBAP',
+    'CV_CPRO',
+    'CV_RESOURCE_MATERIAL',
+    'CV_CUSTOMER',
+    'CV_VENDOR',
+    'CV_COMPANY'
+];
+
+const E2E_VERIFIED_CDS = [
+    'C_PurchaseOrderFs',
+    'I_SalesDocumentItem',
+    'ZI_MYQ_ProdConfirmationFact',
+    'C_BillingDocItemBasicQ',
+    'C_SalesAnalyticsQuery',
+    'C_MaterialStockValQ',
+    'I_Customer',
+    'I_Supplier',
+    'I_Product',
+    'I_CompanyCode',
+    'I_ProfitCenter',
+    'I_CostCenter',
+    'I_GLAccount',
+    'I_Plant',
+    'I_JournalEntryItem',
+    'I_SalesOrder',
+    'I_BillingDocument',
+    'I_PurchaseOrder'
+];
+
 let LIVE_CALC_VIEWS = [];
 try {
     const liveCalcPath = path.join(__dirname, 'live-calc-views.json');
@@ -626,11 +670,65 @@ try {
     console.warn('[ExtendedCatalog] Failed to load live-calc-views.json:', e.message);
 }
 
-// Deduplicate: live calc views take priority over base mock views with the same name
-const liveNames = new Set(LIVE_CALC_VIEWS.map(v => v.name));
-const filteredBase = BASE_CATALOG.filter(v => !(v.type === 'CALC_VIEW' && liveNames.has(v.name)));
+let LIVE_CDS_VIEWS = [];
+try {
+    const liveCdsPath = path.join(__dirname, 'live-cds-views.json');
+    if (fs.existsSync(liveCdsPath)) {
+        LIVE_CDS_VIEWS = JSON.parse(fs.readFileSync(liveCdsPath, 'utf8'));
+    }
+} catch (e) {
+    console.warn('[ExtendedCatalog] Failed to load live-cds-views.json:', e.message);
+}
 
-const EXTENDED_CATALOG = [...EXCEL_SEEDED_VIEWS, ...filteredBase, ...LIVE_CALC_VIEWS];
+// Deduplicate: live calc views take priority over base mock views with the same name
+const liveCalcNames = new Set(LIVE_CALC_VIEWS.map(v => v.name));
+const liveCdsNames = new Set(LIVE_CDS_VIEWS.map(v => v.name));
+const filteredBase = BASE_CATALOG.filter(v => {
+    if (v.type === 'CALC_VIEW' && liveCalcNames.has(v.name)) return false;
+    if (v.type === 'CDS' && liveCdsNames.has(v.name)) return false;
+    return true;
+});
+
+const ALL_COMBINED = [...LIVE_CDS_VIEWS, ...EXCEL_SEEDED_VIEWS, ...filteredBase, ...LIVE_CALC_VIEWS];
+
+// Map and deduplicate by type + name, enriching with priority and badges
+const dedupMap = new Map();
+for (const v of ALL_COMBINED) {
+    const key = `${v.type}_${v.name}`;
+    if (!dedupMap.has(key)) {
+        const isE2ECalc = v.type === 'CALC_VIEW' && E2E_VERIFIED_CALC.includes(v.name);
+        const isE2ECds = v.type === 'CDS' && E2E_VERIFIED_CDS.includes(v.name);
+        if (isE2ECalc || isE2ECds) {
+            v.priority = 1;
+            v.isEndToEndReady = true;
+            v.badge = '⭐ E2E VERIFIED';
+            v.displayCategory = '⭐ Verified End-to-End Ready';
+        } else if (!v.priority) {
+            v.priority = 2;
+            v.isEndToEndReady = false;
+            v.badge = null;
+            v.displayCategory = v.type === 'CDS' ? 'Standard CDS Views' : 'Standard Calculation Views';
+        }
+        dedupMap.set(key, v);
+    }
+}
+
+const EXTENDED_CATALOG = Array.from(dedupMap.values());
+
+// Sort: Priority 1 first, then verified list order, then alphabetical by name
+EXTENDED_CATALOG.sort((a, b) => {
+    const pA = a.priority || 2;
+    const pB = b.priority || 2;
+    if (pA !== pB) return pA - pB;
+    if (pA === 1 && pB === 1) {
+        const listA = a.type === 'CDS' ? E2E_VERIFIED_CDS : E2E_VERIFIED_CALC;
+        const listB = b.type === 'CDS' ? E2E_VERIFIED_CDS : E2E_VERIFIED_CALC;
+        const idxA = listA.indexOf(a.name);
+        const idxB = listB.indexOf(b.name);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    }
+    return (a.name || '').localeCompare(b.name || '');
+});
 
 module.exports = {
     EXTENDED_CATALOG

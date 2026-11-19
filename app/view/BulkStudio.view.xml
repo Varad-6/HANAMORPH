@@ -94,7 +94,7 @@
                                             selectionChange=".onViewSelectionChange"
                                             items="{
                                                 path: 'bulkModel>/catalog',
-                                                sorter: { path: 'name' }
+                                                sorter: { path: 'priority' }
                                             }"
                                             noDataText="Click 'Import All Catalog Views' to load available CDS and Calculation Views.">
                                             <headerToolbar>
@@ -124,7 +124,15 @@
                                             <items>
                                                 <ColumnListItem selected="{bulkModel>isSelected}">
                                                     <cells>
-                                                        <Text text="{bulkModel>name}" class="sapUiBold" />
+                                                        <HBox alignItems="Center">
+                                                            <ObjectStatus
+                                                                text="{bulkModel>badge}"
+                                                                state="Success"
+                                                                inverted="true"
+                                                                visible="{= !!${bulkModel>badge} }"
+                                                                class="sapUiTinyMarginEnd" />
+                                                            <Text text="{bulkModel>name}" class="sapUiBold" />
+                                                        </HBox>
                                                         <ObjectStatus
                                                             text="{= ${bulkModel>type} === 'CALC_VIEW' ? 'Calculation View' : 'CDS View' }"
                                                             state="{= ${bulkModel>type} === 'CALC_VIEW' ? 'Information' : 'Success' }"

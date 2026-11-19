@@ -2,11 +2,88 @@ const hana = require('@sap/hana-client');
 const config = require('./config');
 const { EXTENDED_CATALOG } = require('../fixtures/extended-catalog');
 
+const E2E_VERIFIED_CALC = [
+    'CV_EMPLOYEE',
+    'CA_SALES_ANALYTICS',
+    'CV_AMD',
+    'CV_BANK',
+    'CV_AC_TYPE',
+    'CA_FINANCIAL_KPI',
+    'CA_INVENTORY_VALUATION',
+    'CV_MSTRPROJCOSTERP',
+    'CA_PURCHASE_SPEND',
+    'CA_MANUFACTURING_OUTPUT',
+    'CV_WBSElement_BasicView',
+    'CV_ProjectCostObjects',
+    'CV_CONTROLLING_AREA',
+    'CV_VBAK',
+    'CV_VBAP',
+    'CV_CPRO',
+    'CV_RESOURCE_MATERIAL',
+    'CV_CUSTOMER',
+    'CV_VENDOR',
+    'CV_COMPANY'
+];
+
+const E2E_VERIFIED_CDS = [
+    'C_PurchaseOrderFs',
+    'I_SalesDocumentItem',
+    'ZI_MYQ_ProdConfirmationFact',
+    'C_BillingDocItemBasicQ',
+    'C_SalesAnalyticsQuery',
+    'C_MaterialStockValQ',
+    'I_Customer',
+    'I_Supplier',
+    'I_Product',
+    'I_CompanyCode',
+    'I_ProfitCenter',
+    'I_CostCenter',
+    'I_GLAccount',
+    'I_Plant',
+    'I_JournalEntryItem',
+    'I_SalesOrder',
+    'I_BillingDocument',
+    'I_PurchaseOrder'
+];
+
 class HanaConnector {
     constructor() {
         this.client = null;
         this.isConnected = false;
         this._lastFailTime = null;
+    }
+
+    _enrichAndSortViews(views) {
+        if (!Array.isArray(views)) return [];
+        for (const v of views) {
+            const isE2ECalc = (v.type === 'CALC_VIEW' || !v.type) && E2E_VERIFIED_CALC.includes(v.name);
+            const isE2ECds = (v.type === 'CDS') && E2E_VERIFIED_CDS.includes(v.name);
+            if (isE2ECalc || isE2ECds) {
+                v.priority = 1;
+                v.isEndToEndReady = true;
+                v.badge = '⭐ E2E VERIFIED';
+                v.displayCategory = '⭐ Verified End-to-End Ready';
+            } else if (!v.priority) {
+                v.priority = 2;
+                v.isEndToEndReady = false;
+                v.badge = null;
+                v.displayCategory = v.type === 'CDS' ? 'Standard CDS Views' : 'Standard Calculation Views';
+            }
+        }
+
+        return views.sort((a, b) => {
+            const pA = a.priority || 2;
+            const pB = b.priority || 2;
+            if (pA !== pB) return pA - pB;
+            if (pA === 1 && pB === 1) {
+                const listA = a.type === 'CDS' ? E2E_VERIFIED_CDS : E2E_VERIFIED_CALC;
+                const listB = b.type === 'CDS' ? E2E_VERIFIED_CDS : E2E_VERIFIED_CALC;
+                const idxA = listA.indexOf(a.name);
+                const idxB = listB.indexOf(b.name);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            }
+            return (a.name || '').localeCompare(b.name || '');
+        });
     }
 
     /**
@@ -88,7 +165,7 @@ class HanaConnector {
     /**
      * Helper to search EXTENDED_CATALOG in-memory
      */
-    _searchExtendedCatalog(query = '', module = 'ALL', viewType = 'ALL', topLimit = 80) {
+    _searchExtendedCatalog(query = '', module = 'ALL', viewType = 'ALL', topLimit = 500) {
         let filtered = EXTENDED_CATALOG;
         if (viewType && viewType !== 'ALL') {
             filtered = filtered.filter(v => v.type === viewType);
@@ -104,13 +181,13 @@ class HanaConnector {
         if (module && module !== 'ALL') {
             filtered = filtered.filter(v => (v.packageOrSchema || '').toUpperCase().includes(module));
         }
-        return filtered.slice(0, topLimit);
+        return this._enrichAndSortViews(filtered.slice(0, topLimit));
     }
 
     /**
      * Dynamic Live Search across all Views
      */
-    async searchViews(query = '', module = 'ALL', viewType = 'ALL', topLimit = 80) {
+    async searchViews(query = '', module = 'ALL', viewType = 'ALL', topLimit = 500) {
         if (config.USE_MOCK) {
             return this._searchExtendedCatalog(query, module, viewType, topLimit);
         }
@@ -121,7 +198,7 @@ class HanaConnector {
         }
 
         const schema = config.hana.schema || 'SAPHANADB';
-        const limit = Math.min(topLimit || 80, 200);
+        const limit = Math.min(topLimit || 500, 500);
 
         // 1. If searching for Calculation Views, query live _SYS_REPO.ACTIVE_OBJECT
         if (viewType === 'CALC_VIEW') {
@@ -155,7 +232,8 @@ class HanaConnector {
             `;
 
             try {
-                return await this._execQuery(calcSql, params);
+                const rows = await this._execQuery(calcSql, params);
+                return this._enrichAndSortViews(rows);
             } catch (e) {
                 console.warn('[HanaConnector] _SYS_REPO calculation view search failed, falling back to BIMC_ALL_CUBES:', e.message);
                 try {
@@ -172,7 +250,8 @@ class HanaConnector {
                         FROM _SYS_BI.BIMC_ALL_CUBES
                         ORDER BY CUBE_NAME ASC
                     `;
-                    return await this._execQuery(bimcSql);
+                    const rows = await this._execQuery(bimcSql);
+                    return this._enrichAndSortViews(rows);
                 } catch (bimcErr) {
                     console.warn('[HanaConnector] BIMC search failed, falling back to catalog:', bimcErr.message);
                     return this._searchExtendedCatalog(query, module, viewType, topLimit);
@@ -249,7 +328,8 @@ class HanaConnector {
         `;
 
         try {
-            return await this._execQuery(sql, params);
+            const rows = await this._execQuery(sql, params);
+            return this._enrichAndSortViews(rows);
         } catch (e) {
             console.warn('[HanaConnector] searchViews query failed, falling back to catalog:', e.message);
             return this._searchExtendedCatalog(query, module, viewType, topLimit);
@@ -260,7 +340,7 @@ class HanaConnector {
      * Fetch list of CDS views from ABAP dictionary and HANA catalog
      */
     async listCDSViews() {
-        return await this.searchViews('', 'ALL', 'CDS', 100);
+        return await this.searchViews('', 'ALL', 'CDS', 500);
     }
 
     /**
@@ -268,18 +348,18 @@ class HanaConnector {
      */
     async listCalcViews() {
         if (config.USE_MOCK) {
-            return EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
+            return this._enrichAndSortViews(EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW'));
         }
 
         const connected = await this.ensureConnected();
         if (!connected) {
             console.warn('[HanaConnector] Live HANA not reachable, returning catalog calculation views');
-            return EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
+            return this._enrichAndSortViews(EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW'));
         }
 
         try {
             const sql = `
-                SELECT TOP 200
+                SELECT TOP 500
                     OBJECT_NAME AS "name",
                     'CALC_VIEW' AS "type",
                     '_SYS_BIC."' || PACKAGE_ID || '/' || OBJECT_NAME || '"' AS "sqlViewName",
@@ -292,12 +372,13 @@ class HanaConnector {
                 WHERE OBJECT_SUFFIX = 'calculationview'
                 ORDER BY OBJECT_NAME ASC
             `;
-            return await this._execQuery(sql);
+            const rows = await this._execQuery(sql);
+            return this._enrichAndSortViews(rows);
         } catch (e) {
             console.warn('[HanaConnector] Calculation views from _SYS_REPO failed, querying BIMC_ALL_CUBES:', e.message);
             try {
                 const bimcSql = `
-                    SELECT DISTINCT TOP 200
+                    SELECT DISTINCT TOP 500
                         CUBE_NAME AS "name",
                         'CALC_VIEW' AS "type",
                         CATALOG_NAME || '/' || CUBE_NAME AS "sqlViewName",
@@ -309,10 +390,11 @@ class HanaConnector {
                     FROM _SYS_BI.BIMC_ALL_CUBES
                     ORDER BY CUBE_NAME ASC
                 `;
-                return await this._execQuery(bimcSql);
+                const rows = await this._execQuery(bimcSql);
+                return this._enrichAndSortViews(rows);
             } catch (bimcErr) {
                 console.warn('[HanaConnector] BIMC query failed, falling back to extended catalog:', bimcErr.message);
-                return EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW');
+                return this._enrichAndSortViews(EXTENDED_CATALOG.filter(v => v.type === 'CALC_VIEW'));
             }
         }
     }

@@ -65,13 +65,10 @@
                                                             enabled="{/hasImported}"
                                                             selectedKey="{/selectedViewName}"
                                                             selectionChange=".onViewChange"
-                                                            items="{
-                                                                path: '/views',
-                                                                sorter: { path: 'name' }
-                                                            }">
+                                                            items="{/views}">
                                                             <core:ListItem
                                                                 key="{name}"
-                                                                text="{name}"
+                                                                text="{= ${badge} ? (${badge} + '  ' + ${name}) : ${name} }"
                                                                 additionalText="{description}" />
                                                         </ComboBox>
                                                     </HBox>

@@ -138,7 +138,11 @@ module.exports = cds.service.impl(async function () {
             columnCount: v.columnCount || 0,
             hasAggregations: false,
             supportedStatus: v.supportedStatus || 'SUPPORTED',
-            unsupportedReasons: v.unsupportedReasons || null
+            unsupportedReasons: v.unsupportedReasons || null,
+            priority: v.priority || 2,
+            isEndToEndReady: !!v.isEndToEndReady,
+            badge: v.badge || null,
+            displayCategory: v.displayCategory || 'Standard CDS Views'
         }));
     });
 
@@ -176,7 +180,11 @@ module.exports = cds.service.impl(async function () {
             columnCount: v.columnCount || 0,
             hasAggregations: true,
             supportedStatus: v.supportedStatus || 'SUPPORTED',
-            unsupportedReasons: v.unsupportedReasons || null
+            unsupportedReasons: v.unsupportedReasons || null,
+            priority: v.priority || 2,
+            isEndToEndReady: !!v.isEndToEndReady,
+            badge: v.badge || null,
+            displayCategory: v.displayCategory || 'Standard Calculation Views'
         }));
     });
 

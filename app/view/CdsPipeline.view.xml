@@ -133,10 +133,21 @@
                                                         <items>
                                                             <ColumnListItem vAlign="Middle" type="Active">
                                                                 <cells>
-                                                                    <ObjectIdentifier title="{name}" text="{description}" />
+                                                                    <VBox>
+                                                                        <HBox alignItems="Center">
+                                                                            <ObjectStatus
+                                                                                text="{badge}"
+                                                                                state="Success"
+                                                                                inverted="true"
+                                                                                visible="{= !!${badge} }"
+                                                                                class="sapUiTinyMarginEnd" />
+                                                                            <Text text="{name}" class="sapUiBold" />
+                                                                        </HBox>
+                                                                        <Text text="{description}" class="text-muted sapUiTinyMarginTop" />
+                                                                    </VBox>
                                                                     <Text text="{sqlViewName}" />
                                                                     <Text text="{packageOrSchema}" />
-                                                                    <ObjectStatus text="{supportedStatus}" state="Success" />
+                                                                    <ObjectStatus text="{= ${isEndToEndReady} ? '⭐ E2E Ready' : ${supportedStatus} }" state="Success" />
                                                                 </cells>
                                                             </ColumnListItem>
                                                         </items>
