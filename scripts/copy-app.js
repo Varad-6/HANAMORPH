@@ -37,3 +37,14 @@ if (fs.existsSync(liveCalcSrc)) {
     fs.copyFileSync(liveCalcSrc, liveCalcDest);
     console.log('Copied live-calc-views.json to gen/srv/srv/fixtures/live-calc-views.json successfully!');
 }
+
+// 5. Ensure table-columns-catalog.json is in gen/srv/srv/fixtures/
+const tableCatalogSrc = path.join(__dirname, '../srv/fixtures/table-columns-catalog.json');
+const tableCatalogDest = path.join(liveCalcDestDir, 'table-columns-catalog.json');
+if (fs.existsSync(tableCatalogSrc)) {
+    if (!fs.existsSync(liveCalcDestDir)) {
+        fs.mkdirSync(liveCalcDestDir, { recursive: true });
+    }
+    fs.copyFileSync(tableCatalogSrc, tableCatalogDest);
+    console.log('Copied table-columns-catalog.json to gen/srv/srv/fixtures/table-columns-catalog.json successfully!');
+}

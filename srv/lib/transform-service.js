@@ -1,4 +1,37 @@
+const fs = require('fs');
+const path = require('path');
+
+let TABLE_CATALOG = {};
+try {
+    const catPath = path.join(__dirname, '../fixtures/table-columns-catalog.json');
+    if (fs.existsSync(catPath)) {
+        TABLE_CATALOG = JSON.parse(fs.readFileSync(catPath, 'utf8'));
+    }
+} catch (e) {
+    console.warn('[TransformService] Failed to load table-columns-catalog.json:', e.message);
+}
+
 class TransformService {
+    /**
+     * Hydrate a base table definition with its full known schema from table catalog
+     */
+    _hydrateTableWithCatalog(tblName, tblDef) {
+        if (!tblDef || tblDef.kind !== 'entity' || tblDef.query) return;
+        const cleanName = (tblName || '').replace(/.*?\$\$\$\$/g, '').replace(/\$\$/g, '').replace(/^.*::/, '').replace(/^.*[.\/]/, '').trim();
+        const knownSchema = TABLE_CATALOG[cleanName] || TABLE_CATALOG[cleanName.toUpperCase()] || TABLE_CATALOG[tblName];
+        if (knownSchema) {
+            if (!tblDef.elements) tblDef.elements = {};
+            for (const [colName, colInfo] of Object.entries(knownSchema)) {
+                if (!tblDef.elements[colName]) {
+                    tblDef.elements[colName] = {
+                        ...this._toCsnType(colInfo.dataType || 'cds.String(40)'),
+                        "@EndUserText.label": colName,
+                        ...(colInfo.isKey ? { key: true } : {})
+                    };
+                }
+            }
+        }
+    }
     /**
      * Transform internal model into Datasphere-ready modular objects:
      * 1. Optimized Pure SQL Query (for Datasphere Data Builder -> New SQL View)
@@ -299,10 +332,12 @@ class TransformService {
                     "@EndUserText.label": `${sName} Physical Table`,
                     elements: srcElements
                 };
+                this._hydrateTableWithCatalog(sName, tableDefinitions[sName]);
             }
         }
-        // Guarantee all table definitions have at least one key
-        for (const tbl of Object.values(tableDefinitions)) {
+        // Guarantee all table definitions have at least one key and complete catalog schemas
+        for (const [tName, tbl] of Object.entries(tableDefinitions)) {
+            this._hydrateTableWithCatalog(tName, tbl);
             ensureKey(tbl.elements);
         }
 
@@ -642,6 +677,9 @@ class TransformService {
                     }
                     const tblDef = definitions[cleanInp];
                     if (!tblDef.elements) tblDef.elements = {};
+
+                    // First, hydrate with complete schema from catalog if available
+                    this._hydrateTableWithCatalog(cleanInp, tblDef);
 
                     // Merge known source columns
                     const specificCols = (model.sourceColumns && (model.sourceColumns[cleanInp] || model.sourceColumns[rawInp])) || [];
@@ -1252,6 +1290,14 @@ class TransformService {
                     }
                 };
                 checkOnList(qSelect.from.on);
+            }
+        }
+
+        // Final pass: Hydrate ALL base physical entities in definitions with complete table catalog
+        for (const [tblName, tblDef] of Object.entries(definitions)) {
+            if (tblDef.kind === 'entity' && !tblDef.query) {
+                this._hydrateTableWithCatalog(tblName, tblDef);
+                ensureKey(tblDef.elements);
             }
         }
 
