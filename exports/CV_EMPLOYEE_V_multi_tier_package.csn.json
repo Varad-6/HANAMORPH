@@ -1184,6 +1184,7 @@
     "CV_EMPLOYEE_V": {
       "kind": "entity",
       "@EndUserText.label": "CV_EMPLOYEE Analytical View",
+      "@Analytics.dataCategory": "#CUBE",
       "elements": {
         "MANDT": {
           "type": "cds.String",
@@ -1230,6 +1231,12 @@
           "type": "cds.String",
           "length": 100,
           "@EndUserText.label": "NAME"
+        },
+        "RECORD_COUNT": {
+          "type": "cds.Integer",
+          "@EndUserText.label": "Record Count",
+          "@Analytics.measure": true,
+          "@Aggregation.default": "#SUM"
         }
       },
       "query": {
@@ -1329,6 +1336,10 @@
                 "NAME"
               ],
               "as": "NAME"
+            },
+            {
+              "val": 1,
+              "as": "RECORD_COUNT"
             }
           ]
         }

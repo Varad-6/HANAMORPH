@@ -833,6 +833,20 @@ class TransformService {
                     };
                 }
 
+                if (isRoot && semanticCategory === '#CUBE') {
+                    const hasMeasuresInView = Object.values(viewElements).some(el => el['@Analytics.measure']);
+                    if (!hasMeasuresInView) {
+                        viewElements["RECORD_COUNT"] = {
+                            type: "cds.Integer",
+                            "@EndUserText.label": "Record Count",
+                            "@Analytics.measure": true,
+                            "@Aggregation.default": "#SUM"
+                        };
+                        selectCols.push('    1 AS "RECORD_COUNT"');
+                        cqnCols.push({ val: 1, as: "RECORD_COUNT" });
+                    }
+                }
+
                 ensureKey(viewElements);
 
                 nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${leftTech}" AS A\n${node.joinType || 'LEFT OUTER JOIN'} "${rightTech}" AS B\n  ON ${onConditions}`;
@@ -840,6 +854,7 @@ class TransformService {
                 nodeViewDef = {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
+                    ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
                     elements: viewElements,
                     query: {
                         SELECT: {
@@ -936,6 +951,20 @@ class TransformService {
                     };
                 }
 
+                if (isRoot && semanticCategory === '#CUBE') {
+                    const hasMeasuresInView = Object.values(viewElements).some(el => el['@Analytics.measure']);
+                    if (!hasMeasuresInView) {
+                        viewElements["RECORD_COUNT"] = {
+                            type: "cds.Integer",
+                            "@EndUserText.label": "Record Count",
+                            "@Analytics.measure": true,
+                            "@Aggregation.default": "#SUM"
+                        };
+                        selectCols.push('    1 AS "RECORD_COUNT"');
+                        cqnCols.push({ val: 1, as: "RECORD_COUNT" });
+                    }
+                }
+
                 ensureKey(viewElements);
 
                 nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${srcTech}"`;
@@ -943,6 +972,7 @@ class TransformService {
                 nodeViewDef = {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
+                    ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
                     elements: viewElements,
                     query: {
                         SELECT: {
