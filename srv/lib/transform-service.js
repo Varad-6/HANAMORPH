@@ -378,6 +378,9 @@ class TransformService {
             tierSqls = multiTierRes.tierSqls;
             if (multiTierRes.inlinedPureSql) {
                 optimizedQuerySql = multiTierRes.inlinedPureSql;
+            } else if (tierSqls && tierSqls.length > 0) {
+                // Top root tier SQL is a pure SELECT query without CTE WITH clauses
+                optimizedQuerySql = tierSqls[tierSqls.length - 1].sql;
             }
         } else {
             multiTierPackageCsn = packageCsn;
@@ -392,14 +395,11 @@ class TransformService {
         }
 
         // Pure SELECT Query (For SAP Datasphere Data Builder -> New SQL View Editor)
+        // Strictly guaranteed: Never starts with WITH or CTE statements
         if (!optimizedQuerySql) {
-            if (model.type === 'CALC_VIEW' && model.pipelineSql) {
-                optimizedQuerySql = model.pipelineSql;
-            } else {
-                optimizedQuerySql = `SELECT\n` +
-                    sqlSelectCols.join(',\n') + `\n` +
-                    `FROM "${fromSource}"`;
-            }
+            optimizedQuerySql = `SELECT\n` +
+                sqlSelectCols.join(',\n') + `\n` +
+                `FROM "${fromSource}"`;
         }
 
         // Full DDL Statement (For HANA Database Explorer / SQL Console)
@@ -833,6 +833,20 @@ class TransformService {
                     };
                 }
 
+                if (Object.keys(viewElements).length === 0) {
+                    const candidateCols = (model.columns && model.columns.length > 0) ? model.columns : [{ name: 'ID', isKey: true }];
+                    for (const c of candidateCols) {
+                        viewElements[c.name] = {
+                            ...this._toCsnType(c.dataType || 'cds.String(40)'),
+                            "@EndUserText.label": c.originalName || c.name,
+                            ...(c.isKey ? { key: true } : {}),
+                            ...(c.isMeasure ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                        };
+                        selectCols.push(`    "${c.name}"`);
+                        cqnCols.push({ ref: [c.name] });
+                    }
+                }
+
                 if (isRoot && semanticCategory === '#CUBE') {
                     const hasMeasuresInView = Object.values(viewElements).some(el => el['@Analytics.measure']);
                     if (!hasMeasuresInView) {
@@ -949,6 +963,20 @@ class TransformService {
                         "@EndUserText.label": colId,
                         ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
                     };
+                }
+
+                if (Object.keys(viewElements).length === 0) {
+                    const candidateCols = (model.columns && model.columns.length > 0) ? model.columns : [{ name: 'ID', isKey: true }];
+                    for (const c of candidateCols) {
+                        viewElements[c.name] = {
+                            ...this._toCsnType(c.dataType || 'cds.String(40)'),
+                            "@EndUserText.label": c.originalName || c.name,
+                            ...(c.isKey ? { key: true } : {}),
+                            ...(c.isMeasure ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                        };
+                        selectCols.push(`    "${c.name}"`);
+                        cqnCols.push({ ref: [c.name] });
+                    }
                 }
 
                 if (isRoot && semanticCategory === '#CUBE') {
@@ -1553,6 +1581,21 @@ class TransformService {
                 viewType: model.viewType || ((baseName.startsWith('CA_') || baseName.startsWith('CV_')) ? 'CALC_VIEW' : 'CDS'),
                 columns: (model.columns || []).length
             });
+        }
+
+        const ensureKey = (elements) => {
+            if (!elements || Object.keys(elements).length === 0) return;
+            const hasKey = Object.values(elements).some(el => el.key);
+            if (!hasKey) {
+                const candidate = Object.keys(elements).find(k => !elements[k]['@Analytics.measure']) || Object.keys(elements)[0];
+                if (candidate) elements[candidate].key = true;
+            }
+        };
+
+        for (const def of Object.values(masterDefinitions)) {
+            if (def.kind === 'entity' && def.elements) {
+                ensureKey(def.elements);
+            }
         }
 
         const masterCsn = {

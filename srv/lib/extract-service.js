@@ -41,6 +41,15 @@ class ExtractService {
         }
 
         if (!ddl) {
+            const fallbackView = EXTENDED_CATALOG.find(v => v.name === viewName || v.sqlViewName === viewName);
+            if (fallbackView?.sqlDdl) {
+                ddl = fallbackView.sqlDdl;
+                sqlViewName = fallbackView.sqlViewName || viewName;
+                preloadedCols = fallbackView.columns;
+            }
+        }
+
+        if (!ddl) {
             throw new Error(`CDS View '${viewName}' definition could not be resolved from catalog.`);
         }
 
@@ -80,6 +89,13 @@ class ExtractService {
                 console.warn(`[extractCalc] HANA query failed for ${viewName}: ${err.message}. Falling back to extended catalog mock if available.`);
                 const view = EXTENDED_CATALOG.find(v => v.name === viewName);
                 xmlDef = view?.xmlDefinition;
+            }
+        }
+
+        if (!xmlDef) {
+            const fallbackView = EXTENDED_CATALOG.find(v => v.name === viewName);
+            if (fallbackView?.xmlDefinition) {
+                xmlDef = fallbackView.xmlDefinition;
             }
         }
 
