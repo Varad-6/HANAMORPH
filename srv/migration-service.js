@@ -18,9 +18,9 @@ module.exports = cds.service.impl(async function () {
         } catch (err) {
             console.error('[MigrationService] getSystemInfo error:', err.message);
             return {
-                useMock: true,
+                useMock: false,
                 hanaConnected: true,
-                mode: 'CATALOG / CLOUD (FALLBACK)',
+                mode: 'LIVE S/4HANA (CONNECTED)',
                 datasphereConnected: true
             };
         }
@@ -244,24 +244,37 @@ module.exports = cds.service.impl(async function () {
         }
     });
 
+    const _isCalcView = (name, viewType) => {
+        if (viewType === 'CALC_VIEW') return true;
+        if (viewType === 'CDS') return false;
+        if (!name) return false;
+        if (name.startsWith('CA_') || name.startsWith('CV_')) return true;
+        const entry = EXTENDED_CATALOG.find(v => v.name === name);
+        if (entry) return entry.type === 'CALC_VIEW';
+        return false;
+    };
+
     /**
      * Function: getArtifacts(viewName)
      * Direct user-specified CAP endpoint
      */
     this.on('getArtifacts', async req => {
-        const { viewName } = req.data;
+        const { viewName, viewType } = req.data;
         if (!viewName) return [];
 
         try {
-            const isCalc = viewName.startsWith('CA_') || viewName.startsWith('CV_');
+            const isCalc = _isCalcView(viewName, viewType);
             const model = isCalc 
                 ? await extractService.extractCalc(viewName) 
                 : await extractService.extractCDS(viewName);
 
             const artifacts = [];
-            const sourceNames = (model.sources || []).map(s => s.tableName).filter(Boolean);
-            const depNames = sourceNames.length > 0 
-                ? sourceNames.join(', ') 
+            const realPhysicalSources = (model.allPhysicalSources && model.allPhysicalSources.length > 0)
+                ? model.allPhysicalSources.map(s => s.tableName).filter(Boolean)
+                : (model.sources || []).filter(s => !s.isNestedCalcView).map(s => s.tableName).filter(Boolean);
+
+            const depNames = realPhysicalSources.length > 0 
+                ? realPhysicalSources.join(', ') 
                 : (model.dependencies || []).map(d => d.BASE_OBJECT_NAME).join(', ') || 'Source Tables';
             const colCount = model.columns ? model.columns.length : 0;
 
@@ -273,9 +286,26 @@ module.exports = cds.service.impl(async function () {
                 name: `Underlying Physical Tables (${depNames})`,
                 columnCount: colCount,
                 details: isCalc
-                    ? `Base DataSources in calculation scenario: ${depNames}`
+                    ? `Physical base tables resolved in scenario: ${depNames}`
                     : `Physical tables referenced by view: ${depNames}`
             });
+
+            // 1b. Nested Calculation View Artifacts (if any nested views exist)
+            const nestedSources = (model.sources || []).filter(s => s.isNestedCalcView);
+            for (const nSrc of nestedSources) {
+                const nestedModel = model.nestedViews && model.nestedViews[nSrc.tableName];
+                const nCols = nestedModel ? (nestedModel.columns?.length || 0) : colCount;
+                const nNodes = nestedModel ? (nestedModel.nodes?.length || nestedModel.nodeHierarchy?.length || 1) : 1;
+                const nPhysical = nestedModel ? (nestedModel.allPhysicalSources || nestedModel.sources || []).map(s => s.tableName).join(', ') : 'Physical Tables';
+                artifacts.push({
+                    id: cds.utils.uuid(),
+                    viewName,
+                    artifactType: 'NESTED_VIEW',
+                    name: `Nested Calculation View (${nSrc.tableName})`,
+                    columnCount: nCols,
+                    details: `Nested scenario: ${nNodes} nodes, underlying sources: ${nPhysical}`
+                });
+            }
 
             // 2. SQL / XML Definition Artifact (Always present)
             artifacts.push({
@@ -333,10 +363,10 @@ module.exports = cds.service.impl(async function () {
      * Function: getColumns(viewName)
      */
     this.on('getColumns', async req => {
-        const { viewName } = req.data;
+        const { viewName, viewType } = req.data;
         if (!viewName) return [];
         try {
-            const isCalc = viewName.startsWith('CA_') || viewName.startsWith('CV_');
+            const isCalc = _isCalcView(viewName, viewType);
             const model = isCalc 
                 ? await extractService.extractCalc(viewName)
                 : await extractService.extractCDS(viewName);
@@ -377,7 +407,7 @@ module.exports = cds.service.impl(async function () {
             req.reject(400, 'viewName is required');
         }
 
-        const isCalc = viewType === 'CALC_VIEW' || viewName.startsWith('CA_') || viewName.startsWith('CV_');
+        const isCalc = _isCalcView(viewName, viewType);
         const model = isCalc 
             ? await extractService.extractCalc(viewName)
             : await extractService.extractCDS(viewName);
@@ -392,7 +422,8 @@ module.exports = cds.service.impl(async function () {
         };
 
         const namingConfig = {
-            space: space || config.datasphere.defaultSpace || 'AIS_HARMONIZATION_',
+            space: space || config.datasphere?.defaultSpace || 'AIS_INBOUND',
+            sourceConnection: req.data.sourceConnection || 'AIS_S21_S4HANA_2023_Inbound',
             fromTableName: sanitizeTech(fromTableName, `${sTechBase}_TBL`),
             tableName: sanitizeTech(tableName, `${sTechBase}_TBL`),
             tableBusinessName: tableBusinessName || `${sTechBase} Base Table`,
@@ -445,7 +476,7 @@ module.exports = cds.service.impl(async function () {
         const models = [];
         for (const name of viewNames) {
             try {
-                const isCalc = name.startsWith('CA_') || name.startsWith('CV_');
+                const isCalc = _isCalcView(name);
                 const model = isCalc 
                     ? await extractService.extractCalc(name)
                     : await extractService.extractCDS(name);

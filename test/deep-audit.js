@@ -156,6 +156,9 @@ async function runDeepAudit() {
         'CV_MSTRPROJCOSTERP',
         'CV_BANK',
         'CV_AC_TYPE',
+        'CV_AMD',
+        'CV_ProjectCostObjects',
+        'CV_RESOURCE_MATERIAL',
         'CA_SALES_ANALYTICS',
         'CA_FINANCIAL_KPI'
     ];

@@ -57,7 +57,7 @@ sap.ui.define([
 
                 // Tab 5: Code & Downloads
                 replicationFlowMode: "DELTA", // "MASTER" or "DELTA"
-                sourceConnection: "S4HANA_SOURCE",
+                sourceConnection: "AIS_S21_S4HANA_2023_Inbound",
                 modularResult: {
                     tableJsonString: "",
                     viewJsonString: "",
@@ -642,9 +642,10 @@ sap.ui.define([
                     if (rawDep) {
                         const cleanDep = rawDep.replace(/^[\/\\]+/, "").replace(/[\/\\]+/g, "_").replace(/[^a-zA-Z0-9_]/g, "_");
                         if (!aSourceSuggestions.find(s => s.key === cleanDep)) {
+                            const isCalc = d.BASE_OBJECT_TYPE === 'CALCULATION_VIEW';
                             aSourceSuggestions.push({
                                 key: cleanDep,
-                                text: `${cleanDep} (Underlying Physical Table)`
+                                text: `${cleanDep} (${isCalc ? 'Nested Calculation View' : 'Underlying Physical Table'})`
                             });
                         }
                     }
@@ -763,6 +764,7 @@ sap.ui.define([
                     selectedColumns: aSelectedCols.map(c => c.sourceName),
                     columnsJson: aSelectedCols.length > 0 ? JSON.stringify(aSelectedCols) : null,
                     space: oNaming.space || "AIS_INBOUND",
+                    sourceConnection: oModel.getProperty("/sourceConnection") || "AIS_S21_S4HANA_2023_Inbound",
                     fromTableName: oNaming.fromTableName || oNaming.tableName || `${sViewName}_TBL`,
                     tableName: oNaming.tableName,
                     tableBusinessName: oNaming.tableBusinessName,

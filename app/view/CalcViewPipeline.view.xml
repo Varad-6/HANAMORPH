@@ -7,7 +7,7 @@
     xmlns:form="sap.ui.layout.form">
     <Page
         id="calcViewPipelinePage"
-        title="{i18n>tileCalcTitle} Migration Studio"
+        title="Calculation View Migration Studio"
         showNavButton="true"
         navButtonPress=".onNavBack"
         enableScrolling="true">
@@ -169,7 +169,8 @@
                                                     <cells>
                                                         <ObjectStatus
                                                             text="{artifactType}"
-                                                            state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success') }" />
+                                                            state="{= ${artifactType} === 'SQL' ? 'Information' : (${artifactType} === 'NESTED_VIEW' ? 'Information' : (${artifactType} === 'TABLE' ? 'Warning' : 'Success')) }"
+                                                            icon="{= ${artifactType} === 'NESTED_VIEW' ? 'sap-icon://dimension' : (${artifactType} === 'TABLE' ? 'sap-icon://grid' : (${artifactType} === 'GRAPHICAL' ? 'sap-icon://line-charts' : 'sap-icon://source-code')) }" />
                                                         <Text text="{name}" wrapping="false" />
                                                         <Text text="{columnCount}" />
                                                         <Text text="{details}" maxLines="2" />
@@ -336,10 +337,12 @@
                                             layout="ResponsiveGridLayout"
                                             labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12">
                                             <form:content>
-                                                <!-- Datasphere Target Space -->
-                                                <core:Title text="Datasphere Space Configuration" />
+                                                <!-- Datasphere Target Space & Connection -->
+                                                <core:Title text="Datasphere Space &amp; Connection Configuration" />
                                                 <Label text="Target Space" required="true" />
-                                                <Input value="{/naming/space}" placeholder="AIS_HARMONIZATION_" />
+                                                <Input value="{/naming/space}" placeholder="AIS_INBOUND" />
+                                                <Label text="Source Connection" />
+                                                <Input value="{/sourceConnection}" placeholder="AIS_S21_S4HANA_2023_Inbound" />
 
                                                 <!-- View Source Object Configuration -->
                                                 <core:Title text="1. View Source Object (FROM Table/View in Space)" />
@@ -492,7 +495,7 @@
                                                             <HBox alignItems="Center">
                                                                 <core:Icon src="sap-icon://org-chart" size="2.5rem" color="#0a6ed1" class="sapUiSmallMarginEnd" />
                                                                 <VBox>
-                                                                    <Title text="⭐ Multi-Tier CSN Package (1:1 Architecture Parity with HANA Studio)" level="H5" />
+                                                                    <Title text="Multi-Tier CSN Package (1:1 Architecture Parity with HANA Studio)" level="H5" />
                                                                     <Text text="Exports Base Tables + Intermediate Views (Join_1, Projection_1) + Fact View (Union_1) + Analytic Model. In Datasphere Impact &amp; Lineage Analysis, this renders the complete multi-tier visual architecture." class="text-muted" />
                                                                 </VBox>
                                                             </HBox>
@@ -560,7 +563,7 @@
                                                             <Text text="Zero Dependencies (Direct Fact)" class="sapUiTinyMarginTop sapUiTinyMarginBottom" />
                                                             <Text text="Data Builder -> Import CSN" class="sapUiTinyMarginBottom text-muted" />
                                                             <Button
-                                                                text="🧊 Download Standalone Fact CSN (.json)"
+                                                                text="Download Standalone Fact CSN (.json)"
                                                                 icon="sap-icon://download"
                                                                 type="Emphasized"
                                                                 press=".onDownloadStandaloneFactJson" />

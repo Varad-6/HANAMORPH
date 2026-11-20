@@ -35,24 +35,26 @@
                                     <Input value="{/targetSpace}" width="180px" placeholder="AIS_INBOUND" change=".onConfigChange" />
                                 </HBox>
 
+                                <!-- Prominent Dedicated Search Bar for S/4HANA Objects -->
+                                <SearchField
+                                    id="repStudioSearchField"
+                                    width="100%"
+                                    placeholder="Search S/4HANA CDS views or Calculation Views (e.g. CV_BANK, CV_EMPLOYEE, C_PurchaseOrderFs, /AIS/*, EKKO)..."
+                                    value="{/viewSearchTerm}"
+                                    liveChange=".onSearchView"
+                                    search=".onSearchView"
+                                    class="sapUiSmallMarginBottom" />
+
                                 <!-- Filter and Action Bar -->
                                 <OverflowToolbar class="sapUiSmallMarginBottom">
-                                    <Label text="Source Type Filter:" class="sapUiTinyMarginTop sapUiSmallMarginEnd" />
+                                    <Label text="Source Type:" class="sapUiTinyMarginTop sapUiSmallMarginEnd" />
                                     <SegmentedButton selectedKey="{/selectedViewCategory}" selectionChange=".onCategoryFilterChange" class="sapUiSmallMarginEnd">
                                         <items>
-                                            <SegmentedButtonItem key="ALL" text="All Source Objects ({/allViewsCount})" />
+                                            <SegmentedButtonItem key="ALL" text="All ({/allViewsCount})" />
                                             <SegmentedButtonItem key="CALC_VIEW" text="Calculation Views ({/calcViewsCount})" />
                                             <SegmentedButtonItem key="CDS" text="CDS Views ({/cdsViewsCount})" />
                                         </items>
                                     </SegmentedButton>
-
-                                    <SearchField
-                                        width="280px"
-                                        placeholder="Search source objects..."
-                                        value="{/viewSearchTerm}"
-                                        liveChange=".onSearchView"
-                                        search=".onSearchView"
-                                        class="sapUiSmallMarginEnd" />
 
                                     <Button
                                         text="Select All Visible"
@@ -67,7 +69,7 @@
                                         class="sapUiTinyMarginEnd" />
 
                                     <Button
-                                        text="Refresh Source Catalog"
+                                        text="Refresh Catalog"
                                         icon="sap-icon://synchronize"
                                         press=".onRefreshViews" />
 
@@ -138,7 +140,7 @@
                                                     text="{= ${configuredColumnsCount} > 0 ? (${selectedColsCount} + ' of ' + ${configuredColumnsCount} + ' fields (' + ${keyColsCount} + ' keys)') : 'Default (All fields &amp; keys)' }"
                                                     state="{= ${keyColsCount} > 0 ? 'Success' : 'None' }" />
                                                 <Button
-                                                    text="{= ${name} === ${/activeViewName} ? 'Inspecting 🔍' : 'Inspect 🔍' }"
+                                                    text="{= ${name} === ${/activeViewName} ? 'Inspecting' : 'Inspect' }"
                                                     icon="sap-icon://search"
                                                     type="{= ${name} === ${/activeViewName} ? 'Emphasized' : 'Default' }"
                                                     press=".onConfigureViewPress"
@@ -166,6 +168,13 @@
                                     <core:Icon src="sap-icon://chain-link" color="#0070f2" class="sapUiSmallMarginEnd" />
                                     <Title text="Harmonized Target Tables" level="H5" />
                                     <ToolbarSpacer />
+                                    <SearchField
+                                        width="260px"
+                                        placeholder="Search tables (e.g. EKKO, BNKA)..."
+                                        value="{/tableSearchTerm}"
+                                        liveChange=".onSearchDeduplicatedTables"
+                                        search=".onSearchDeduplicatedTables"
+                                        class="sapUiSmallMarginEnd" />
                                     <ObjectStatus
                                         text="{= ${/deduplicatedTablesCount} + ' Target Table(s) | ' + ${/deduplicatedOverlapsCount} + ' Consolidated' }"
                                         state="{= ${/deduplicatedOverlapsCount} > 0 ? 'Success' : 'Information' }"
@@ -176,7 +185,7 @@
 
                                 <Table
                                     id="deduplicatedTablesTable"
-                                    items="{/deduplicatedTables}"
+                                    items="{/filteredDeduplicatedTables}"
                                     growing="true"
                                     growingThreshold="30"
                                     noDataText="Select one or more source objects in Step 1 to detect physical base tables.">
@@ -218,12 +227,12 @@
                                                 </VBox>
                                                 <ObjectStatus text="{= ${columnCount} + ' fields' }" state="None" />
                                                 <Select selectedKey="{loadType}" change=".onTableLoadTypeChange">
-                                                    <core:Item key="Initial" text="📦 One-Time Copy (Initial Only)" />
-                                                    <core:Item key="InitialAndDelta" text="⚡ Initial Snapshot + Live Changes (CDC)" />
-                                                    <core:Item key="Delta" text="🔄 Changes Only (Delta)" />
+                                                    <core:Item key="Initial" text="One-Time Copy (Initial Only)" />
+                                                    <core:Item key="InitialAndDelta" text="Initial Snapshot + Live Changes (CDC)" />
+                                                    <core:Item key="Delta" text="Changes Only (Delta)" />
                                                 </Select>
                                                 <Button
-                                                    text="{= ${sourceTable} === ${/activeDeduplicatedTable} ? 'Viewing 🔍' : 'View Fields 🔍' }"
+                                                    text="{= ${sourceTable} === ${/activeDeduplicatedTable} ? 'Viewing' : 'View Fields' }"
                                                     icon="sap-icon://search"
                                                     type="{= ${sourceTable} === ${/activeDeduplicatedTable} ? 'Emphasized' : 'Default' }"
                                                     press=".onInspectDeduplicatedTablePress" />
@@ -250,6 +259,13 @@
                                     <core:Icon src="sap-icon://table-view" class="sapUiSmallMarginEnd" color="#0070f2" />
                                     <Title text="{= 'Table: ' + ${/activeDeduplicatedTable} + ' (Datasphere Name: ' + ${/activeDeduplicatedTargetTable} + ')' }" level="H5" />
                                     <ToolbarSpacer />
+                                    <SearchField
+                                        width="240px"
+                                        placeholder="Search fields / keys..."
+                                        value="{/columnSearchTerm}"
+                                        liveChange=".onSearchColumns"
+                                        search=".onSearchColumns"
+                                        class="sapUiSmallMarginEnd" />
                                     <ObjectStatus
                                         text="{= ${/activeTableSelectedColumnCount} + ' of ' + ${/activeTableTotalColumnCount} + ' Fields Extracted (' + ${/activeTableKeyColumnCount} + ' Change Tracking Keys)' }"
                                         state="{= ${/activeTableKeyColumnCount} > 0 ? 'Success' : 'Warning' }"
@@ -259,7 +275,7 @@
                                     <Button text="Reset Fields" icon="sap-icon://reset" press=".onResetTableColumns" />
                                 </OverflowToolbar>
 
-                                <Table id="columnsTable" items="{/activeTableColumns}" growing="true" growingThreshold="60" noDataText="Click 'View Fields 🔍' on any table in Step 2 to inspect its columns.">
+                                <Table id="columnsTable" items="{/filteredActiveTableColumns}" growing="true" growingThreshold="60" noDataText="Click 'View Fields' on any table in Step 2 to inspect its columns.">
                                     <columns>
                                         <Column width="75px" hAlign="Center"><Text text="Include" /></Column>
                                         <Column width="260px"><Text text="Original Field Name (HANA)" /></Column>
@@ -301,9 +317,9 @@
 
                                         <Label text="Default Replication Mode" required="true" />
                                         <Select selectedKey="{/loadMode}" change=".onLoadModeChange">
-                                            <core:Item key="INITIAL" text="📦 INITIAL (One-Time Static Snapshot)" />
-                                            <core:Item key="INITIAL_AND_DELTA" text="⚡ INITIAL_AND_DELTA (Copy All Data + Stream Live Changes)" />
-                                            <core:Item key="DELTA" text="🔄 DELTA (Stream Incremental Changes Only)" />
+                                            <core:Item key="INITIAL" text="INITIAL (One-Time Static Snapshot)" />
+                                            <core:Item key="INITIAL_AND_DELTA" text="INITIAL_AND_DELTA (Copy All Data + Stream Live Changes)" />
+                                            <core:Item key="DELTA" text="DELTA (Stream Incremental Changes Only)" />
                                         </Select>
                                     </form:content>
                                 </form:SimpleForm>
@@ -311,13 +327,13 @@
                                 <!-- Action Toolbar -->
                                 <Toolbar class="sapUiSmallMarginTop">
                                     <Button
-                                        text="⚡ Generate Package"
+                                        text="Generate Package"
                                         icon="sap-icon://syntax"
                                         type="Emphasized"
                                         press=".onGenerateDefinitions"
                                         class="sapUiSmallMarginEnd sapUiBold" />
                                     <Button
-                                        text="📦 Download Tables CSN (.csn.json)"
+                                        text="Download Tables CSN (.csn.json)"
                                         icon="sap-icon://download"
                                         type="Default"
                                         press=".onDownloadTableCsn"
@@ -325,28 +341,28 @@
                                         enabled="{/hasGenerated}"
                                         tooltip="Downloads the Table Blueprint (CSN file). Import this into SAP Datasphere Data Builder to create the local tables." />
                                     <Button
-                                        text="🌊 Download Flow JSON (.replicationFlow.json)"
-                                        icon="sap-icon://attachment"
+                                        text="Download Flow JSON (.replicationFlow.json)"
+                                        icon="sap-icon://download"
                                         press=".onDownloadFlowJson"
                                         class="sapUiSmallMarginEnd sapUiBold"
                                         enabled="{/hasGenerated}"
                                         tooltip="Downloads the Replication Flow pipeline definition. Uses the exact same table names as the CSN file." />
                                     <Button
-                                        text="🧊 Download Standalone Fact CSN (.json)"
-                                        icon="sap-icon://cube"
+                                        text="Download Standalone Fact CSN (.json)"
+                                        icon="sap-icon://download"
                                         type="Default"
                                         press=".onDownloadStandaloneFactCsn"
                                         class="sapUiSmallMarginEnd"
                                         tooltip="Downloads ready-to-use Fact View without base table dependencies." />
                                     <Button
-                                        text="📋 Copy View SQL"
-                                        icon="sap-icon://syntax"
+                                        text="Copy View SQL"
+                                        icon="sap-icon://copy"
                                         type="Default"
                                         press=".onCopyActiveViewSql"
                                         class="sapUiSmallMarginEnd"
                                         tooltip="Copy Pure SELECT SQL statement to paste directly into Datasphere New SQL View" />
                                     <Button
-                                        text="📋 Copy CLI Commands"
+                                        text="Copy CLI Commands"
                                         icon="sap-icon://copy"
                                         press=".onCopyCliCommands"
                                         class="sapUiSmallMarginEnd"
@@ -363,8 +379,8 @@
                                 <!-- Trigger Buttons -->
                                 <Toolbar class="sapUiSmallMarginBottom">
                                     <Button
-                                        text="🚀 Deploy Replication Flow &amp; Start Ingestion"
-                                        icon="sap-icon://begin"
+                                        text="Deploy Replication Flow &amp; Start Ingestion"
+                                        icon="sap-icon://upload-to-cloud"
                                         type="Accept"
                                         press=".onDeployAndRun"
                                         busy="{/isDeploying}"
@@ -372,14 +388,14 @@
                                         class="sapUiSmallMarginEnd sapUiBold"
                                         tooltip="Deploy native Replication Flow into Space AIS_INBOUND and run live data ingestion" />
                                     <Button
-                                        text="Trigger Ingestion Task ▶️"
+                                        text="Trigger Ingestion Task"
                                         icon="sap-icon://play"
                                         press=".onRunReplicationTaskOnly"
                                         class="sapUiSmallMarginEnd"
                                         enabled="{/hasGenerated}"
                                         tooltip="Run the replication task in Datasphere" />
                                     <Button
-                                        text="Check Flow Status 🔄"
+                                        text="Check Flow Status"
                                         icon="sap-icon://synchronize"
                                         type="Default"
                                         press=".onCheckStatus"

@@ -2205,20 +2205,20 @@
   },
   "FCOMTS_NA_T": {
     "LANGU": {
-      "dataType": "cds.String(1)",
-      "length": 1,
+      "dataType": "cds.String(100)",
+      "length": 100,
       "scale": null,
       "isKey": false
     },
     "NAME": {
-      "dataType": "cds.String(20)",
-      "length": 20,
+      "dataType": "cds.String(100)",
+      "length": 100,
       "scale": null,
       "isKey": false
     },
     "TEXT": {
-      "dataType": "cds.String(40)",
-      "length": 40,
+      "dataType": "cds.String(100)",
+      "length": 100,
       "scale": null,
       "isKey": false
     }

@@ -74,9 +74,18 @@ class ExtractService {
 
     /**
      * Extract Calculation View definition into the common internal model
+     * Recursively resolves and extracts nested calculation views down to physical base tables
      * @param {string} viewName 
+     * @param {number} depth Recursion depth limiter
+     * @param {Set} visited Set of visited view names to prevent circular dependencies
      */
-    async extractCalc(viewName) {
+    async extractCalc(viewName, depth = 0, visited = new Set()) {
+        if (!viewName) throw new Error('viewName is required for extractCalc');
+        if (visited.has(viewName)) {
+            return null;
+        }
+        visited.add(viewName);
+
         let xmlDef = null;
 
         if (config.USE_MOCK) {
@@ -104,7 +113,76 @@ class ExtractService {
         }
 
         const parsedXml = this.xmlParser.parse(xmlDef);
-        return this._parseCalcViewXml(viewName, parsedXml);
+        const model = this._parseCalcViewXml(viewName, parsedXml);
+        model.nestedViews = {};
+
+        // Deduplicated collection of physical tables (flattening nested views)
+        const allPhysicalMap = new Map();
+        for (const s of (model.sources || [])) {
+            if (!s.isNestedCalcView && s.tableName) {
+                allPhysicalMap.set(s.tableName.toUpperCase(), s);
+            }
+        }
+
+        // Recursively extract nested calculation views up to depth 5
+        if (depth < 5) {
+            for (const s of (model.sources || [])) {
+                if (s.isNestedCalcView && s.tableName && s.tableName !== viewName) {
+                    try {
+                        const nestedModel = await this.extractCalc(s.tableName, depth + 1, visited);
+                        if (nestedModel) {
+                            model.nestedViews[s.tableName] = nestedModel;
+
+                            // Merge underlying physical tables from nested view
+                            const subPhysical = (nestedModel.allPhysicalSources && nestedModel.allPhysicalSources.length > 0)
+                                ? nestedModel.allPhysicalSources
+                                : (nestedModel.sources || []).filter(sub => !sub.isNestedCalcView);
+
+                            for (const ps of subPhysical) {
+                                if (ps.tableName) {
+                                    allPhysicalMap.set(ps.tableName.toUpperCase(), ps);
+                                }
+                            }
+
+                            // Merge known columns from nested model into parent sourceColumns
+                            if (nestedModel.columns && nestedModel.columns.length > 0) {
+                                if (!model.sourceColumns) model.sourceColumns = {};
+                                if (!model.sourceColumns[s.tableName]) {
+                                    model.sourceColumns[s.tableName] = nestedModel.columns;
+                                }
+                                if (!model.sourceColumns[s.tableName.toUpperCase()]) {
+                                    model.sourceColumns[s.tableName.toUpperCase()] = nestedModel.columns;
+                                }
+                            }
+                        }
+                    } catch (nestedErr) {
+                        console.warn(`[extractCalc] Nested view '${s.tableName}' could not be recursively resolved: ${nestedErr.message}`);
+                    }
+                }
+            }
+        }
+
+        model.allPhysicalSources = Array.from(allPhysicalMap.values());
+
+        // Enrich model dependencies with both physical tables and nested views
+        const enrichedDeps = [];
+        for (const s of (model.sources || [])) {
+            enrichedDeps.push({
+                BASE_OBJECT_NAME: s.tableName,
+                BASE_OBJECT_TYPE: s.isNestedCalcView ? 'CALCULATION_VIEW' : (s.type || 'TABLE')
+            });
+        }
+        for (const ps of model.allPhysicalSources) {
+            if (!enrichedDeps.some(d => d.BASE_OBJECT_NAME === ps.tableName)) {
+                enrichedDeps.push({
+                    BASE_OBJECT_NAME: ps.tableName,
+                    BASE_OBJECT_TYPE: 'TABLE'
+                });
+            }
+        }
+        model.dependencies = enrichedDeps;
+
+        return model;
     }
 
     /**
@@ -317,7 +395,17 @@ class ExtractService {
             const rawId = d['@_id'];
             const cleanTbl = dsIdMap[rawId] || cleanTableRef(rawId, d.resourceUri);
             const rawType = (d['@_type'] || '').toUpperCase();
-            const isCalcView = rawType === 'CALCULATION_VIEW' || rawType === 'OLAP' || cleanTbl.startsWith('CV_') || cleanTbl.startsWith('CA_');
+            let resUri = d.resourceUri;
+            if (typeof resUri === 'object' && resUri !== null) {
+                resUri = resUri['#text'] || resUri.resourceUri || '';
+            }
+            resUri = String(resUri || '');
+            const isCalcView = rawType === 'CALCULATION_VIEW' || 
+                rawType === 'OLAP' || 
+                resUri.includes('calculationviews') || 
+                cleanTbl.startsWith('CV_') || 
+                cleanTbl.startsWith('CA_') ||
+                EXTENDED_CATALOG.some(v => v.name === cleanTbl && v.type === 'CALC_VIEW');
             return {
                 tableName: cleanTbl,
                 rawId: rawId,
@@ -690,7 +778,12 @@ class ExtractService {
             } else if (nodeType.includes('AggregationView')) {
                 const inputNode = (node.input?.['@_node'] || '').replace(/^#/, '');
                 const rawMappings = node.input?.mapping || [];
-                const mappings = Array.isArray(rawMappings) ? rawMappings : (rawMappings ? [rawMappings] : []);
+                let mappings = Array.isArray(rawMappings) ? rawMappings : (rawMappings ? [rawMappings] : []);
+                if (mappings.length === 0) {
+                    const rawViewAttrs = node.viewAttributes?.viewAttribute || [];
+                    const viewAttrList = Array.isArray(rawViewAttrs) ? rawViewAttrs : (rawViewAttrs ? [rawViewAttrs] : []);
+                    mappings = viewAttrList.map(va => ({ '@_source': va['@_id'], '@_target': va['@_id'] }));
+                }
                 const attrs = [];
                 const meas = [];
 

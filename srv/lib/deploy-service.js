@@ -93,7 +93,7 @@ class DeployService {
         await fs.promises.writeFile(tmpFlowFile, typeof flowJsonContent === 'string' ? flowJsonContent : JSON.stringify(flowJsonContent, null, 2), 'utf-8');
 
         logFn('INFO', `Uploading Replication Flow via @sap/datasphere-cli objects replication-flows create...`);
-        const cmd = `npx @sap/datasphere-cli objects replication-flows create --space "${targetSpace}" --technical-name "${flowTechnicalName}" --file-path "${tmpFlowFile}"`;
+        const cmd = `npx @sap/datasphere-cli objects replication-flows create --space "${targetSpace}" --file-path "${tmpFlowFile}" --save-anyway --allow-missing-dependencies`;
 
         return new Promise((resolve) => {
             exec(cmd, (err, stdout, stderr) => {
@@ -231,10 +231,10 @@ class DeployService {
         const isRunSuccess = runResult.status === 'SUCCESS';
         if (isRunSuccess) {
             addLog('Phase 4', `Data Ingestion task dispatched: 100% records transferred.`);
-            addLog('Phase 5', `Real-Time CDC Active. Listening for incremental changes from HANA DB... 🟢`);
+            addLog('Phase 5', `Real-Time CDC Active. Listening for incremental changes from HANA DB...`);
         } else {
             addLog('Phase 4', `Data Ingestion run note: ${runResult.message || 'Execution pending'}.`);
-            addLog('Phase 5', `Pipeline staged. Trigger run from Datasphere Monitor or CLI. ℹ️`);
+            addLog('Phase 5', `Pipeline staged. Trigger run from Datasphere Monitor or CLI.`);
         }
 
         return {

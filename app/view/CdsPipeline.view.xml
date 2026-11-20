@@ -7,7 +7,7 @@
     xmlns:form="sap.ui.layout.form">
     <Page
         id="cdsPipelinePage"
-        title="{i18n>tileCdsTitle} Migration Studio"
+        title="CDS View Migration Studio"
         showNavButton="true"
         navButtonPress=".onNavBack"
         enableScrolling="true">
@@ -61,13 +61,13 @@
                                                                 selectedKey="{/selectedModule}"
                                                                 change=".onModuleChange"
                                                                 width="240px">
-                                                                <core:Item key="ALL" text="🌐 All Modules" />
-                                                                <core:Item key="MM" text="📦 MM - Materials Mgmt" />
-                                                                <core:Item key="SD" text="📈 SD - Sales &amp; Distribution" />
-                                                                <core:Item key="FI" text="💰 FI - Financial Accounting" />
-                                                                <core:Item key="CO" text="📊 CO - Controlling &amp; Costs" />
-                                                                <core:Item key="PP" text="🏭 PP - Production Planning" />
-                                                                <core:Item key="CUSTOM" text="⚙️ Custom (Z* / Y*)" />
+                                                                <core:Item key="ALL" text="All Modules" />
+                                                                <core:Item key="MM" text="MM - Materials Management" />
+                                                                <core:Item key="SD" text="SD - Sales &amp; Distribution" />
+                                                                <core:Item key="FI" text="FI - Financial Accounting" />
+                                                                <core:Item key="CO" text="CO - Controlling &amp; Costs" />
+                                                                <core:Item key="PP" text="PP - Production Planning" />
+                                                                <core:Item key="CUSTOM" text="Custom (Z* / Y*)" />
                                                             </Select>
                                                         </VBox>
 
@@ -117,37 +117,25 @@
                                                             </OverflowToolbar>
                                                         </headerToolbar>
                                                         <columns>
-                                                            <Column width="35%">
+                                                            <Column width="45%">
                                                                 <Text text="CDS Entity Name" class="sapUiBold" />
                                                             </Column>
-                                                            <Column width="25%">
+                                                            <Column width="30%">
                                                                 <Text text="SQL View Name" class="sapUiBold" />
                                                             </Column>
-                                                            <Column width="20%">
+                                                            <Column width="25%">
                                                                 <Text text="Schema / Module" class="sapUiBold" />
-                                                            </Column>
-                                                            <Column width="20%">
-                                                                <Text text="Status" class="sapUiBold" />
                                                             </Column>
                                                         </columns>
                                                         <items>
                                                             <ColumnListItem vAlign="Middle" type="Active">
                                                                 <cells>
                                                                     <VBox>
-                                                                        <HBox alignItems="Center">
-                                                                            <ObjectStatus
-                                                                                text="{badge}"
-                                                                                state="Success"
-                                                                                inverted="true"
-                                                                                visible="{= !!${badge} }"
-                                                                                class="sapUiTinyMarginEnd" />
-                                                                            <Text text="{name}" class="sapUiBold" />
-                                                                        </HBox>
+                                                                        <Text text="{name}" class="sapUiBold" />
                                                                         <Text text="{description}" class="text-muted sapUiTinyMarginTop" />
                                                                     </VBox>
                                                                     <Text text="{sqlViewName}" />
                                                                     <Text text="{packageOrSchema}" />
-                                                                    <ObjectStatus text="{= ${isEndToEndReady} ? '⭐ E2E Ready' : ${supportedStatus} }" state="Success" />
                                                                 </cells>
                                                             </ColumnListItem>
                                                         </items>
@@ -163,7 +151,7 @@
                                                     <!-- Selected View Summary Card (1-on-1 Selection) -->
                                                     <VBox visible="{/hasViewSelected}" class="sapUiMediumMarginTop">
                                                         <Panel
-                                                            headerText="Selected View Ready for Extraction: {/selectedView/name}"
+                                                            headerText="Selected View Details: {/selectedView/name}"
                                                             expandable="false">
                                                             <form:SimpleForm
                                                                 editable="false"
@@ -391,9 +379,11 @@
                                                     layout="ResponsiveGridLayout"
                                                     labelSpanXL="3" labelSpanL="3" labelSpanM="4" labelSpanS="12">
                                                     <form:content>
-                                                        <core:Title text="Datasphere Space" />
+                                                        <core:Title text="Datasphere Space &amp; Connection" />
                                                         <Label text="Target Space" />
                                                         <Input value="{/naming/space}" placeholder="AIS_INBOUND" />
+                                                        <Label text="Source Connection" />
+                                                        <Input value="{/sourceConnection}" placeholder="AIS_S21_S4HANA_2023_Inbound" />
 
                                                         <core:Title text="Base Ingestion Table" />
                                                         <Label text="Technical Table Name" />
@@ -456,40 +446,56 @@
                                                     <Text text="Directly download native CSN/JSON files for SAP Datasphere Data Builder (Import from CSN/JSON File) or copy pure SQL statements for the New SQL View canvas." class="text-muted sapUiSmallMarginBottom" />
                                                     <HBox wrap="Wrap" class="sapUiSmallMarginBottom">
                                                         <Button
-                                                            text="📦 Complete CSN Package (.json)"
+                                                            text="Complete CSN Package (.json)"
                                                             icon="sap-icon://download"
                                                             type="Emphasized"
                                                             press=".onDownloadPackageJson"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
-                                                            text="📊 Fact View CSN (.json)"
+                                                            text="Fact View CSN (.json)"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadViewJson"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
-                                                            text="🧊 Standalone Fact CSN (.json)"
+                                                            text="Standalone Fact CSN (.json)"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadStandaloneFactJson"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
-                                                            text="📈 Analytic Model CSN (.json)"
+                                                            text="Analytic Model CSN (.json)"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadAmJson"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
-                                                            text="📄 Table CSN (.json)"
+                                                            text="Table CSN (.json)"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadTableJson"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
-                                                            text="📜 Pure SELECT Query (.sql)"
+                                                            text="Pure SELECT Query (.sql)"
                                                             icon="sap-icon://download"
                                                             press=".onDownloadCompleteSql"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
-                                                            text="📋 Copy SQL"
+                                                            text="Copy SQL"
                                                             icon="sap-icon://copy"
                                                             press=".onCopySql"
+                                                            class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
+                                                        <Button
+                                                            text="Replication Flow (.json)"
+                                                            icon="sap-icon://download"
+                                                            type="Attention"
+                                                            press=".onDownloadReplicationFlow"
+                                                            class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
+                                                        <Button
+                                                            text="Copy RF CLI"
+                                                            icon="sap-icon://copy"
+                                                            press=".onCopyReplicationCli"
+                                                            class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
+                                                        <Button
+                                                            text="Replication Studio"
+                                                            icon="sap-icon://chain-link"
+                                                            press=".onOpenInReplicationStudio"
                                                             class="sapUiSmallMarginEnd sapUiTinyMarginBottom" />
                                                         <Button
                                                             text="{i18n>btnTransfer}"
@@ -513,13 +519,64 @@
                                             </content>
                                         </Panel>
 
-                                        <Panel headerText="Datasphere Unified CSN Definition" expandable="true" expanded="false">
+                                        <Panel headerText="Datasphere Unified CSN Definition" expandable="true" expanded="false" class="sapUiSmallMarginBottom">
                                             <content>
                                                 <TextArea
                                                     value="{/modularResult/packageJsonString}"
                                                     rows="10"
                                                     width="100%"
                                                     editable="false" />
+                                            </content>
+                                        </Panel>
+
+                                        <!-- Replication Flow to Datasphere Local Tables -->
+                                        <Panel headerText="Replication Flow to Datasphere Local Tables" expandable="true" expanded="true" class="sapUiSmallMarginBottom">
+                                            <headerToolbar>
+                                                <OverflowToolbar>
+                                                    <Title text="Replication Flow (Target: Local Tables in {/naming/space})" level="H5" />
+                                                    <ToolbarSpacer />
+                                                    <Button
+                                                        text="Download Replication Flow JSON"
+                                                        icon="sap-icon://download"
+                                                        type="Emphasized"
+                                                        press=".onDownloadReplicationFlow" />
+                                                    <Button
+                                                        text="Copy CLI Deploy Command"
+                                                        icon="sap-icon://copy"
+                                                        press=".onCopyReplicationCli" />
+                                                </OverflowToolbar>
+                                            </headerToolbar>
+                                            <content>
+                                                <VBox class="sapUiSmallMargin">
+                                                    <MessageStrip
+                                                        text="ℹ️ S/4HANA CDS Extraction Note: Standard analytical CDS views (e.g. C_PurchaseOrderFs) do not appear under '/CDS_EXTRACTION' in SAP Datasphere unless annotated with @Analytics.dataExtraction.enabled in ABAP. HANAMORPH automatically deconstructs the CDS view into its physical database tables (e.g. EKKO, EKPO, MARA, T001W) and configures the Replication Flow to stream them directly into Datasphere Local Tables."
+                                                        type="Information"
+                                                        showIcon="true"
+                                                        class="sapUiSmallMarginBottom" />
+
+                                                    <HBox alignItems="Center" class="sapUiSmallMarginBottom">
+                                                        <Label text="Replication Mode:" class="sapUiSmallMarginEnd sapUiBold" />
+                                                        <SegmentedButton selectedKey="{/replicationFlowMode}">
+                                                            <items>
+                                                                <SegmentedButtonItem key="DELTA" text="Transactional Data (Initial + Delta CDC)" icon="sap-icon://synchronize" />
+                                                                <SegmentedButtonItem key="MASTER" text="Master Data (Initial Snapshot)" icon="sap-icon://database" />
+                                                            </items>
+                                                        </SegmentedButton>
+                                                    </HBox>
+
+                                                    <TextArea
+                                                        value="{= ${/replicationFlowMode} === 'MASTER' ? ${/modularResult/replicationFlowMasterJsonString} : ${/modularResult/replicationFlowDeltaJsonString} }"
+                                                        rows="8"
+                                                        width="100%"
+                                                        editable="false"
+                                                        growing="true"
+                                                        growingMaxLines="20" />
+
+                                                    <HBox alignItems="Center" class="sapUiSmallMarginTop">
+                                                        <Text text="Datasphere CLI Deployment Command:" class="sapUiBold sapUiSmallMarginEnd" />
+                                                        <Text text="{/modularResult/replicationFlowCliCommand}" class="sapUiCode" />
+                                                    </HBox>
+                                                </VBox>
                                             </content>
                                         </Panel>
 

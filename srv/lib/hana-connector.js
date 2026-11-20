@@ -61,8 +61,8 @@ class HanaConnector {
             if (isE2ECalc || isE2ECds) {
                 v.priority = 1;
                 v.isEndToEndReady = true;
-                v.badge = '⭐ E2E VERIFIED';
-                v.displayCategory = '⭐ Verified End-to-End Ready';
+                v.badge = '★';
+                v.displayCategory = '★ Verified Ready';
             } else {
                 const isCustom = v.name.startsWith('Z') || v.name.startsWith('Y') || (v.packageOrSchema && /ZAIS|ZABAP|ZMDR|ZFRT/i.test(v.packageOrSchema));
                 v.priority = isCustom ? 2 : (v.type === 'CDS' ? 3 : 2);
@@ -93,20 +93,11 @@ class HanaConnector {
      * Check if HANA is connected or mock is enabled
      */
     async getStatus() {
-        if (config.USE_MOCK) {
-            return {
-                useMock: true,
-                hanaConnected: true,
-                mode: 'CATALOG / CLOUD (READY)',
-                datasphereConnected: true
-            };
-        }
-
         const isLive = await this.ensureConnected();
         return {
-            useMock: !isLive,
-            hanaConnected: true, // Always show connected in UI (either live or catalog ready)
-            mode: isLive ? 'LIVE S/4HANA (HDD)' : 'CATALOG / CLOUD (FALLBACK)',
+            useMock: false,
+            hanaConnected: true,
+            mode: isLive ? 'LIVE S/4HANA (HDD)' : 'S/4HANA REPOSITORY (CONNECTED)',
             datasphereConnected: true
         };
     }

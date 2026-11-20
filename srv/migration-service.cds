@@ -211,6 +211,7 @@ service MigrationService {
         selectedColumns    : array of String,
         columnsJson        : LargeString,
         space              : String,
+        sourceConnection   : String,
         fromTableName      : String,
         tableName          : String,
         tableBusinessName  : String,

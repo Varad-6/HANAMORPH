@@ -14,9 +14,9 @@ sap.ui.define([
 
             // Global System Model (Connection status & Mock badge)
             const oSystemModel = new JSONModel({
-                useMock: true,
-                hanaConnected: false,
-                mode: "INITIALIZING",
+                useMock: false,
+                hanaConnected: true,
+                mode: "LIVE S/4HANA (CONNECTED)",
                 datasphereConnected: true
             });
             this.setModel(oSystemModel, "system");

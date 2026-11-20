@@ -36,7 +36,9 @@ sap.ui.define([
                 activeViewType: "",
 
                 // Step 2: Deduplicated Canonical Tables Matrix
+                tableSearchTerm: "",
                 deduplicatedTables: [],
+                filteredDeduplicatedTables: [],
                 deduplicatedTablesCount: 0,
                 deduplicatedOverlapsCount: 0,
                 isDeduplicationBusy: false,
@@ -44,7 +46,9 @@ sap.ui.define([
                 activeDeduplicatedTargetTable: "",
 
                 // Step 3: Active Table Column Superset Drilldown
+                columnSearchTerm: "",
                 activeTableColumns: [],
+                filteredActiveTableColumns: [],
                 activeTableSelectedColumnCount: 0,
                 activeTableTotalColumnCount: 0,
                 activeTableKeyColumnCount: 0,
@@ -445,11 +449,13 @@ sap.ui.define([
 
             if (aSelected.length === 0) {
                 oModel.setProperty("/deduplicatedTables", []);
+                oModel.setProperty("/filteredDeduplicatedTables", []);
                 oModel.setProperty("/deduplicatedTablesCount", 0);
                 oModel.setProperty("/deduplicatedOverlapsCount", 0);
                 oModel.setProperty("/activeDeduplicatedTable", "");
                 oModel.setProperty("/activeDeduplicatedTargetTable", "");
                 oModel.setProperty("/activeTableColumns", []);
+                oModel.setProperty("/filteredActiveTableColumns", []);
                 oModel.setProperty("/hasGenerated", false);
                 oModel.setProperty("/targetTablesSummary", "None");
                 return;
@@ -516,6 +522,7 @@ sap.ui.define([
                 });
 
                 oModel.setProperty("/deduplicatedTables", aTables);
+                this._applyTableFilters();
                 oModel.setProperty("/deduplicatedTablesCount", aTables.length);
                 oModel.setProperty("/deduplicatedOverlapsCount", overlapsCount);
                 oModel.setProperty("/isDeduplicationBusy", false);
@@ -573,6 +580,7 @@ sap.ui.define([
 
             const aTables = Object.values(tableMap);
             oModel.setProperty("/deduplicatedTables", aTables);
+            this._applyTableFilters();
             oModel.setProperty("/deduplicatedTablesCount", aTables.length);
             oModel.setProperty("/deduplicatedOverlapsCount", aTables.filter(t => t.isDeduplicated).length);
 
@@ -602,9 +610,67 @@ sap.ui.define([
 
             const cols = tbl.columns || [];
             oModel.setProperty("/activeTableColumns", cols);
+            oModel.setProperty("/columnSearchTerm", "");
+            this._applyColumnFilters();
             oModel.setProperty("/activeTableTotalColumnCount", cols.length);
             oModel.setProperty("/activeTableSelectedColumnCount", cols.filter(c => c.selected).length);
             oModel.setProperty("/activeTableKeyColumnCount", cols.filter(c => c.selected && c.isKey).length);
+        },
+
+        /* ====================================================================
+         * 2B. STEP 2 & STEP 3 SEARCH & FILTERING
+         * ==================================================================== */
+        _applyTableFilters: function () {
+            const oModel = this.getView().getModel();
+            const aTables = oModel.getProperty("/deduplicatedTables") || [];
+            const sTerm = (oModel.getProperty("/tableSearchTerm") || "").toLowerCase().trim();
+            if (!sTerm) {
+                oModel.setProperty("/filteredDeduplicatedTables", aTables);
+                return;
+            }
+            const aFiltered = aTables.filter(t => {
+                const src = (t.sourceTable || "").toLowerCase();
+                const tgt = (t.targetTable || "").toLowerCase();
+                const bName = (t.businessName || "").toLowerCase();
+                const views = (t.referencingViewsSummary || "").toLowerCase();
+                return src.includes(sTerm) || tgt.includes(sTerm) || bName.includes(sTerm) || views.includes(sTerm);
+            });
+            oModel.setProperty("/filteredDeduplicatedTables", aFiltered);
+        },
+
+        onSearchDeduplicatedTables: function (oEvent) {
+            const sQuery = (oEvent && oEvent.getParameter("newValue") !== undefined)
+                ? oEvent.getParameter("newValue")
+                : (oEvent && oEvent.getParameter("query") !== undefined ? oEvent.getParameter("query") : (this.getView().getModel().getProperty("/tableSearchTerm") || ""));
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/tableSearchTerm", sQuery);
+            this._applyTableFilters();
+        },
+
+        _applyColumnFilters: function () {
+            const oModel = this.getView().getModel();
+            const aCols = oModel.getProperty("/activeTableColumns") || [];
+            const sTerm = (oModel.getProperty("/columnSearchTerm") || "").toLowerCase().trim();
+            if (!sTerm) {
+                oModel.setProperty("/filteredActiveTableColumns", aCols);
+                return;
+            }
+            const aFiltered = aCols.filter(c => {
+                const src = (c.sourceName || "").toLowerCase();
+                const tgt = (c.targetName || "").toLowerCase();
+                const dt = (c.dataType || "").toLowerCase();
+                return src.includes(sTerm) || tgt.includes(sTerm) || dt.includes(sTerm);
+            });
+            oModel.setProperty("/filteredActiveTableColumns", aFiltered);
+        },
+
+        onSearchColumns: function (oEvent) {
+            const sQuery = (oEvent && oEvent.getParameter("newValue") !== undefined)
+                ? oEvent.getParameter("newValue")
+                : (oEvent && oEvent.getParameter("query") !== undefined ? oEvent.getParameter("query") : (this.getView().getModel().getProperty("/columnSearchTerm") || ""));
+            const oModel = this.getView().getModel();
+            oModel.setProperty("/columnSearchTerm", sQuery);
+            this._applyColumnFilters();
         },
 
         onTargetTableNameChange: function (oEvent) {
@@ -681,11 +747,13 @@ sap.ui.define([
                 tbl.columns = aCols;
                 tbl.columnCount = total;
                 oModel.setProperty("/deduplicatedTables", aTables);
+                this._applyTableFilters();
 
                 // Cache override
                 if (!this._tableOverridesCache[sActiveTbl]) this._tableOverridesCache[sActiveTbl] = {};
                 this._tableOverridesCache[sActiveTbl].columns = aCols;
             }
+            this._applyColumnFilters();
         },
 
         onColumnCheckboxChange: function () {
@@ -713,6 +781,7 @@ sap.ui.define([
             aCols.forEach(c => { c.selected = true; });
             oModel.setProperty("/activeTableColumns", aCols);
             this._syncActiveTableColumnStats();
+            this._applyColumnFilters();
             this.onGenerateDefinitions();
         },
 
@@ -722,6 +791,7 @@ sap.ui.define([
             aCols.forEach(c => { c.selected = Boolean(c.isKey); });
             oModel.setProperty("/activeTableColumns", aCols);
             this._syncActiveTableColumnStats();
+            this._applyColumnFilters();
             this.onGenerateDefinitions();
         },
 
@@ -734,6 +804,7 @@ sap.ui.define([
             });
             oModel.setProperty("/activeTableColumns", aCols);
             this._syncActiveTableColumnStats();
+            this._applyColumnFilters();
             this.onGenerateDefinitions();
         },
 
@@ -753,6 +824,7 @@ sap.ui.define([
                 }
             });
             oModel.setProperty("/deduplicatedTables", [...aTables]);
+            this._applyTableFilters();
 
             this.onGenerateDefinitions();
         },
@@ -981,29 +1053,29 @@ sap.ui.define([
                 const res = data.value || data;
                 const sPackageLabel = sSpace.toUpperCase().includes('INBOUND') ? 'Inbound Replication Package' : 'Replication Package';
                 if (res.status !== 'SUCCESS') {
-                    addLog(`[Phase 3] Inbound replication definitions generated for Space '${sSpace}'. ✔`);
-                    addLog(`[Phase 4] 100% Naming Parity guaranteed across Table Blueprints and Data Pipeline. ✔`);
-                    addLog(`[Phase 5] Package is 100% ready for Space '${sSpace}'. Ready for download & deployment. 🟢`);
+                    addLog(`[Phase 3] Inbound replication definitions generated for Space '${sSpace}'.`);
+                    addLog(`[Phase 4] 100% Naming Parity guaranteed across Table Blueprints and Data Pipeline.`);
+                    addLog(`[Phase 5] Package is 100% ready for Space '${sSpace}'. Ready for download & deployment.`);
 
-                    oModel.setProperty("/executionStatusText", `Inbound Ready (${sSpace}) 🟢`);
+                    oModel.setProperty("/executionStatusText", `Inbound Ready (${sSpace})`);
                     oModel.setProperty("/executionStatusState", "Success");
                     oModel.setProperty("/executionStatusIcon", "sap-icon://sys-enter-2");
                     oModel.setProperty("/executionLogSummary", `✓ ${sPackageLabel} Ready for Space '${sSpace}'. Canonical Table(s) staged with 100% naming parity.`);
                     oModel.setProperty("/executionLogType", "Success");
 
                     MessageBox.success(
-                        `${sPackageLabel} for '${sFlowName}' is 100% ready for Space '${sSpace}'! 🟢\n\nTarget Canonical Tables: ${sTablesSummary}\n\n👉 Next Steps:\n1. Click 'Download Tables CSN' to import all canonical tables into Data Builder.\n2. Click 'Download Flow JSON' to deploy into Replication Flows in Space '${sSpace}'.`,
+                        `${sPackageLabel} for '${sFlowName}' is 100% ready for Space '${sSpace}'.\n\nTarget Canonical Tables: ${sTablesSummary}\n\nNext Steps:\n1. Click 'Download Tables CSN' to import all canonical tables into Data Builder.\n2. Click 'Download Flow JSON' to deploy into Replication Flows in Space '${sSpace}'.`,
                         { title: `${sPackageLabel} Ready (Space: ${sSpace})` }
                     );
                     return;
                 }
 
-                addLog(`[Phase 2] Target Tables staged with Primary Keys & Superset mappings. ✔`);
-                addLog(`[Phase 3] Native Replication Flow '${sFlowName}' deployed into Space '${sSpace}'. ✔`);
+                addLog(`[Phase 2] Target Tables staged with Primary Keys & Superset mappings.`);
+                addLog(`[Phase 3] Native Replication Flow '${sFlowName}' deployed into Space '${sSpace}'.`);
                 addLog(`[Phase 4] Starting Ingestion tasks (${sFlowName})... 100% records transferred.`);
-                addLog(`[Phase 5] Real-Time CDC Active. Listening for incremental changes from HANA DB... 🟢`);
+                addLog(`[Phase 5] Real-Time CDC Active. Listening for incremental changes from HANA DB...`);
 
-                oModel.setProperty("/executionStatusText", "Real-Time CDC Active 🟢");
+                oModel.setProperty("/executionStatusText", "Real-Time CDC Active");
                 oModel.setProperty("/executionStatusState", "Success");
                 oModel.setProperty("/executionStatusIcon", "sap-icon://connected");
                 oModel.setProperty("/executionLogSummary", `✓ End-to-End Pipeline Deployed! ${aActiveTables.length} Canonical Table(s) and Replication Flow '${sFlowName}' active in Space '${sSpace}'.`);
@@ -1015,12 +1087,12 @@ sap.ui.define([
             })
             .catch(err => {
                 oModel.setProperty("/isDeploying", false);
-                addLog(`[Phase 2] Canonical Target Local Table(s) [${sTablesSummary}] staged with Primary Keys. ✔`);
-                addLog(`[Phase 3] Replication Flow '${sFlowName}' provisioned for Space '${sSpace}'. ✔`);
+                addLog(`[Phase 2] Canonical Target Local Table(s) [${sTablesSummary}] staged with Primary Keys.`);
+                addLog(`[Phase 3] Replication Flow '${sFlowName}' provisioned for Space '${sSpace}'.`);
                 addLog(`[Phase 4] Ingestion task triggered. Status: NOTICE (${err.message})`);
-                addLog(`[Phase 5] Pipeline configured for Real-Time CDC in Datasphere Space '${sSpace}'. 🟢`);
+                addLog(`[Phase 5] Pipeline configured for Real-Time CDC in Datasphere Space '${sSpace}'.`);
 
-                oModel.setProperty("/executionStatusText", "Pipeline Harmonized & Active 🟢");
+                oModel.setProperty("/executionStatusText", "Pipeline Harmonized & Active");
                 oModel.setProperty("/executionStatusState", "Success");
                 oModel.setProperty("/executionStatusIcon", "sap-icon://connected");
                 oModel.setProperty("/executionLogSummary", `Pipeline active in Space '${sSpace}'. Notice: ${err.message}`);
@@ -1256,10 +1328,10 @@ sap.ui.define([
             })
             .then(r => r.json())
             .then(data => {
-                logs.push(`[${new Date().toLocaleTimeString()}] [Step 4] Replication run dispatched. Real-Time CDC Active 🟢`);
+                logs.push(`[${new Date().toLocaleTimeString()}] [Step 4] Replication run dispatched. Real-Time CDC Active.`);
                 oModel.setProperty("/terminalLogs", logs);
                 oModel.setProperty("/terminalLogText", logs.join("\n"));
-                oModel.setProperty("/executionStatusText", "Real-Time CDC Active 🟢");
+                oModel.setProperty("/executionStatusText", "Real-Time CDC Active");
                 oModel.setProperty("/executionStatusState", "Success");
                 MessageBox.success(`Data replication task started for '${sFlowName}' in Space '${sSpace}'!`);
             })

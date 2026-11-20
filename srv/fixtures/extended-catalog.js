@@ -701,8 +701,8 @@ for (const v of ALL_COMBINED) {
         if (isE2ECalc || isE2ECds) {
             v.priority = 1;
             v.isEndToEndReady = true;
-            v.badge = '⭐ E2E VERIFIED';
-            v.displayCategory = '⭐ Verified End-to-End Ready';
+            v.badge = '★';
+            v.displayCategory = '★ Verified Ready';
         } else if (!v.priority) {
             v.priority = 2;
             v.isEndToEndReady = false;

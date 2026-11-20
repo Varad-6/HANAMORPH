@@ -18,6 +18,18 @@ class TransformService {
     _hydrateTableWithCatalog(tblName, tblDef) {
         if (!tblDef || tblDef.kind !== 'entity' || tblDef.query) return;
         const cleanName = (tblName || '').replace(/.*?\$\$\$\$/g, '').replace(/\$\$/g, '').replace(/^.*::/, '').replace(/^.*[.\/]/, '').trim();
+
+        // Special handling for shared calculation view text structure FCOMTS_NA_T
+        // to guarantee 100% type compatibility with existing Datasphere spaces and dependent views
+        if (cleanName.toUpperCase() === 'FCOMTS_NA_T') {
+            if (!tblDef.elements) tblDef.elements = {};
+            tblDef.elements['MANDT'] = { type: 'cds.String', length: 100, key: true, "@EndUserText.label": "MANDT" };
+            tblDef.elements['LANGU'] = { type: 'cds.String', length: 100, "@EndUserText.label": "LANGU" };
+            tblDef.elements['NAME'] = { type: 'cds.String', length: 100, "@EndUserText.label": "NAME" };
+            tblDef.elements['TEXT'] = { type: 'cds.String', length: 100, "@EndUserText.label": "TEXT" };
+            return;
+        }
+
         const knownSchema = TABLE_CATALOG[cleanName] || TABLE_CATALOG[cleanName.toUpperCase()] || TABLE_CATALOG[tblName];
         if (knownSchema) {
             if (!tblDef.elements) tblDef.elements = {};
@@ -28,6 +40,11 @@ class TransformService {
                         "@EndUserText.label": colName,
                         ...(colInfo.isKey ? { key: true } : {})
                     };
+                } else if (tblDef.elements[colName].type === 'cds.String' && colInfo.length) {
+                    // Never shrink an existing string column length across imports to avoid breaking dependent views in Datasphere
+                    if ((tblDef.elements[colName].length || 0) < colInfo.length) {
+                        tblDef.elements[colName].length = colInfo.length;
+                    }
                 }
             }
         }
@@ -306,12 +323,15 @@ class TransformService {
         if (tableTechName && !tableDefinitions[tableTechName] && !tableTechName.endsWith('_V')) {
             tableDefinitions[tableTechName] = tableDefinition;
         }
-        // Bundle all physical DataSources referenced by the model with their exact schema (skipping nested calc views)
-        for (const src of (model.sources || [])) {
-            if (src.isNestedCalcView) continue;
+        // Bundle all physical DataSources referenced by the model with their exact schema (including nested view base tables)
+        const physicalSourcesToBundle = (model.allPhysicalSources && model.allPhysicalSources.length > 0)
+            ? model.allPhysicalSources
+            : (model.sources || []).filter(s => !s.isNestedCalcView);
+
+        for (const src of physicalSourcesToBundle) {
             const sName = sanitizeTech(src.tableName);
             if (sName && !tableDefinitions[sName]) {
-                const specificCols = (model.sourceColumns && model.sourceColumns[src.tableName]) || [];
+                const specificCols = (model.sourceColumns && (model.sourceColumns[src.tableName] || model.sourceColumns[sName])) || [];
                 const srcElements = {};
                 if (specificCols.length > 0) {
                     for (const sc of specificCols) {
@@ -346,9 +366,47 @@ class TransformService {
             definitions: tableDefinitions
         };
 
-        // 2. Fact View CSN (Self-Contained: Bundles all base tables so Datasphere never throws missing object errors)
+        // Build self-contained definitions for any referenced nested calculation views
+        const nestedViewDefs = {};
+        for (const src of (model.sources || []).filter(s => s.isNestedCalcView)) {
+            const nestedName = src.tableName;
+            const sNested = sanitizeTech(nestedName);
+            if (!tableDefinitions[sNested] && !nestedViewDefs[sNested]) {
+                const nestedModel = model.nestedViews && model.nestedViews[nestedName];
+                const rawCols = (nestedModel && nestedModel.columns) || (model.sourceColumns && (model.sourceColumns[nestedName] || model.sourceColumns[sNested])) || [];
+                const nestedElements = {};
+                for (const c of rawCols) {
+                    nestedElements[c.name] = {
+                        ...this._toCsnType(c.dataType || 'cds.String(40)'),
+                        "@EndUserText.label": c.originalName || c.name,
+                        ...(c.isKey ? { key: true } : {}),
+                        ...(c.isMeasure ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                    };
+                }
+                ensureKey(nestedElements);
+
+                const nestedFrom = (nestedModel && nestedModel.sources && nestedModel.sources[0]?.tableName)
+                    ? sanitizeTech(nestedModel.sources[0].tableName)
+                    : `${sNested}_TBL`;
+
+                nestedViewDefs[sNested] = {
+                    kind: "entity",
+                    "@EndUserText.label": `${sNested} Nested Calculation View`,
+                    elements: nestedElements,
+                    query: {
+                        SELECT: {
+                            from: { ref: [nestedFrom] },
+                            columns: Object.keys(nestedElements).map(k => ({ ref: [k] }))
+                        }
+                    }
+                };
+            }
+        }
+
+        // 2. Fact View CSN (Self-Contained: Bundles all base tables and nested views so Datasphere never throws missing object errors)
         const viewDefinitions = {
             ...tableDefinitions,
+            ...nestedViewDefs,
             [viewTechName]: viewDefinition
         };
         const viewCsn = {
@@ -373,6 +431,7 @@ class TransformService {
         // 4. Analytic Model CSN (Self-Contained: Bundles Base Tables + Fact View + Analytic Model)
         const amDefinitions = {
             ...tableDefinitions,
+            ...nestedViewDefs,
             [viewTechName]: viewDefinition,
             [amTechName]: amDefinition
         };
@@ -384,6 +443,7 @@ class TransformService {
         // 5. Unified CSN Package (Tables + View + Analytic Model in one complete file)
         const packageDefinitions = {
             ...tableDefinitions,
+            ...nestedViewDefs,
             [viewTechName]: viewDefinition,
             [amTechName]: amDefinition
         };
@@ -449,34 +509,55 @@ class TransformService {
             optimizedQuerySql + `;`;
 
         // Replication Flow Definitions (Targeting Local Tables in Datasphere)
-        const rfTasksMaster = [{
-            sourceObject: fromSource,
-            targetObject: tableTechName,
-            category: 'MasterData',
-            loadType: 'Initial',
-            description: `Snapshot replication of ${fromSource} into Local Table ${tableTechName}`
-        }];
-        const rfTasksDelta = [{
-            sourceObject: fromSource,
-            targetObject: tableTechName,
-            category: 'TransactionalData',
-            loadType: 'InitialAndDelta',
-            description: `Initial + CDC Delta replication of ${fromSource} into Local Table ${tableTechName}`
-        }];
+        // Extract all actual physical source tables from the model (e.g. EKKO, EKPO, MARA, T001W or BNKA, BP1010)
+        const rawSourceTables = (model.sources && model.sources.length > 0)
+            ? model.sources.map(s => (s.tableName || '').toUpperCase().trim()).filter(Boolean)
+            : (model.dependencies && model.dependencies.length > 0)
+                ? model.dependencies.map(d => (d.BASE_OBJECT_NAME || '').toUpperCase().trim()).filter(Boolean)
+                : [fromSource];
+
+        const uniqueSourceTables = [...new Set(rawSourceTables)];
+
+        const rfTasksMaster = uniqueSourceTables.map(src => {
+            const isMaster = this._isMasterData(src);
+            const tgt = (uniqueSourceTables.length === 1 && tableTechName) ? tableTechName : src;
+            return {
+                sourceObject: src,
+                targetObject: tgt,
+                category: isMaster ? 'MasterData' : 'TransactionalData',
+                loadType: 'Initial',
+                description: `Snapshot replication of ${src} into Local Table ${tgt}`
+            };
+        });
+
+        const rfTasksDelta = uniqueSourceTables.map(src => {
+            const isMaster = this._isMasterData(src);
+            const tgt = (uniqueSourceTables.length === 1 && tableTechName) ? tableTechName : src;
+            return {
+                sourceObject: src,
+                targetObject: tgt,
+                category: isMaster ? 'MasterData' : 'TransactionalData',
+                loadType: isMaster ? 'Initial' : 'InitialAndDelta',
+                description: `Initial + CDC Delta replication of ${src} into Local Table ${tgt}`
+            };
+        });
+
+        const effectiveConn = namingConfig.sourceConnection || 'AIS_S21_S4HANA_2023_Inbound';
+        const effectiveSpace = namingConfig.space || space || 'AIS_INBOUND';
 
         const rfMaster = this.generateReplicationFlow({
             flowName: `RF_${tableTechName}_MASTER`,
             description: `Replication Flow for ${tableBusName} (Master Snapshot Load)`,
-            sourceConnection: namingConfig.sourceConnection || 'S4HANA_SOURCE',
-            targetSpace: space,
+            sourceConnection: effectiveConn,
+            targetSpace: effectiveSpace,
             tasks: rfTasksMaster
         });
 
         const rfDelta = this.generateReplicationFlow({
             flowName: `RF_${tableTechName}_DELTA`,
             description: `Replication Flow for ${tableBusName} (Transactional Delta Load)`,
-            sourceConnection: namingConfig.sourceConnection || 'S4HANA_SOURCE',
-            targetSpace: space,
+            sourceConnection: effectiveConn,
+            targetSpace: effectiveSpace,
             tasks: rfTasksDelta
         });
 
@@ -673,18 +754,62 @@ class TransformService {
                 const cleanInp = cleanNodeId(rawInp);
                 const isAnotherNode = nodeHierarchy.some(n => n.id === rawInp || cleanNodeId(n.id) === cleanInp);
                 if (!isAnotherNode && cleanInp) {
+                    const isNestedCalc = (model.sources && model.sources.some(s => (s.tableName === cleanInp || cleanNodeId(s.rawId) === cleanInp) && s.isNestedCalcView)) || (model.nestedViews && model.nestedViews[cleanInp]);
+
                     if (!definitions[cleanInp]) {
-                        definitions[cleanInp] = {
-                            kind: "entity",
-                            "@EndUserText.label": `${cleanInp} Physical Table`,
-                            elements: {}
-                        };
+                        if (isNestedCalc) {
+                            const nestedModel = model.nestedViews && model.nestedViews[cleanInp];
+                            const nestedCols = (nestedModel && nestedModel.columns) || (model.sourceColumns && (model.sourceColumns[cleanInp] || model.sourceColumns[rawInp])) || [];
+                            const nestedElements = {};
+                            for (const c of nestedCols) {
+                                nestedElements[c.name] = {
+                                    ...this._toCsnType(c.dataType || 'cds.String(40)'),
+                                    "@EndUserText.label": c.originalName || c.name,
+                                    ...(c.isKey ? { key: true } : {})
+                                };
+                            }
+                            ensureKey(nestedElements);
+                            const nestedFrom = (nestedModel && nestedModel.sources && nestedModel.sources[0]?.tableName)
+                                ? cleanNodeId(nestedModel.sources[0].tableName)
+                                : `${cleanInp}_TBL`;
+
+                            definitions[cleanInp] = {
+                                kind: "entity",
+                                "@EndUserText.label": `${cleanInp} Nested Calculation View`,
+                                elements: nestedElements,
+                                query: {
+                                    SELECT: {
+                                        from: { ref: [nestedFrom] },
+                                        columns: Object.keys(nestedElements).map(k => ({ ref: [k] }))
+                                    }
+                                }
+                            };
+
+                            // Also define the physical base table for the nested view
+                            if (!definitions[nestedFrom]) {
+                                definitions[nestedFrom] = {
+                                    kind: "entity",
+                                    "@EndUserText.label": `${nestedFrom} Physical Table`,
+                                    elements: { ...nestedElements }
+                                };
+                                this._hydrateTableWithCatalog(nestedFrom, definitions[nestedFrom]);
+                                ensureKey(definitions[nestedFrom].elements);
+                            }
+                        } else {
+                            definitions[cleanInp] = {
+                                kind: "entity",
+                                "@EndUserText.label": `${cleanInp} Physical Table`,
+                                elements: {}
+                            };
+                        }
                     }
                     const tblDef = definitions[cleanInp];
                     if (!tblDef.elements) tblDef.elements = {};
 
-                    // First, hydrate with complete schema from catalog if available
-                    this._hydrateTableWithCatalog(cleanInp, tblDef);
+                    // First, hydrate with complete schema from catalog if available (for physical tables)
+                    if (!tblDef.query) {
+                        this._hydrateTableWithCatalog(cleanInp, tblDef);
+                    }
 
                     // Merge known source columns
                     const specificCols = (model.sourceColumns && (model.sourceColumns[cleanInp] || model.sourceColumns[rawInp])) || [];
@@ -931,10 +1056,13 @@ class TransformService {
 
                 nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${leftTech}" AS A\n${node.joinType || 'LEFT OUTER JOIN'} "${rightTech}" AS B\n  ON ${onConditions}`;
 
+                ensureKey(viewElements);
+
                 nodeViewDef = {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
+                    elements: viewElements,
                     query: {
                         SELECT: {
                             from: {
@@ -1060,10 +1188,13 @@ class TransformService {
 
                 nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${srcTech}"`;
 
+                ensureKey(viewElements);
+
                 nodeViewDef = {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
+                    elements: viewElements,
                     query: {
                         SELECT: {
                             from: { ref: [srcTech] },
@@ -1154,6 +1285,7 @@ class TransformService {
                     kind: "entity",
                     "@EndUserText.label": nodeLabel,
                     ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
+                    elements: unionElements,
                     query: {
                         SET: {
                             op: "union",
@@ -1170,6 +1302,142 @@ class TransformService {
                     label: nodeLabel,
                     sql: nodeSql,
                     inputs: inputsList
+                });
+
+            } else if (node.type === 'AGGREGATION') {
+                const rawInput = node.inputs[0];
+                const srcTech = getNodeTechName(rawInput);
+                const selectCols = [];
+                const cqnCols = [];
+                const viewElements = {};
+                const seenTargets = new Set();
+                const groupByCols = [];
+                const cqnGroupBy = [];
+
+                let activeMappings = node.mappings || [];
+                if (activeMappings.length === 0) {
+                    const rawViewAttrs = node.viewAttributes || [];
+                    activeMappings = rawViewAttrs.map(va => ({ source: va.id, target: va.id }));
+                }
+
+                for (const m of activeMappings) {
+                    const src = m.source;
+                    const tgt = m.target;
+                    if (seenTargets.has(tgt)) continue;
+                    seenTargets.add(tgt);
+
+                    const inferred = (model.columns || []).find(c => c.name === tgt) || {};
+                    const isMeas = inferred.isMeasure || this._isMeasure(tgt);
+                    const isKey = inferred.isKey || (tgt === 'MANDT');
+
+                    if (isMeas) {
+                        selectCols.push(`    SUM("${src}") AS "${tgt}"`);
+                        cqnCols.push({ func: "sum", args: [{ ref: [src] }], as: tgt });
+                    } else {
+                        if (src === tgt) {
+                            selectCols.push(`    "${src}"`);
+                            cqnCols.push({ ref: [src] });
+                        } else {
+                            selectCols.push(`    "${src}" AS "${tgt}"`);
+                            cqnCols.push({ ref: [src], as: tgt });
+                        }
+                        groupByCols.push(`"${src}"`);
+                        cqnGroupBy.push({ ref: [src] });
+                    }
+
+                    viewElements[tgt] = {
+                        ...this._toCsnType(inferred.dataType || (isMeas ? 'cds.Decimal(15, 2)' : 'cds.String(40)')),
+                        "@EndUserText.label": tgt,
+                        ...(isKey ? { key: true } : {}),
+                        ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : { '@Analytics.dimension': true })
+                    };
+                }
+
+                // Add calculated attributes on this AGGREGATION node
+                for (const ca of (node.calculatedAttributes || [])) {
+                    const colId = ca.id;
+                    if (seenTargets.has(colId)) continue;
+                    seenTargets.add(colId);
+
+                    const formula = ca.formula || '';
+                    if (/^\d+$/.test(formula.trim())) {
+                        const numVal = parseInt(formula.trim(), 10);
+                        selectCols.push(`    ${numVal} AS "${colId}"`);
+                        cqnCols.push({ val: numVal, as: colId });
+                    } else if (/^'.*'$/.test(formula.trim())) {
+                        const strVal = formula.trim().slice(1, -1);
+                        selectCols.push(`    '${strVal}' AS "${colId}"`);
+                        cqnCols.push({ val: strVal, as: colId });
+                    } else {
+                        selectCols.push(`    ${formula} AS "${colId}"`);
+                        cqnCols.push({ ref: [colId] });
+                    }
+
+                    const dt = this._mapHanaTypeToCds(ca.dataType, ca.length, ca.precision, ca.scale);
+                    const inferred = (model.columns || []).find(c => c.name === colId) || {};
+                    const isMeas = inferred.isMeasure || this._isMeasure(colId);
+
+                    viewElements[colId] = {
+                        ...this._toCsnType(dt),
+                        "@EndUserText.label": colId,
+                        ...(isMeas ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                    };
+                }
+
+                if (Object.keys(viewElements).length === 0) {
+                    const candidateCols = (model.columns && model.columns.length > 0) ? model.columns : [{ name: 'ID', isKey: true }];
+                    for (const c of candidateCols) {
+                        viewElements[c.name] = {
+                            ...this._toCsnType(c.dataType || 'cds.String(40)'),
+                            "@EndUserText.label": c.originalName || c.name,
+                            ...(c.isKey ? { key: true } : {}),
+                            ...(c.isMeasure ? { '@Analytics.measure': true, '@Aggregation.default': '#SUM' } : {})
+                        };
+                        selectCols.push(`    "${c.name}"`);
+                        cqnCols.push({ ref: [c.name] });
+                    }
+                }
+
+                if (isRoot && semanticCategory === '#CUBE') {
+                    const hasMeasuresInView = Object.values(viewElements).some(el => el['@Analytics.measure']);
+                    if (!hasMeasuresInView) {
+                        viewElements["RECORD_COUNT"] = {
+                            type: "cds.Integer",
+                            "@EndUserText.label": "Record Count",
+                            "@Analytics.measure": true,
+                            "@Aggregation.default": "#SUM"
+                        };
+                        selectCols.push('    COUNT(*) AS "RECORD_COUNT"');
+                        cqnCols.push({ val: 1, as: "RECORD_COUNT" });
+                    }
+                }
+
+                ensureKey(viewElements);
+
+                const groupBySql = groupByCols.length > 0 ? `\nGROUP BY ${groupByCols.join(', ')}` : '';
+                nodeSql = `SELECT\n${selectCols.join(',\n')}\nFROM "${srcTech}"${groupBySql}`;
+
+                nodeViewDef = {
+                    kind: "entity",
+                    "@EndUserText.label": nodeLabel,
+                    ...(isRoot && semanticCategory ? { "@Analytics.dataCategory": semanticCategory } : {}),
+                    elements: viewElements,
+                    query: {
+                        SELECT: {
+                            from: { ref: [srcTech] },
+                            columns: cqnCols,
+                            ...(cqnGroupBy.length > 0 ? { groupBy: cqnGroupBy } : {})
+                        }
+                    }
+                };
+
+                tierSqls.push({
+                    tier: tierIndex++,
+                    nodeId: node.id,
+                    viewTechName: nodeTech,
+                    label: nodeLabel,
+                    sql: nodeSql,
+                    inputs: [srcTech]
                 });
             }
 
@@ -1236,6 +1504,26 @@ class TransformService {
                     inlinedBranches.push(
                         `SELECT\n${branchSelectCols.join(',\n')}\nFROM "${srcTable}" AS "${childNode.id}"`
                     );
+                } else if (childNode && childNode.type === 'AGGREGATION') {
+                    const srcTech = getNodeTechName(childNode.inputs[0]);
+                    const innerCols = [];
+                    const innerGroup = [];
+                    for (const m of (childNode.mappings || [])) {
+                        const isMeas = this._isMeasure(m.target);
+                        if (isMeas) {
+                            innerCols.push(`        SUM("${m.source}") AS "${m.target}"`);
+                        } else {
+                            innerCols.push(`        "${m.source}" AS "${m.target}"`);
+                            innerGroup.push(`"${m.source}"`);
+                        }
+                    }
+                    const grp = innerGroup.length > 0 ? `\n    GROUP BY ${innerGroup.join(', ')}` : '';
+                    inlinedBranches.push(
+                        `SELECT\n${branchSelectCols.join(',\n')}\nFROM (\n` +
+                        `    SELECT\n${innerCols.join(',\n')}\n` +
+                        `    FROM "${srcTech}"${grp}\n` +
+                        `) AS "${childNode.id}"`
+                    );
                 } else {
                     const srcTech = getNodeTechName(rawInput);
                     inlinedBranches.push(
@@ -1246,73 +1534,139 @@ class TransformService {
             inlinedPureSql = inlinedBranches.join('\n\nUNION ALL\n\n');
         }
 
-        // Auto-Healing Pass: Guarantee every base table defines all columns queried by any intermediate view
-        for (const [vName, vDef] of Object.entries(definitions)) {
-            if (vDef.kind !== 'entity' || !vDef.query?.SELECT) continue;
+        // Auto-Healing Pass: Guarantee every referenced entity (base table or intermediate view)
+        // defines and exports all columns queried by any downstream view.
+        // Run iterative convergence loop so columns propagate upstream through all DAG levels.
+        let autoHealChanged = true;
+        let autoHealPasses = 0;
 
-            const qSelect = vDef.query.SELECT;
-            const fromRef = qSelect.from?.ref?.[0];
-            const joinArgs = qSelect.from?.args;
+        while (autoHealChanged && autoHealPasses < 10) {
+            autoHealChanged = false;
+            autoHealPasses++;
 
-            const ensureTableCol = (targetTable, colName) => {
-                if (!targetTable || !colName) return;
-                const tbl = definitions[targetTable];
-                // Only modify physical base tables (entities without query)
-                if (tbl && tbl.kind === 'entity' && !tbl.query) {
-                    if (!tbl.elements) tbl.elements = {};
-                    if (!tbl.elements[colName]) {
-                        const inferredDt = this._inferColumnDataType(colName);
-                        tbl.elements[colName] = {
-                            ...this._toCsnType(inferredDt),
-                            "@EndUserText.label": colName
-                        };
-                        ensureKey(tbl.elements);
+            const ensureEntityCol = (targetEntity, colName) => {
+                if (!targetEntity || !colName) return;
+                let target = definitions[targetEntity];
+                if (!target) {
+                    const matchedKey = Object.keys(definitions).find(k => k.toLowerCase() === targetEntity.toLowerCase());
+                    if (matchedKey) target = definitions[matchedKey];
+                }
+                if (!target || target.kind !== 'entity') return;
+
+                if (!target.elements) target.elements = {};
+                const existingColKey = Object.keys(target.elements).find(k => k.toLowerCase() === colName.toLowerCase());
+                if (!existingColKey) {
+                    const inferredDt = this._inferColumnDataType(colName);
+                    target.elements[colName] = {
+                        ...this._toCsnType(inferredDt),
+                        "@EndUserText.label": colName
+                    };
+                    ensureKey(target.elements);
+                    autoHealChanged = true;
+                }
+
+                // If target is an intermediate view with a query, ensure colName is exported in columns
+                if (target.query?.SELECT?.columns) {
+                    const cols = target.query.SELECT.columns;
+                    const exists = cols.some(c => (c.as && c.as.toLowerCase() === colName.toLowerCase()) || (Array.isArray(c.ref) && c.ref[c.ref.length - 1].toLowerCase() === colName.toLowerCase()));
+                    if (!exists) {
+                        if (target.query.SELECT.from?.args) {
+                            let chosenAlias = "A";
+                            for (const arg of target.query.SELECT.from.args) {
+                                const tbl = arg.ref?.[0];
+                                const tblDef = definitions[tbl] || definitions[Object.keys(definitions).find(k => k.toLowerCase() === (tbl || '').toLowerCase())];
+                                if (tblDef?.elements && Object.keys(tblDef.elements).some(ek => ek.toLowerCase() === colName.toLowerCase())) {
+                                    chosenAlias = arg.as || "A";
+                                    break;
+                                }
+                            }
+                            cols.push({ ref: [chosenAlias, colName], as: colName });
+                        } else {
+                            cols.push({ ref: [colName] });
+                        }
+                        autoHealChanged = true;
                     }
-                }
-            };
-
-            // Single source view: e.g. FROM "PA0000"
-            if (fromRef) {
-                for (const col of (qSelect.columns || [])) {
-                    const colName = Array.isArray(col.ref) ? col.ref[col.ref.length - 1] : (typeof col === 'string' ? col : null);
-                    if (colName) ensureTableCol(fromRef, colName);
-                }
-            }
-
-            // Join view: e.g. FROM "A" JOIN "B"
-            if (joinArgs && Array.isArray(joinArgs)) {
-                const aliasMap = {};
-                for (const arg of joinArgs) {
-                    if (arg.as && arg.ref?.[0]) {
-                        aliasMap[arg.as] = arg.ref[0];
-                    }
-                }
-                for (const col of (qSelect.columns || [])) {
-                    if (Array.isArray(col.ref)) {
-                        if (col.ref.length >= 2) {
-                            const alias = col.ref[0];
-                            const colName = col.ref[1];
-                            const realTable = aliasMap[alias];
-                            if (realTable) ensureTableCol(realTable, colName);
-                        } else if (col.ref.length === 1) {
-                            const colName = col.ref[0];
-                            for (const realTable of Object.values(aliasMap)) {
-                                ensureTableCol(realTable, colName);
+                } else if (target.query?.SET?.args) {
+                    for (const branch of target.query.SET.args) {
+                        if (branch.SELECT?.columns) {
+                            const bCols = branch.SELECT.columns;
+                            const exists = bCols.some(c => (c.as && c.as.toLowerCase() === colName.toLowerCase()) || (Array.isArray(c.ref) && c.ref[c.ref.length - 1].toLowerCase() === colName.toLowerCase()));
+                            if (!exists) {
+                                bCols.push({ ref: [colName] });
+                                autoHealChanged = true;
                             }
                         }
                     }
                 }
-                // Check join ON conditions
-                const checkOnList = (list) => {
-                    if (!list || !Array.isArray(list)) return;
-                    for (const item of list) {
-                        if (item && Array.isArray(item.ref) && item.ref.length >= 2) {
-                            const realTable = aliasMap[item.ref[0]];
-                            if (realTable) ensureTableCol(realTable, item.ref[1]);
+            };
+
+            for (const [vName, vDef] of Object.entries(definitions)) {
+                if (vDef.kind !== 'entity' || !vDef.query) continue;
+
+                const checkSelect = (qSelect) => {
+                    if (!qSelect) return;
+                    const fromRef = qSelect.from?.ref?.[0];
+                    const joinArgs = qSelect.from?.args;
+
+                    if (fromRef) {
+                        for (const col of (qSelect.columns || [])) {
+                            if (Array.isArray(col.ref)) {
+                                const colName = col.ref[col.ref.length - 1];
+                                if (colName) ensureEntityCol(fromRef, colName);
+                            }
+                        }
+                    }
+
+                    if (joinArgs && Array.isArray(joinArgs)) {
+                        const aliasMap = {};
+                        for (const arg of joinArgs) {
+                            if (arg.as && arg.ref?.[0]) {
+                                aliasMap[arg.as] = arg.ref[0];
+                                aliasMap[arg.as.toUpperCase()] = arg.ref[0];
+                                aliasMap[arg.as.toLowerCase()] = arg.ref[0];
+                            }
+                        }
+                        for (const col of (qSelect.columns || [])) {
+                            if (Array.isArray(col.ref)) {
+                                if (col.ref.length >= 2) {
+                                    const realTable = aliasMap[col.ref[0]];
+                                    if (realTable) ensureEntityCol(realTable, col.ref[1]);
+                                } else if (col.ref.length === 1) {
+                                    const colName = col.ref[0];
+                                    let found = false;
+                                    for (const realTable of Object.values(aliasMap)) {
+                                        const tblDef = definitions[realTable];
+                                        if (tblDef?.elements && Object.keys(tblDef.elements).some(ek => ek.toLowerCase() === colName.toLowerCase())) {
+                                            ensureEntityCol(realTable, colName);
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        const firstTable = Object.values(aliasMap)[0];
+                                        if (firstTable) ensureEntityCol(firstTable, colName);
+                                    }
+                                }
+                            }
+                        }
+                        if (Array.isArray(qSelect.from?.on)) {
+                            for (const item of qSelect.from.on) {
+                                if (item && Array.isArray(item.ref) && item.ref.length >= 2) {
+                                    const realTable = aliasMap[item.ref[0]];
+                                    if (realTable) ensureEntityCol(realTable, item.ref[1]);
+                                }
+                            }
                         }
                     }
                 };
-                checkOnList(qSelect.from.on);
+
+                if (vDef.query.SELECT) {
+                    checkSelect(vDef.query.SELECT);
+                } else if (vDef.query.SET?.args) {
+                    for (const branch of vDef.query.SET.args) {
+                        if (branch.SELECT) checkSelect(branch.SELECT);
+                    }
+                }
             }
         }
 
@@ -1324,10 +1678,31 @@ class TransformService {
             }
         }
 
+        // Guarantee strictly ordered definitions:
+        // 1. Physical base tables first
+        // 2. Intermediate views & Root view (in DAG topological order)
+        // 3. Analytic Models
+        const orderedDefinitions = {};
+        for (const [k, v] of Object.entries(definitions)) {
+            if (v.kind === 'entity' && !v.query) {
+                orderedDefinitions[k] = v;
+            }
+        }
+        for (const [k, v] of Object.entries(definitions)) {
+            if (v.kind === 'entity' && v.query) {
+                orderedDefinitions[k] = v;
+            }
+        }
+        for (const [k, v] of Object.entries(definitions)) {
+            if (v.kind !== 'entity' || v.kind === 'analyticModel') {
+                orderedDefinitions[k] = v;
+            }
+        }
+
         return {
             packageCsn: {
                 $version: "2.0",
-                definitions: definitions
+                definitions: orderedDefinitions
             },
             tierSqls: tierSqls,
             inlinedPureSql: inlinedPureSql
@@ -1435,8 +1810,8 @@ class TransformService {
     generateReplicationFlow(options = {}) {
         const flowName = options.flowName || 'RF_AIS_HARMONIZATION';
         const description = options.description || 'Replication Flow to Datasphere Local Tables';
-        const sourceConnection = options.sourceConnection || 'S4HANA_SOURCE';
-        const targetSpace = options.targetSpace || 'AIS_HARMONIZATION_';
+        const sourceConnection = options.sourceConnection || 'AIS_S21_S4HANA_2023_Inbound';
+        const targetSpace = options.targetSpace || 'AIS_INBOUND';
         const tasks = (options.tasks || []).map(t => {
             const isMaster = t.category === 'MasterData' || (t.loadType === 'Initial') || this._isMasterData(t.sourceObject);
             const loadType = t.loadType || (isMaster ? 'Initial' : 'InitialAndDelta');
@@ -1472,7 +1847,7 @@ class TransformService {
             tasks: tasks
         };
 
-        const cliDeployCommand = `datasphere objects replication-flows create -y ${targetSpace} -f -f ${flowName}.replicationFlow.json`;
+        const cliDeployCommand = `npx @sap/datasphere-cli objects replication-flows create --space "${targetSpace}" --file-path "${flowName}.replicationFlow.json" --save-anyway --allow-missing-dependencies`;
 
         return {
             flowDefinition,
@@ -1722,8 +2097,28 @@ class TransformService {
                 physicalSources.add(viewName.toUpperCase());
             }
 
-            if (Array.isArray(model.sources) && model.sources.length > 0) {
+            if (Array.isArray(model.allPhysicalSources) && model.allPhysicalSources.length > 0) {
+                for (const ps of model.allPhysicalSources) {
+                    const srcTable = (ps.tableName || ps.name || '').toUpperCase().trim();
+                    if (srcTable && srcTable !== 'DUMMY') {
+                        const cleanTbl = srcTable.includes('.') ? srcTable.split('.').pop() : srcTable;
+                        physicalSources.add(cleanTbl);
+                    }
+                }
+            } else if (Array.isArray(model.sources) && model.sources.length > 0) {
                 for (const s of model.sources) {
+                    if (s.isNestedCalcView) {
+                        if (model.nestedViews && model.nestedViews[s.tableName]) {
+                            const subPhysical = model.nestedViews[s.tableName].allPhysicalSources || model.nestedViews[s.tableName].sources || [];
+                            for (const sub of subPhysical) {
+                                if (!sub.isNestedCalcView && sub.tableName) {
+                                    const subTbl = sub.tableName.toUpperCase().trim();
+                                    physicalSources.add(subTbl.includes('.') ? subTbl.split('.').pop() : subTbl);
+                                }
+                            }
+                        }
+                        continue;
+                    }
                     const srcTable = (s.tableName || s.name || '').toUpperCase().trim();
                     if (srcTable && srcTable !== 'DUMMY') {
                         // Strip schema prefix if any (e.g. SAPHANADB.ACDOCA -> ACDOCA)
@@ -1741,7 +2136,10 @@ class TransformService {
                                 const cleanInput = (input || '').toUpperCase().trim();
                                 if (cleanInput && !cleanInput.startsWith('P_') && cleanInput !== 'DUMMY') {
                                     const cleanTbl = cleanInput.includes('.') ? cleanInput.split('.').pop() : cleanInput;
-                                    physicalSources.add(cleanTbl);
+                                    const isNested = (model.sources || []).some(s => s.isNestedCalcView && (s.tableName.toUpperCase() === cleanTbl || (s.rawId && s.rawId.toUpperCase() === cleanTbl)));
+                                    if (!isNested) {
+                                        physicalSources.add(cleanTbl);
+                                    }
                                 }
                             }
                         }
@@ -1751,7 +2149,7 @@ class TransformService {
 
             if (Array.isArray(model.dependencies) && model.dependencies.length > 0) {
                 for (const dep of model.dependencies) {
-                    if (dep.BASE_OBJECT_TYPE === 'TABLE' || !dep.BASE_OBJECT_TYPE) {
+                    if (dep.BASE_OBJECT_TYPE === 'TABLE') {
                         const depTbl = (dep.BASE_OBJECT_NAME || '').toUpperCase().trim();
                         if (depTbl && depTbl !== 'DUMMY') {
                             const cleanTbl = depTbl.includes('.') ? depTbl.split('.').pop() : depTbl;
@@ -2017,9 +2415,9 @@ class TransformService {
             tasks: replicationTasks
         };
 
-        const cliDeployFlowCommand = `datasphere objects replication-flows create -y ${space} -f ${flowName}.replicationFlow.json`;
+        const cliDeployFlowCommand = `npx @sap/datasphere-cli objects replication-flows create --space "${space}" --file-path "${flowName}.replicationFlow.json" --save-anyway --allow-missing-dependencies`;
         const cliDeployTablesCommand = processedTables.map(t => 
-            `datasphere objects local-tables create -y ${space} -f ${t.targetTable}.table.json`
+            `npx @sap/datasphere-cli objects local-tables create --space "${space}" --file-path "${t.targetTable}.table.json" --save-anyway --allow-missing-dependencies`
         ).join('\n');
 
         return {
